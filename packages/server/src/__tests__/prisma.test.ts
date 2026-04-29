@@ -1,6 +1,6 @@
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { afterAll, describe, expect, it } from "vitest";
 import { PrismaClient } from "../generated/prisma/client.js";
-import { describe, it, expect, afterAll } from "vitest";
 
 describe("Prisma + SQLite connectivity", () => {
   const adapter = new PrismaBetterSqlite3({

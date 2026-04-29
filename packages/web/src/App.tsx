@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { trpc } from "./trpc";
 
 export function App() {
-  const [status, setStatus] = useState<{ name: string; status: string } | null>(null);
+  const [status, setStatus] = useState<{ name: string; status: string } | null>(
+    null,
+  );
 
   useEffect(() => {
     trpc.app.status.query().then(setStatus);
