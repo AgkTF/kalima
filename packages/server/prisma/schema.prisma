@@ -1,0 +1,14 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+model AppMeta {
+  id    Int    @id @default(autoincrement())
+  key   String @unique
+  value String
+}

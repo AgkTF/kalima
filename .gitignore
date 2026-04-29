@@ -26,3 +26,10 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Database
+*.db
+*.db-journal
+
+# Prisma generated
+packages/server/src/generated/

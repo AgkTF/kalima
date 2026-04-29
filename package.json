@@ -11,6 +11,6 @@
     "typescript": "^5.8.3"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild"]
+    "onlyBuiltDependencies": ["esbuild", "@prisma/engines", "prisma", "better-sqlite3"]
   }
 }
