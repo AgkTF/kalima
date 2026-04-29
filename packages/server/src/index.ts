@@ -18,12 +18,13 @@ app.use(
 
 // Serve frontend static files in production
 // In dev, Vite handles this via its own dev server + proxy
-app.use(express.static(path.join(__dirname, "../../web/dist")));
+const staticDir = process.env.STATIC_DIR ?? path.join(__dirname, "../../web/dist");
+app.use(express.static(staticDir));
 
 // SPA fallback: serve index.html for any non-API route
 app.get("/{*splat}", (_req, res) => {
-  res.sendFile(path.join(__dirname, "../../web/dist/index.html"));
-});
+  res.sendFile(path.join(staticDir, "index.html"))
+})
 
 app.listen(port, () => {
   console.log(`Kalima server running at http://localhost:${port}`);
