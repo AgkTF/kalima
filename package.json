@@ -1,0 +1,25 @@
+{
+  "name": "kalima",
+  "private": true,
+  "scripts": {
+    "dev:server": "pnpm --filter server dev",
+    "dev:web": "pnpm --filter web dev",
+    "dev": "concurrently \"pnpm dev:server\" \"pnpm dev:web\"",
+    "lint": "biome check packages/*/src",
+    "lint:fix": "biome check --write packages/*/src",
+    "test": "pnpm --filter server test"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.13",
+    "concurrently": "^9.1.2",
+    "typescript": "^5.8.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "@prisma/engines",
+      "prisma",
+      "better-sqlite3"
+    ]
+  }
+}
