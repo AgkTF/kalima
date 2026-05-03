@@ -75,6 +75,7 @@ describe("LLMClient.complete", () => {
       type: "json_schema",
       json_schema: {
         name: "response",
+        strict: true,
         schema,
       },
     });

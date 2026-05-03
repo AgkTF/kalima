@@ -71,8 +71,12 @@ describe("CaptureParser.parse", () => {
     await parser.parse("serendipity");
 
     expect(llm.complete).toHaveBeenCalledWith(
-      expect.stringContaining("serendipity"),
-      expect.objectContaining({ tier: "cheap", schema: expect.any(Object) }),
+      "serendipity",
+      expect.objectContaining({
+        tier: "cheap",
+        schema: expect.any(Object),
+        systemPrompt: expect.stringContaining("capture parser"),
+      }),
     );
   });
 });
