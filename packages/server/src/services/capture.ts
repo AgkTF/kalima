@@ -3,11 +3,7 @@ import { CaptureParser } from "./capture-parser.js";
 import type { LLMClient } from "./llm-client.js";
 
 export const CaptureService = {
-  async create(
-    rawText: string,
-    prisma: PrismaClient,
-    llm: LLMClient,
-  ) {
+  async create(rawText: string, prisma: PrismaClient, llm: LLMClient) {
     const parser = new CaptureParser(llm);
     const parsed = await parser.parse(rawText);
 

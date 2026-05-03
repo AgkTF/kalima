@@ -26,8 +26,7 @@ export class LLMClient {
     const tier = options?.tier ?? "cheap";
     const schema = options?.schema;
 
-    const model =
-      tier === "premium" ? this.cheapModel : this.cheapModel; // premium not implemented yet
+    const model = tier === "premium" ? this.cheapModel : this.cheapModel; // premium not implemented yet
 
     const body: Record<string, unknown> = {
       model,

@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, afterAll } from "vitest";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import { PrismaClient } from "../generated/prisma/client.js";
 import { appRouter } from "../router.js";
 import type { LLMClient } from "../services/llm-client.js";
@@ -28,7 +28,9 @@ describe("capture.create mutation", () => {
   it("parses raw text and persists the capture to the database", async () => {
     const caller = appRouter.createCaller({ prisma, llm: mockLLM });
 
-    const result = await caller.capture.create({ rawText: "serendipity chapter 12 page 45" });
+    const result = await caller.capture.create({
+      rawText: "serendipity chapter 12 page 45",
+    });
 
     expect(result).toMatchObject({
       item: "serendipity",

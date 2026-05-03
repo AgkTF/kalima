@@ -1,8 +1,8 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { trpc, createClient } from "./trpc";
 import { App } from "./App";
+import { createClient, trpc } from "./trpc";
 
 const queryClient = new QueryClient();
 const trpcClient = createClient();

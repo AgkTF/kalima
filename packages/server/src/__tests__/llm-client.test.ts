@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, afterEach } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { LLMClient } from "../services/llm-client.js";
 
 describe("LLMClient.complete", () => {
@@ -40,9 +40,7 @@ describe("LLMClient.complete", () => {
     const body = JSON.parse(
       (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body,
     );
-    expect(body.messages).toEqual([
-      { role: "user", content: "say hello" },
-    ]);
+    expect(body.messages).toEqual([{ role: "user", content: "say hello" }]);
     expect(body.model).toBeDefined();
   });
 
