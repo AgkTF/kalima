@@ -7,13 +7,14 @@ export interface ParsedCapture {
 }
 
 const CAPTURE_SCHEMA = {
-  type: "object",
+  type: "object" as const,
   properties: {
-    item: { type: "string" },
-    locator: { type: ["string", "null"] },
-    sourceHint: { type: ["string", "null"] },
+    item: { type: "string" as const },
+    locator: { type: ["string", "null"] as const },
+    sourceHint: { type: ["string", "null"] as const },
   },
   required: ["item", "locator", "sourceHint"],
+  additionalProperties: false,
 } as const;
 
 const SYSTEM_PROMPT = `You are a capture parser. Extract the following fields from the user's raw natural language input:
@@ -29,10 +30,11 @@ export class CaptureParser {
   }
 
   async parse(rawText: string): Promise<ParsedCapture> {
-    const response = await this.llm.complete(
-      `${SYSTEM_PROMPT}\n\nRaw input: ${rawText}`,
-      { tier: "cheap", schema: CAPTURE_SCHEMA },
-    );
+    const response = await this.llm.complete(rawText, {
+      tier: "cheap",
+      schema: CAPTURE_SCHEMA,
+      systemPrompt: SYSTEM_PROMPT,
+    });
     return JSON.parse(response) as ParsedCapture;
   }
 }

@@ -7,6 +7,7 @@ interface LLMClientConfig {
 export interface CompleteOptions {
   tier?: "cheap" | "premium";
   schema?: object;
+  systemPrompt?: string;
 }
 
 const CHEAP_MODEL_DEFAULT = "gpt-4o-mini";
@@ -25,12 +26,19 @@ export class LLMClient {
   async complete(prompt: string, options?: CompleteOptions): Promise<string> {
     const tier = options?.tier ?? "cheap";
     const schema = options?.schema;
+    const systemPrompt = options?.systemPrompt;
 
     const model = tier === "premium" ? this.cheapModel : this.cheapModel; // premium not implemented yet
 
+    const messages: { role: string; content: string }[] = [];
+    if (systemPrompt) {
+      messages.push({ role: "system", content: systemPrompt });
+    }
+    messages.push({ role: "user", content: prompt });
+
     const body: Record<string, unknown> = {
       model,
-      messages: [{ role: "user", content: prompt }],
+      messages,
     };
 
     if (schema) {
@@ -38,6 +46,7 @@ export class LLMClient {
         type: "json_schema",
         json_schema: {
           name: "response",
+          strict: true,
           schema,
         },
       };
