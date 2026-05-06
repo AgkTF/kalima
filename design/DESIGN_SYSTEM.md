@@ -46,7 +46,8 @@ Minimal approach — depth comes from warm color separation, not heavy shadows.
 ## Component architecture
 
 - **Styling**: Tailwind CSS v4
-- **Complex components**: Radix UI primitives (Dialog, Sheet, Tabs, Popover, Autocomplete)
+- **Complex components**: Radix UI primitives (`@radix-ui/react-dialog` for Sheet, `@radix-ui/react-tabs`, `@radix-ui/react-popover`)
+- **Routing**: react-router v7 declarative mode with layout routes
 - **Simple components**: Built directly with Tailwind (chips, buttons, inputs)
 - **Icons**: Heroicons — outline (24px) for general UI, solid (20px) for active states, mini (16px) for chip-level
 
