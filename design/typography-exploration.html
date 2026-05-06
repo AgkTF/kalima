@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kalima · Typography Exploration — Three Pairings</title>
+
+  <!-- Google Fonts — all seven typefaces -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,400..600;1,9..40,400..600&family=IBM+Plex+Sans+Arabic:wght@400;700&family=Inter:ital,opsz,wght@0,14..32,400..600&family=Manrope:wght@400..600&family=Newsreader:ital,opsz,wght@0,16..72,400..700;1,16..72,400..700&family=Noto+Sans+Arabic:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      /* Moss palette */
+      --bg-page:        #F6F4EF;
+      --bg-surface:     #FDFCF7;
+      --border:         #E2E3DA;
+      --text-primary:   #1C1E1C;
+      --text-secondary: #7E847A;
+      --accent:         #456859;
+      --accent-subtle:  #E8EDE4;
+      --chip-bg:        #E9ECE4;
+      --chip-text:      #5C6A58;
+
+      --radius:     14px;
+      --radius-sm:  8px;
+      --shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 3px 12px rgba(0,0,0,0.03);
+    }
+
+    body {
+      background: var(--bg-page);
+      color: var(--text-primary);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-weight: 400;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ── Page Container ── */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 48px 28px 80px;
+    }
+
+    /* ── Header ── */
+    .page-header {
+      text-align: center;
+      padding: 40px 0 52px;
+    }
+
+    .page-header h1 {
+      font-family: 'Newsreader', serif;
+      font-weight: 700;
+      font-size: 2.2rem;
+      letter-spacing: -0.01em;
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+
+    .page-header .subtitle {
+      font-size: 0.92rem;
+      color: var(--text-secondary);
+      margin-top: 8px;
+      font-weight: 400;
+      letter-spacing: 0.01em;
+    }
+
+    .palette-strip {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    .palette-strip .swatch {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      transition: transform 0.15s ease;
+    }
+
+    .palette-strip .swatch:hover {
+      transform: scale(1.25);
+    }
+
+    /* ── Three-Column Layout ── */
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 28px;
+    }
+
+    @media (max-width: 1100px) {
+      .comparison-grid {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
+    }
+
+    /* ── Column ── */
+    .column {
+      display: flex;
+      flex-direction: column;
+      gap: 40px;
+    }
+
+    .column-heading {
+      text-align: center;
+      font-family: 'Newsreader', serif;
+      font-weight: 600;
+      font-size: 1.15rem;
+      color: var(--accent);
+      letter-spacing: -0.005em;
+      padding-bottom: 14px;
+      border-bottom: 2px solid var(--border);
+    }
+
+    /* ═══════ Font scoping via CSS custom properties ═══════ */
+    .p1 {
+      --font-ui:      'Inter', system-ui, sans-serif;
+      --font-display: 'Newsreader', serif;
+      --font-arabic:  'Amiri', serif;
+    }
+
+    .p2 {
+      --font-ui:      'Manrope', system-ui, sans-serif;
+      --font-display: 'Newsreader', serif;
+      --font-arabic:  'Noto Sans Arabic', sans-serif;
+    }
+
+    .p3 {
+      --font-ui:      'DM Sans', system-ui, sans-serif;
+      --font-display: 'Newsreader', serif;
+      --font-arabic:  'IBM Plex Sans Arabic', sans-serif;
+      --font-ui-opsz: 'opsz' 16;
+    }
+
+    /* ── Font application classes ── */
+    .font-ui      { font-family: var(--font-ui);      font-variation-settings: var(--font-ui-opsz, normal); }
+    .font-display { font-family: var(--font-display); }
+    .font-arabic  { font-family: var(--font-arabic);  }
+
+    /* ── DM Sans: smaller opsz for labels & chips (p3 only) ── */
+    .p3 .chip,
+    .p3 .ui-row-label,
+    .p3 .item-field-label,
+    .p3 .specimen-label,
+    .p3 .item-source {
+      font-variation-settings: 'opsz' 12;
+    }
+
+    /* ── Section ── */
+    .section {}
+    .section-label {
+      font-family: 'Newsreader', serif;
+      font-weight: 600;
+      font-size: 1rem;
+      color: var(--accent);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      letter-spacing: -0.005em;
+    }
+
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      box-shadow: var(--shadow-card);
+    }
+
+    /* ── Item Display ── */
+    .item-name {
+      font-weight: 700;
+      font-size: 1.5rem;
+      letter-spacing: -0.01em;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+
+    .item-source {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-bottom: 22px;
+    }
+
+    .item-field {
+      margin-bottom: 16px;
+    }
+
+    .item-field-label {
+      font-weight: 600;
+      font-size: 0.675rem;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 3px;
+    }
+
+    .item-field-value {
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: var(--text-primary);
+    }
+
+    .item-field-value.nuance {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    .example-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .example-list li {
+      position: relative;
+      padding-left: 14px;
+      margin-bottom: 7px;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: var(--text-primary);
+    }
+
+    .example-list li::before {
+      content: '—';
+      position: absolute;
+      left: 0;
+      color: var(--text-secondary);
+      font-weight: 400;
+    }
+
+    /* Chips */
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 14px;
+      border-radius: 100px;
+      background: var(--chip-bg);
+      color: var(--chip-text);
+      font-size: 0.8rem;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      line-height: 1.4;
+    }
+
+    /* ── Arabic Content ── */
+    .arabic-block {
+      direction: rtl;
+      text-align: right;
+    }
+
+    .arabic-heading {
+      font-weight: 700;
+      font-size: 1.25rem;
+      line-height: 1.4;
+      color: var(--text-primary);
+      margin-bottom: 14px;
+    }
+
+    .arabic-body {
+      font-weight: 400;
+      font-size: 0.9rem;
+      line-height: 2;
+      color: var(--text-primary);
+    }
+
+    /* ── UI Elements ── */
+    .ui-row {
+      margin-bottom: 22px;
+    }
+
+    .ui-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .ui-row-label {
+      font-size: 0.675rem;
+      font-weight: 600;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 0;
+      background: var(--bg-page);
+      border-radius: var(--radius-sm);
+      padding: 4px;
+      border: 1px solid var(--border);
+    }
+
+    .tab {
+      padding: 8px 20px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: default;
+      transition: background 0.15s ease, color 0.15s ease;
+      user-select: none;
+    }
+
+    .tab.active {
+      background: var(--accent-subtle);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* Capture input */
+    .capture-row {
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .capture-input {
+      flex: 1;
+      padding: 10px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      outline: none;
+    }
+
+    .capture-input::placeholder {
+      color: var(--text-secondary);
+      opacity: 0.7;
+    }
+
+    .btn-accent {
+      padding: 10px 22px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: var(--accent);
+      color: #FFFFFF;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: default;
+      user-select: none;
+      letter-spacing: 0.01em;
+    }
+
+    /* Chip scale */
+    .chip-sm { font-size: 0.65rem; padding: 3px 10px; }
+    .chip-md { font-size: 0.72rem; padding: 5px 14px; }
+    .chip-lg { font-size: 0.8rem;  padding: 6px 16px; }
+
+    /* Metadata label */
+    .meta-label {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      font-style: italic;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .meta-label .meta-dot {
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+
+    /* ── Type Specimens ── */
+    .specimen-block {
+      margin-bottom: 28px;
+    }
+
+    .specimen-block:last-child {
+      margin-bottom: 0;
+    }
+
+    .specimen-title {
+      font-family: 'Newsreader', serif;
+      font-weight: 600;
+      font-size: 1rem;
+      color: var(--accent);
+      margin-bottom: 12px;
+      letter-spacing: -0.005em;
+    }
+
+    .specimen-row {
+      margin-bottom: 14px;
+    }
+
+    .specimen-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .specimen-label {
+      font-size: 0.675rem;
+      font-weight: 600;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 3px;
+    }
+
+    .specimen-sample {
+      font-size: 1.05rem;
+      line-height: 1.7;
+      letter-spacing: 0.03em;
+      color: var(--text-primary);
+      word-break: break-all;
+    }
+
+    .specimen-sample.w400  { font-weight: 400; }
+    .specimen-sample.w500  { font-weight: 500; }
+    .specimen-sample.w600  { font-weight: 600; }
+    .specimen-sample.w700  { font-weight: 700; }
+    .specimen-sample.w400i { font-style: italic; font-weight: 400; }
+    .specimen-sample.w700i { font-style: italic; font-weight: 700; }
+
+    .specimen-arabic {
+      direction: rtl;
+      text-align: right;
+      font-size: 1.45rem;
+      line-height: 2.1;
+      letter-spacing: normal;
+      color: var(--text-primary);
+      word-break: normal;
+    }
+
+    .specimen-arabic.w400 { font-weight: 400; }
+    .specimen-arabic.w700 { font-weight: 700; }
+
+    /* ── Footer ── */
+    .page-footer {
+      text-align: center;
+      padding-top: 40px;
+      border-top: 1px solid var(--border);
+      margin-top: 56px;
+    }
+
+    .page-footer .footer-note {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    .page-footer .footer-note strong {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .page-footer .footer-note em {
+      color: var(--accent);
+      font-style: italic;
+    }
+
+    .footer-divider {
+      width: 40px;
+      height: 2px;
+      background: var(--border);
+      margin: 18px auto;
+    }
+
+    .footer-meta {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- HEADER                                      -->
+  <!-- ═══════════════════════════════════════════ -->
+  <header class="page-header">
+    <h1>Kalima · Typography Exploration</h1>
+    <p class="subtitle">Comparing three font trios with the Moss palette</p>
+    <div class="palette-strip" aria-label="Moss palette swatches">
+      <span class="swatch" style="background:#F6F4EF;" title="Page bg — #F6F4EF"></span>
+      <span class="swatch" style="background:#FDFCF7;" title="Surface — #FDFCF7"></span>
+      <span class="swatch" style="background:#E2E3DA;" title="Border — #E2E3DA"></span>
+      <span class="swatch" style="background:#1C1E1C;" title="Primary text — #1C1E1C"></span>
+      <span class="swatch" style="background:#7E847A;" title="Secondary text — #7E847A"></span>
+      <span class="swatch" style="background:#456859;" title="Accent — #456859"></span>
+      <span class="swatch" style="background:#E8EDE4;" title="Accent subtle — #E8EDE4"></span>
+      <span class="swatch" style="background:#E9ECE4;" title="Chip bg — #E9ECE4"></span>
+      <span class="swatch" style="background:#5C6A58;" title="Chip text — #5C6A58"></span>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- THREE-COLUMN COMPARISON                     -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="comparison-grid">
+
+    <!-- ──────────────────────────────────────────── -->
+    <!-- COLUMN 1 — Pairing 1                        -->
+    <!-- ──────────────────────────────────────────── -->
+    <div class="column p1">
+
+      <div class="column-heading">Pairing 1 · Inter / Newsreader / Amiri</div>
+
+      <!-- ── Section 1: Item Display ── -->
+      <section class="section">
+        <div class="section-label">Item Display</div>
+        <div class="card">
+          <div class="item-name font-display">serendipity</div>
+          <div class="item-source font-ui">The Art of Innovation, ch. 2, p. 47</div>
+
+          <div class="item-field">
+            <div class="item-field-label font-ui">Definition</div>
+            <div class="item-field-value font-ui">The occurrence and development of events by chance in a happy or beneficial way.</div>
+          </div>
+
+          <div class="item-field">
+            <div class="item-field-label font-ui">Nuance</div>
+            <div class="item-field-value nuance font-ui">More literary than 'luck'; implies pleasant surprise rather than mere random chance. Often used in intellectual or literary contexts to describe happy accidents in research or creative work.</div>
+          </div>
+
+          <div class="item-field">
+            <div class="item-field-label font-ui">Examples</div>
+            <ul class="example-list font-ui">
+              <li>The discovery of penicillin was a classic case of serendipity — Fleming wasn't looking for antibiotics.</li>
+              <li>Her career in publishing was pure serendipity; she stumbled into an interview while dropping off a friend's résumé.</li>
+            </ul>
+          </div>
+
+          <div class="chip-row">
+            <span class="chip font-ui">literary</span>
+            <span class="chip font-ui">chance</span>
+            <span class="chip font-ui">positive-connotation</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Section 2: Arabic Content ── -->
+      <section class="section">
+        <div class="section-label">Arabic Content</div>
+        <div class="card">
+          <div class="arabic-block">
+            <div class="arabic-heading font-arabic">مصادفة سعيدة</div>
+            <div class="arabic-body font-arabic">في عالم الأدب، تُعتبر المصادفة السعيدة موضوعاً متكرراً. كثيراً ما يجد الكتّاب أنفسهم في مواقف غير متوقعة تقودهم إلى اكتشافات أدبية رائعة. هذه اللحظات الجميلة هي ما يجعل القراءة والكتابة تجربة غنية وممتعة.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Section 3: UI Elements ── -->
+      <section class="section">
+        <div class="section-label">UI Elements</div>
+        <div class="card">
+
+          <div class="ui-row">
+            <div class="ui-row-label font-ui">Tab Bar</div>
+            <div class="tabs">
+              <span class="tab active font-ui">Capture</span>
+              <span class="tab font-ui">Review</span>
+              <span class="tab font-ui">Word Bank</span>
+            </div>
+          </div>
+
+          <div class="ui-row">
+            <div class="ui-row-label font-ui">Capture Input</div>
+            <div class="capture-row">
+              <input type="text" class="capture-input font-ui" value="serendipity p.45" readonly>
+              <button class="btn-accent font-ui" type="button">Capture</button>
+            </div>
+          </div>
+
+          <div class="ui-row">
+            <div class="ui-row-label font-ui">Chip Scale (sm / md / lg)</div>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+              <span class="chip chip-sm font-ui">small</span>
+              <span class="chip chip-md font-ui">medium</span>
+              <span class="chip chip-lg font-ui">larger</span>
+            </div>
+          </div>
+
+          <div class="ui-row">
+            <div class="ui-row-label font-ui">Metadata Label</div>
+            <div class="meta-label font-ui">
+              Added 2 hours ago
+              <span class="meta-dot"></span>
+              The Art of Innovation
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ── Section 4: Type Specimens ── -->
+      <section class="section">
+        <div class="section-label">Type Specimens</div>
+        <div class="card">
+
+          <div class="specimen-block">
+            <div class="specimen-title">Inter</div>
+            <div class="specimen-row">
+              <div class="specimen-label font-ui">Regular 400</div>
+              <div class="specimen-sample font-ui w400">ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 ¡!¿?&@$€£%</div>
+            </div>
+            <div class="specimen-row">
+              <div class="specimen-label font-ui">Medium 500</div>
+              <div class="specimen-sample font-ui w500">ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 ¡!¿?&@$€£%</div>
+            </div>
+            <div class="specimen-row">
+              <div class="specimen-label font-ui">Semibold 600</div>
+              <div class="specimen-sample font-ui w600">ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 ¡!¿?&@$€£%</div>
+            </div>
+          </div>
+
+          <div class="specimen-block">
+            <div class="specimen-title">Newsreader</div>
+            <div class="specimen-row">
+              <div class="specimen-label font-ui">Regular 400</div>
+              <div class="specimen-sample font-display w400">ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 ¡!¿?&@$€£%</div>
+            </div>
+            <div class="specimen-row">
+              <div class="specimen-label font-ui">Regular 400 Italic</div>
+              <div class="specimen-sample font-display w400i">ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 ¡!¿?&@$€£%</div>
+            </div>
+            <div class="specimen-row">
+              <div class="specimen-label font-ui">Bold 700</div>
+              <div class="specimen-sample font-display w700">ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 ¡!¿?&@$€£%</div>
+            </div>
+            <div class="specimen-row">
+              <div class="specimen-label font-ui">Bold 700 Italic</div>
+              <div class="specimen-sample font-display w700i">ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 ¡!¿?&@$€£%</div>
+            </div>
+          </div>
+
+          <div class="specimen-block">
+            <div class="specimen-title">Amiri</div>
+            <div class="specimen-row">
+              <div class="specimen-label font-ui">Regular 400</div>
+              <div class="specimen-sample specimen-arabic font-arabic w400">أ ب ت ث ج ح خ د ذ ر ز س ش ص ض ط ظ ع غ ف ق ك ل م ن ه و ي ٠١٢٣٤٥٦٧٨٩</div>
+            </div>
+            <div class="specimen-row">
+              <div class="specimen-label font-ui">Bold 700</div>
+              <div class="specimen-sample specimen-arabic font-arabic w700">أ ب ت ث ج ح خ د ذ ر ز س ش ص ض ط ظ ع غ ف ق ك ل م ن ه و ي ٠١٢٣٤٥٦٧٨٩</div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ──────────────────────────────────────────── -->
+    <!-- COLUMN 2 — Pairing 2                        -->
+    <!-- ──────────────────────────────────────────── -->
+    <div class="column p2">
+
+      <div class="column-heading">Pairing 2 · Manrope / Newsreader / Noto Sans Arabic</div>
+
+      <!-- ── Section 1: Item Display ── -->
+      <section class="section">
+        <div class="section-label">Item Display</div>
+        <div class="card">
+          <div class="item-name font-display">serendipity</div>
+          <div class="item-source font-ui">The Art of Innovation, ch. 2, p. 47</div>
+
+          <div class="item-field">
+            <div class="item-field-label font-ui">Definition</div>
+            <div class="item-field-value font-ui">The occurrence and development of events by chance in a happy or beneficial way.</div>
+          </div>
+
+          <div class="item-field">
+            <div class="item-field-label font-ui">Nuance</div>
+            <div class="item-field-value nuance font-ui">More literary than 'luck'; implies pleasant surprise rather than mere random chance. Often used in intellectual or literary contexts to describe happy accidents in research or creative work.</div>
+          </div>
+
+          <div class="item-field">
+            <div class="item-field-label font-ui">Examples</div>
+            <ul class="example-list font-ui">
+              <li>The discovery of penicillin was a classic case of serendipity — Fleming wasn't looking for antibiotics.</li>
+              <li>Her career in publishing was pure serendipity; she stumbled into an interview while dropping off a friend's résumé.</li>
+            </ul>
+          </div>
+
+          <div class="chip-row">
+            <span class="chip font-ui">literary</span>
+            <span class="chip font-ui">chance</span>
+            <span class="chip font-ui">positive-connotation</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Section 2: Arabic Content ── -->
+      <section class="section">
+        <div class="section-label">Arabic Content</div>
+        <div class="card">
+          <div class="arabic-block">
+            <div class="arabic-heading font-arabic">مصادفة سعيدة</div>
+            <div class="arabic-body font-arabic">في عالم الأدب، تُعتبر المصادفة السعيدة موضوعاً متكرراً. كثيراً ما يجد الكتّاب أنفسهم في مواقف غير متوقعة تقودهم إلى اكتشافات أدبية رائعة. هذه اللحظات الجميلة هي ما يجعل القراءة والكتابة تجربة غنية وممتعة.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Section 3: UI Elements ── -->
+      <section class="section">
+        <div class="section-label">UI Elements</div>
+        <div class="card">
+
+          <div class="ui-row">
+            <div class="ui-row-label font-ui">Tab Bar</div>
+            <div class="tabs">
+              <span class="tab active font-ui">Capture</span>
+              <span class="tab font-ui">Review</span>
+              <span class="tab font-ui">Word Bank</span>
+            </div>
+          </div>
+
+          <div class="ui-row">
+            <div class="ui-row-label font-ui">Capture Input</div>
+            <div class="capture-row">
+              <input type="text" class="capture-input font-ui" value="serendipity p.45" readonly>
+              <button class="btn-accent font-ui" type="button">Capture</button>
+            </div>
+          </div>
+
+          <div class="ui-row">
+            <div class="ui-row-label font-ui">Chip Scale (sm / md / lg)</div>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+              <span class="chip chip-sm font-ui">small</span>
+              <span class="chip chip-md font-ui">medium</span>
+              <span class="chip chip-lg font-ui">larger</span>
+            </div>
+          </div>
+
+          <div class="ui-row">
+            <div class="ui-row-label font-ui">Metadata Label</div>
+            <div class="meta-label font-ui">
+              Added 2 hours ago
+              <span class="meta-dot"></span>
+              The Art of Innovation
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ── Section 4: Type Specimens ── -->
+      <section class="section">
+        <div class="section-label">Type Specimens</div>
+        <div class="card">
+
+          <div class="specimen-block">
+            <div class="specimen-title">Manrope</div>
+            <div class="specimen-row">
+              <div class="specimen-label font-ui">Regular 400</div>
+              <div class="specimen-sample font-ui w400">ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 ¡!¿?&@$€£%</div>
+            </div>
+            <div class="specimen-row">
+              <div class="specimen-label font-ui">Medium 500</div>
+              <div class="specimen-sample font-ui w500">ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 ¡!¿?&@$€£%</div>
+            </div>
+            <div class="specimen-row">
+              <div class="specimen-label font-ui">Semibold 600</div>
+              <div class="specimen-sample font-ui w600">ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 ¡!¿?&@$€£%</div>
+            </div>
+          </div>
+
+          <div class="specimen-block">
+            <div class="specimen-title">Newsreader</div>
+            <div class="specimen-row">
+              <div class="specimen-label font-ui">Regular 400</div>
+              <div class="specimen-sample font-display w400">ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 ¡!¿?&@$€£%</div>
+            </div>
+            <div class="specimen-row">
+              <div class="specimen-label font-ui">Regular 400 Italic</div>
+              <div class="specimen-sample font-display w400i">ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 ¡!¿?&@$€£%</div>
+            </div>
+            <div class="specimen-row">
+              <div class="specimen-label font-ui">Bold 700</div>
+              <div class="specimen-sample font-display w700">ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 ¡!¿?&@$€£%</div>
+            </div>
+            <div class="specimen-row">
+              <div class="specimen-label font-ui">Bold 700 Italic</div>
+              <div class="specimen-sample font-display w700i">ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 ¡!¿?&@$€£%</div>
+            </div>
+          </div>
+
+          <div class="specimen-block">
+            <div class="specimen-title">Noto Sans Arabic</div>
+            <div class="specimen-row">
+              <div class="specimen-label font-ui">Regular 400</div>
+              <div class="specimen-sample specimen-arabic font-arabic w400">أ ب ت ث ج ح خ د ذ ر ز س ش ص ض ط ظ ع غ ف ق ك ل م ن ه و ي ٠١٢٣٤٥٦٧٨٩</div>
+            </div>
+            <div class="specimen-row">
+              <div class="specimen-label font-ui">Bold 700</div>
+              <div class="specimen-sample specimen-arabic font-arabic w700">أ ب ت ث ج ح خ د ذ ر ز س ش ص ض ط ظ ع غ ف ق ك ل م ن ه و ي ٠١٢٣٤٥٦٧٨٩</div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ──────────────────────────────────────────── -->
+    <!-- COLUMN 3 — Pairing 3                        -->
+    <!-- ──────────────────────────────────────────── -->
+    <div class="column p3">
+
+      <div class="column-heading">Pairing 3 · DM Sans / Newsreader / IBM Plex Sans Arabic</div>
+
+      <!-- ── Section 1: Item Display ── -->
+      <section class="section">
+        <div class="section-label">Item Display</div>
+        <div class="card">
+          <div class="item-name font-display">serendipity</div>
+          <div class="item-source font-ui">The Art of Innovation, ch. 2, p. 47</div>
+
+          <div class="item-field">
+            <div class="item-field-label font-ui">Definition</div>
+            <div class="item-field-value font-ui">The occurrence and development of events by chance in a happy or beneficial way.</div>
+          </div>
+
+          <div class="item-field">
+            <div class="item-field-label font-ui">Nuance</div>
+            <div class="item-field-value nuance font-ui">More literary than 'luck'; implies pleasant surprise rather than mere random chance. Often used in intellectual or literary contexts to describe happy accidents in research or creative work.</div>
+          </div>
+
+          <div class="item-field">
+            <div class="item-field-label font-ui">Examples</div>
+            <ul class="example-list font-ui">
+              <li>The discovery of penicillin was a classic case of serendipity — Fleming wasn't looking for antibiotics.</li>
+              <li>Her career in publishing was pure serendipity; she stumbled into an interview while dropping off a friend's résumé.</li>
+            </ul>
+          </div>
+
+          <div class="chip-row">
+            <span class="chip font-ui">literary</span>
+            <span class="chip font-ui">chance</span>
+            <span class="chip font-ui">positive-connotation</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Section 2: Arabic Content ── -->
+      <section class="section">
+        <div class="section-label">Arabic Content</div>
+        <div class="card">
+          <div class="arabic-block">
+            <div class="arabic-heading font-arabic">مصادفة سعيدة</div>
+            <div class="arabic-body font-arabic">في عالم الأدب، تُعتبر المصادفة السعيدة موضوعاً متكرراً. كثيراً ما يجد الكتّاب أنفسهم في مواقف غير متوقعة تقودهم إلى اكتشافات أدبية رائعة. هذه اللحظات الجميلة هي ما يجعل القراءة والكتابة تجربة غنية وممتعة.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Section 3: UI Elements ── -->
+      <section class="section">
+        <div class="section-label">UI Elements</div>
+        <div class="card">
+
+          <div class="ui-row">
+            <div class="ui-row-label font-ui">Tab Bar</div>
+            <div class="tabs">
+              <span class="tab active font-ui">Capture</span>
+              <span class="tab font-ui">Review</span>
+              <span class="tab font-ui">Word Bank</span>
+            </div>
+          </div>
+
+          <div class="ui-row">
+            <div class="ui-row-label font-ui">Capture Input</div>
+            <div class="capture-row">
+              <input type="text" class="capture-input font-ui" value="serendipity p.45" readonly>
+              <button class="btn-accent font-ui" type="button">Capture</button>
+            </div>
+          </div>
+
+          <div class="ui-row">
+            <div class="ui-row-label font-ui">Chip Scale (sm / md / lg)</div>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+              <span class="chip chip-sm font-ui">small</span>
+              <span class="chip chip-md font-ui">medium</span>
+              <span class="chip chip-lg font-ui">larger</span>
+            </div>
+          </div>
+
+          <div class="ui-row">
+            <div class="ui-row-label font-ui">Metadata Label</div>
+            <div class="meta-label font-ui">
+              Added 2 hours ago
+              <span class="meta-dot"></span>
+              The Art of Innovation
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ── Section 4: Type Specimens ── -->
+      <section class="section">
+        <div class="section-label">Type Specimens</div>
+        <div class="card">
+
+          <div class="specimen-block">
+            <div class="specimen-title">DM Sans</div>
+            <div class="specimen-row">
+              <div class="specimen-label font-ui">Regular 400</div>
+              <div class="specimen-sample font-ui w400">ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 ¡!¿?&@$€£%</div>
+            </div>
+            <div class="specimen-row">
+              <div class="specimen-label font-ui">Medium 500</div>
+              <div class="specimen-sample font-ui w500">ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 ¡!¿?&@$€£%</div>
+            </div>
+            <div class="specimen-row">
+              <div class="specimen-label font-ui">Semibold 600</div>
+              <div class="specimen-sample font-ui w600">ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 ¡!¿?&@$€£%</div>
+            </div>
+          </div>
+
+          <div class="specimen-block">
+            <div class="specimen-title">Newsreader</div>
+            <div class="specimen-row">
+              <div class="specimen-label font-ui">Regular 400</div>
+              <div class="specimen-sample font-display w400">ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 ¡!¿?&@$€£%</div>
+            </div>
+            <div class="specimen-row">
+              <div class="specimen-label font-ui">Regular 400 Italic</div>
+              <div class="specimen-sample font-display w400i">ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 ¡!¿?&@$€£%</div>
+            </div>
+            <div class="specimen-row">
+              <div class="specimen-label font-ui">Bold 700</div>
+              <div class="specimen-sample font-display w700">ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 ¡!¿?&@$€£%</div>
+            </div>
+            <div class="specimen-row">
+              <div class="specimen-label font-ui">Bold 700 Italic</div>
+              <div class="specimen-sample font-display w700i">ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 ¡!¿?&@$€£%</div>
+            </div>
+          </div>
+
+          <div class="specimen-block">
+            <div class="specimen-title">IBM Plex Sans Arabic</div>
+            <div class="specimen-row">
+              <div class="specimen-label font-ui">Regular 400</div>
+              <div class="specimen-sample specimen-arabic font-arabic w400">أ ب ت ث ج ح خ د ذ ر ز س ش ص ض ط ظ ع غ ف ق ك ل م ن ه و ي ٠١٢٣٤٥٦٧٨٩</div>
+            </div>
+            <div class="specimen-row">
+              <div class="specimen-label font-ui">Bold 700</div>
+              <div class="specimen-sample specimen-arabic font-arabic w700">أ ب ت ث ج ح خ د ذ ر ز س ش ص ض ط ظ ع غ ف ق ك ل م ن ه و ي ٠١٢٣٤٥٦٧٨٩</div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- FOOTER                                      -->
+  <!-- ═══════════════════════════════════════════ -->
+  <footer class="page-footer">
+    <div class="footer-note">
+      <strong>What this comparison tests:</strong>
+      Pairing&nbsp;1 pairs <em>Inter</em> (a restrained neo-grotesque) with <em>Amiri</em> (classical Naskh-style Arabic serif) for a literary, traditional feel.
+      Pairing&nbsp;2 pairs <em>Manrope</em> (a geometric sans with open apertures) with <em>Noto&nbsp;Sans&nbsp;Arabic</em> (clean Kufi-influenced sans) for modernity and clarity.
+      Pairing&nbsp;3 pairs <em>DM&nbsp;Sans</em> (a warm geometric sans with optical sizing) with <em>IBM&nbsp;Plex&nbsp;Sans&nbsp;Arabic</em> (a neutral, highly legible Arabic sans) balancing warmth with pragmatism.
+      All three share <em>Newsreader</em> as the Latin display face. The question: which UI feels the most inviting, and which Arabic face achieves the best readability while harmonizing with its Latin pair?
+    </div>
+    <div class="footer-divider"></div>
+    <div class="footer-meta">Kalima · Typography Exploration · Moss Palette · May 2026</div>
+  </footer>
+
+</div>
+
+</body>
+</html>

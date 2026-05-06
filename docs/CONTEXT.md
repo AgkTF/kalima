@@ -166,6 +166,10 @@ Tags: ["literary", "positive-connotation", "chance"]
 
 ## UI design
 
+### Visual direction: Warm precision
+
+A clean, warm, restrained aesthetic — never stark white, never pure black. Light-mode first, with a botanical-inspired palette (Moss) that pairs warm creams with deep sage accents. Typography uses Manrope for UI, Newsreader for item names and headings, and Noto Sans Arabic for translations. Icons from Heroicons, components built with Tailwind CSS v4 and Radix UI primitives, motion handled by CSS transitions only. Full design tokens defined in [`design/DESIGN_SYSTEM.md`](../design/DESIGN_SYSTEM.md).
+
 ### Screen architecture
 
 Three primary tabs: **Capture**, **Review**, **Word Bank**. No separate Settings screen — the enrichment prompt template lives contextually on the Capture screen.
