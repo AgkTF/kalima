@@ -12,3 +12,23 @@ model AppMeta {
   key   String @unique
   value String
 }
+
+model Capture {
+  id        Int     @id @default(autoincrement())
+  rawText   String
+  item      String
+  locator   String?
+  sourceHint String?
+  sessionId Int?
+  createdAt DateTime @default(now())
+
+  session   Session? @relation(fields: [sessionId], references: [id])
+}
+
+model Session {
+  id        Int      @id @default(autoincrement())
+  sourceName String
+  createdAt DateTime @default(now())
+
+  captures  Capture[]
+}

@@ -1,0 +1,26 @@
+import type { PrismaClient } from "../generated/prisma/client.js";
+import { CaptureParser } from "./capture-parser.js";
+import type { LLMClient } from "./llm-client.js";
+
+export const CaptureService = {
+  async create(rawText: string, prisma: PrismaClient, llm: LLMClient) {
+    const parser = new CaptureParser(llm);
+    const parsed = await parser.parse(rawText);
+
+    return prisma.capture.create({
+      data: {
+        rawText,
+        item: parsed.item,
+        locator: parsed.locator,
+        sourceHint: parsed.sourceHint,
+      },
+    });
+  },
+
+  async list(prisma: PrismaClient) {
+    return prisma.capture.findMany({
+      where: { sessionId: null },
+      orderBy: { createdAt: "desc" },
+    });
+  },
+};

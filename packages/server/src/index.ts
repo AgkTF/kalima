@@ -1,18 +1,38 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createExpressMiddleware } from "@trpc/server/adapters/express";
+import * as trpcExpress from "@trpc/server/adapters/express";
+import dotenv from "dotenv";
 import express from "express";
+import { prisma } from "./prisma.js";
 import { appRouter } from "./router.js";
+import { LLMClient } from "./services/llm-client.js";
+
+dotenv.config();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT ?? 3001);
+
+const llm = new LLMClient({
+  apiKey: process.env.LLM_API_KEY ?? "",
+  baseUrl: process.env.LLM_BASE_URL ?? "https://api.openai.com/v1",
+  cheapModel: process.env.LLM_CHEAP_MODEL,
+});
+
+const createContext = ({
+  req: _req,
+  res: _res,
+}: trpcExpress.CreateExpressContextOptions) => ({
+  prisma,
+  llm,
+});
 
 const app = express();
 
 app.use(
   "/trpc",
-  createExpressMiddleware({
+  trpcExpress.createExpressMiddleware({
     router: appRouter,
+    createContext,
   }),
 );
 
