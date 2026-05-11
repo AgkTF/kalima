@@ -1,20 +1,41 @@
 import {
-  BookmarkIcon,
-  BookOpenIcon,
-  ClipboardDocumentListIcon,
+  BookmarkIcon as BookmarkSolid,
+  BookOpenIcon as BookOpenSolid,
+  ClipboardDocumentListIcon as ClipboardSolid,
+} from "@heroicons/react/20/solid";
+import {
+  BookmarkIcon as BookmarkOutline,
+  BookOpenIcon as BookOpenOutline,
+  ClipboardDocumentListIcon as ClipboardOutline,
 } from "@heroicons/react/24/outline";
 import { NavLink } from "react-router-dom";
 
 interface Tab {
   to: string;
   label: string;
-  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  outlineIcon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  solidIcon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
 }
 
 const tabs: Tab[] = [
-  { to: "/capture", label: "Capture", icon: BookOpenIcon },
-  { to: "/review", label: "Review", icon: ClipboardDocumentListIcon },
-  { to: "/wordbank", label: "Word Bank", icon: BookmarkIcon },
+  {
+    to: "/capture",
+    label: "Capture",
+    outlineIcon: BookOpenOutline,
+    solidIcon: BookOpenSolid,
+  },
+  {
+    to: "/review",
+    label: "Review",
+    outlineIcon: ClipboardOutline,
+    solidIcon: ClipboardSolid,
+  },
+  {
+    to: "/wordbank",
+    label: "Word Bank",
+    outlineIcon: BookmarkOutline,
+    solidIcon: BookmarkSolid,
+  },
 ];
 
 export function BottomTabBar() {
@@ -24,17 +45,23 @@ export function BottomTabBar() {
       aria-label="Main navigation"
     >
       {tabs.map((tab) => (
-        <NavLink
-          key={tab.to}
-          to={tab.to}
-          className={({ isActive }) =>
-            `flex flex-1 flex-col items-center gap-0.5 py-2 text-xs font-medium transition-colors ${
-              isActive ? "text-accent" : "text-dim"
-            }`
-          }
-        >
-          <tab.icon className="h-6 w-6" aria-hidden="true" />
-          {tab.label}
+        <NavLink key={tab.to} to={tab.to} className="flex flex-1">
+          {({ isActive }) => {
+            const Icon = isActive ? tab.solidIcon : tab.outlineIcon;
+            return (
+              <span
+                className={`flex w-full flex-col items-center gap-0.5 py-2 text-xs font-medium transition-colors ${
+                  isActive ? "text-accent" : "text-dim"
+                }`}
+              >
+                <Icon
+                  className={isActive ? "h-5 w-5" : "h-6 w-6"}
+                  aria-hidden="true"
+                />
+                {tab.label}
+              </span>
+            );
+          }}
         </NavLink>
       ))}
     </nav>
