@@ -38,7 +38,7 @@ export function CaptureScreen() {
   const isEmpty = !captures.data || captures.data.length === 0;
 
   return (
-    <main className="flex flex-1 flex-col">
+    <main className="flex flex-1 flex-col pb-16">
       {/* Capture list area */}
       <div className="flex flex-1 flex-col overflow-y-auto">
         {isEmpty ? (
