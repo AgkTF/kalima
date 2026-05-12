@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kalima · Design Tokens</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400..600&family=Newsreader:ital,opsz,wght@0,16..72,400..700;1,16..72,400..700&family=Noto+Sans+Arabic:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+  /* ============================================================
+     RESET
+     ============================================================ */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ============================================================
+     DESIGN TOKENS
+     ============================================================ */
+  :root {
+    /* ── Moss Palette ─────────────────────────── */
+    --color-page:           #F6F4EF;
+    --color-surface:        #FDFCF7;
+    --color-border:         #E2E3DA;
+    --color-ink:            #1C1E1C;
+    --color-dim:            #7E847A;
+    --color-accent:         #456859;
+    --color-accent-subtle:  #E8EDE4;
+    --color-chip-bg:        #E9ECE4;
+    --color-chip-text:      #5C6A58;
+
+    /* ── Typography ───────────────────────────── */
+    --font-ui:      'Manrope', system-ui, sans-serif;
+    --font-display: 'Newsreader', serif;
+    --font-arabic:  'Noto Sans Arabic', sans-serif;
+
+    /* ── Border Radius ────────────────────────── */
+    --radius-button: 10px;
+    --radius-card:   14px;
+    --radius-sheet:  20px;
+
+    /* ── Shadows ──────────────────────────────── */
+    --shadow-card:  0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06);
+    --shadow-float: 0 2px 8px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.08);
+  }
+
+  body {
+    background: var(--color-page);
+    color: var(--color-ink);
+    font-family: var(--font-ui);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ============================================================
+     PAGE LAYOUT
+     ============================================================ */
+  .page {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 56px 32px 80px;
+  }
+
+  /* ── Header ─────────────────────────────────── */
+  .page-header {
+    text-align: center;
+    margin-bottom: 64px;
+  }
+  .page-header h1 {
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+  }
+  .page-header .subtitle {
+    font-size: 0.95rem;
+    color: var(--color-dim);
+  }
+
+  /* ── Sections ───────────────────────────────── */
+  .section {
+    margin-bottom: 72px;
+  }
+  .section-heading {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 6px;
+  }
+  .section-desc {
+    font-size: 0.92rem;
+    color: var(--color-dim);
+    margin-bottom: 28px;
+  }
+
+  /* ============================================================
+     1. COLOR PALETTE
+     ============================================================ */
+  .palette-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .color-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+    text-align: center;
+  }
+
+  .color-swatch {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-button);
+    border: 1px solid var(--color-border);
+    flex-shrink: 0;
+  }
+
+  .color-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .color-role {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-accent);
+  }
+  .color-hex {
+    font-size: 0.8rem;
+    font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+    color: var(--color-dim);
+  }
+  .color-usage {
+    font-size: 0.78rem;
+    color: var(--color-dim);
+    line-height: 1.4;
+  }
+
+  /* ============================================================
+     2. TYPOGRAPHY
+     ============================================================ */
+  .type-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .type-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .type-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-accent);
+    margin-bottom: 2px;
+  }
+
+  .type-name {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .type-weight { font-size: 0.78rem; color: var(--color-dim); }
+
+  .type-pangram {
+    font-size: 0.95rem;
+    color: var(--color-dim);
+    line-height: 1.6;
+    padding: 12px;
+    background: var(--color-page);
+    border-radius: var(--radius-button);
+  }
+  .type-pangram.ar { direction: rtl; font-family: var(--font-arabic); }
+
+  /* ============================================================
+     3. BORDER RADIUS
+     ============================================================ */
+  .radius-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .radius-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    align-items: center;
+  }
+
+  .radius-demo {
+    width: 100%;
+    padding: 16px;
+    background: var(--color-accent);
+    color: white;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .radius-meta {
+    text-align: center;
+  }
+  .radius-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-accent);
+  }
+  .radius-value {
+    font-size: 0.78rem;
+    color: var(--color-dim);
+    font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+  }
+  .radius-uses {
+    font-size: 0.75rem;
+    color: var(--color-dim);
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+
+  /* ============================================================
+     4. SHADOWS
+     ============================================================ */
+  .shadow-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .shadow-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+  }
+
+  .shadow-demo {
+    width: 100%;
+    background: var(--color-surface);
+    border-radius: var(--radius-card);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .shadow-demo .word {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+  .shadow-demo .def {
+    font-size: 0.82rem;
+    color: var(--color-dim);
+    line-height: 1.5;
+  }
+  .shadow-demo .tags {
+    display: flex;
+    gap: 6px;
+  }
+  .shadow-demo .tag {
+    font-size: 0.7rem;
+    color: var(--color-chip-text);
+    background: var(--color-chip-bg);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+
+  .shadow-ground {
+    width: 100%;
+    padding: 28px 20px;
+    background: var(--color-page);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-button);
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    align-items: center;
+    position: relative;
+  }
+
+  .shadow-info {
+    text-align: center;
+  }
+  .shadow-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-accent);
+  }
+  .shadow-value {
+    font-size: 0.72rem;
+    color: var(--color-dim);
+    font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+    line-height: 1.5;
+    margin-top: 2px;
+  }
+  .shadow-uses {
+    font-size: 0.75rem;
+    color: var(--color-dim);
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+
+  /* ============================================================
+     5. FULL COMPOSITION
+     ============================================================ */
+  .composition {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+  }
+
+  /* ── Comp: Tabs ─────────────────────────────── */
+  .comp-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .comp-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--color-dim);
+    border-radius: var(--radius-button) var(--radius-button) 0 0;
+  }
+  .comp-tab.active {
+    background: var(--color-accent-subtle);
+    color: var(--color-accent);
+  }
+  .comp-tab svg { width: 18px; height: 18px; }
+
+  /* ── Comp: Body ─────────────────────────────── */
+  .comp-body {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* ── Comp: Input row ────────────────────────── */
+  .comp-input-row {
+    display: flex;
+    gap: 8px;
+  }
+  .comp-input {
+    flex: 1;
+    font-family: var(--font-ui);
+    font-size: 0.9rem;
+    padding: 10px 14px;
+    background: var(--color-page);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-button);
+    color: var(--color-ink);
+    outline: none;
+  }
+  .comp-input::placeholder {
+    color: var(--color-dim);
+    opacity: 0.7;
+  }
+  .comp-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    font-family: var(--font-ui);
+    font-size: 0.875rem;
+    font-weight: 600;
+    background: var(--color-accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius-button);
+    white-space: nowrap;
+    cursor: default;
+  }
+  .comp-btn svg { width: 16px; height: 16px; }
+
+  /* ── Comp: Entry card ───────────────────────── */
+  .comp-entry {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .comp-entry .entry-word {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 700;
+  }
+  .comp-entry .entry-def {
+    font-size: 0.85rem;
+    color: var(--color-dim);
+    line-height: 1.5;
+    margin-bottom: 4px;
+  }
+  .comp-entry .entry-tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .comp-entry .entry-tag {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--color-chip-text);
+    background: var(--color-chip-bg);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+  .comp-entry .entry-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .comp-btn-sm {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 12px;
+    font-family: var(--font-ui);
+    font-size: 0.8rem;
+    font-weight: 500;
+    background: transparent;
+    border: 1.5px solid var(--color-accent);
+    color: var(--color-accent);
+    border-radius: var(--radius-button);
+    cursor: default;
+  }
+  .comp-btn-sm svg { width: 14px; height: 14px; }
+  .comp-btn-ghost {
+    border: none;
+    color: var(--color-dim);
+  }
+  .comp-spacer { flex: 1; }
+
+  /* ── Comp: Sheet preview ────────────────────── */
+  .comp-sheet {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-bottom: none;
+    border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+    box-shadow: var(--shadow-float);
+    padding: 20px;
+    position: relative;
+    margin-top: 8px;
+  }
+  .comp-sheet::before {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 4px;
+    background: var(--color-border);
+    border-radius: 2px;
+    margin: 0 auto 10px;
+  }
+  .comp-sheet .sheet-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+  }
+  .comp-sheet .sheet-body {
+    font-size: 0.82rem;
+    color: var(--color-dim);
+    line-height: 1.5;
+  }
+
+  /* ============================================================
+     TOKEN TABLE
+     ============================================================ */
+  .token-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    box-shadow: var(--shadow-card);
+  }
+  .token-table th,
+  .token-table td {
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 0.85rem;
+  }
+  .token-table th {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-accent);
+    background: var(--color-accent-subtle);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .token-table td {
+    color: var(--color-ink);
+    border-bottom: 1px solid var(--color-border);
+    font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+    font-size: 0.8rem;
+  }
+  .token-table tr:last-child td { border-bottom: none; }
+
+  /* ============================================================
+     RESPONSIVE
+     ============================================================ */
+  @media (max-width: 768px) {
+    .palette-grid,
+    .type-grid,
+    .radius-grid,
+    .shadow-grid {
+      grid-template-columns: 1fr;
+    }
+    .page { padding: 32px 16px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- ═══════════════════════════════════════════════════════════
+       HEADER
+       ════════════════════════════════════════════════════════════ -->
+
+  <header class="page-header">
+    <h1>Kalima · Design Tokens</h1>
+    <p class="subtitle">Canonical design decisions — Moss palette, Balanced radius, Minimal shadows</p>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       1. COLOR PALETTE
+       ════════════════════════════════════════════════════════════ -->
+
+  <section class="section">
+    <h2 class="section-heading">1. Color — Moss</h2>
+    <p class="section-desc">Warm creams with a deep sage accent. Never stark white, never pure black. The accent is used sparingly — for primary actions and active states only.</p>
+
+    <div class="palette-grid">
+
+      <div class="color-card">
+        <div class="color-swatch" style="background: var(--color-page)"></div>
+        <div class="color-info">
+          <div class="color-role">Page</div>
+          <div class="color-hex">#F6F4EF</div>
+          <div class="color-usage">Page background, empty areas</div>
+        </div>
+      </div>
+
+      <div class="color-card">
+        <div class="color-swatch" style="background: var(--color-surface)"></div>
+        <div class="color-info">
+          <div class="color-role">Surface</div>
+          <div class="color-hex">#FDFCF7</div>
+          <div class="color-usage">Cards, panels, input fields</div>
+        </div>
+      </div>
+
+      <div class="color-card">
+        <div class="color-swatch" style="background: var(--color-border)"></div>
+        <div class="color-info">
+          <div class="color-role">Border</div>
+          <div class="color-hex">#E2E3DA</div>
+          <div class="color-usage">Dividers, input borders, tab separators</div>
+        </div>
+      </div>
+
+      <div class="color-card">
+        <div class="color-swatch" style="background: var(--color-ink)"></div>
+        <div class="color-info">
+          <div class="color-role">Ink</div>
+          <div class="color-hex">#1C1E1C</div>
+          <div class="color-usage">Headings, body text, primary labels</div>
+        </div>
+      </div>
+
+      <div class="color-card">
+        <div class="color-swatch" style="background: var(--color-dim)"></div>
+        <div class="color-info">
+          <div class="color-role">Dim</div>
+          <div class="color-hex">#7E847A</div>
+          <div class="color-usage">Labels, helper text, definitions, secondary content</div>
+        </div>
+      </div>
+
+      <div class="color-card">
+        <div class="color-swatch" style="background: var(--color-accent)"></div>
+        <div class="color-info">
+          <div class="color-role">Accent</div>
+          <div class="color-hex">#456859</div>
+          <div class="color-usage">Buttons, active states, links, focus rings</div>
+        </div>
+      </div>
+
+      <div class="color-card">
+        <div class="color-swatch" style="background: var(--color-accent-subtle)"></div>
+        <div class="color-info">
+          <div class="color-role">Accent Subtle</div>
+          <div class="color-hex">#E8EDE4</div>
+          <div class="color-usage">Active tab background, hover states, success feedback</div>
+        </div>
+      </div>
+
+      <div class="color-card">
+        <div class="color-swatch" style="background: var(--color-chip-bg)"></div>
+        <div class="color-info">
+          <div class="color-role">Chip BG</div>
+          <div class="color-hex">#E9ECE4</div>
+          <div class="color-usage">Tag/chip background fill</div>
+        </div>
+      </div>
+
+      <div class="color-card">
+        <div class="color-swatch" style="background: var(--color-chip-text)"></div>
+        <div class="color-info">
+          <div class="color-role">Chip Text</div>
+          <div class="color-hex">#5C6A58</div>
+          <div class="color-usage">Tag/chip labels, muted accents</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       2. TYPOGRAPHY
+       ════════════════════════════════════════════════════════════ -->
+
+  <section class="section">
+    <h2 class="section-heading">2. Typography</h2>
+    <p class="section-desc">Three typefaces for three distinct roles. Loaded from Google Fonts CDN.</p>
+
+    <div class="type-grid">
+
+      <div class="type-card">
+        <div class="type-label">UI / Body</div>
+        <div class="type-name" style="font-family: var(--font-ui)">Manrope</div>
+        <div class="type-weight">Weights: 400, 500, 600</div>
+        <div class="type-pangram">
+          Buttons, tabs, chips, labels, inputs, body text, metadata — the workhorse typeface.
+        </div>
+      </div>
+
+      <div class="type-card">
+        <div class="type-label">Latin Display</div>
+        <div class="type-name" style="font-family: var(--font-display); font-style: italic;">Newsreader</div>
+        <div class="type-weight">Weights: 400, 700 · Italic available</div>
+        <div class="type-pangram" style="font-family: var(--font-display);">
+          <strong>Item names</strong> and <em>section headings</em>. The literary typeface gives words weight and warmth. Used for the thing you captured — the word itself matters.
+        </div>
+      </div>
+
+      <div class="type-card">
+        <div class="type-label">Arabic Body</div>
+        <div class="type-name" style="font-family: var(--font-arabic);">نوتو النسخ</div>
+        <div class="type-weight">Weights: 400, 700</div>
+        <div class="type-pangram ar">
+          مصادفة سعيدة — كل ترجمة عربية تظهر بهذا الخط. صُمم ليكون مريحاً للقراءة الطويلة.
+        </div>
+      </div>
+
+      <div class="type-card">
+        <div class="type-label">Mono (Code)</div>
+        <div class="type-name" style="font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;">SF Mono / Fira Code</div>
+        <div class="type-weight">System default</div>
+        <div class="type-pangram" style="font-family: 'SF Mono', 'Fira Code', monospace;">
+          Hex codes, CSS variable names, token values — only used in documentation and dev tools, never in the product UI.
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       3. BORDER RADIUS
+       ════════════════════════════════════════════════════════════ -->
+
+  <section class="section">
+    <h2 class="section-heading">3. Border Radius</h2>
+    <p class="section-desc">Balanced scale — three tiers, applied consistently by element type.</p>
+
+    <div class="radius-grid">
+
+      <div class="radius-card">
+        <div class="radius-demo" style="background: var(--color-accent); border-radius: var(--radius-button)">Button, Input, Chip, Tab</div>
+        <div class="radius-meta">
+          <div class="radius-label">Button / Input / Chip / Tab</div>
+          <div class="radius-value">10px</div>
+          <div class="radius-uses">Small interactive elements that benefit from a clean, approachable radius without feeling pill-shaped</div>
+        </div>
+      </div>
+
+      <div class="radius-card">
+        <div class="radius-demo" style="background: var(--color-accent); border-radius: var(--radius-card)">Card, Panel</div>
+        <div class="radius-meta">
+          <div class="radius-label">Card / Panel</div>
+          <div class="radius-value">14px</div>
+          <div class="radius-uses">Entry cards, review cards, search results — slightly softer than buttons for content containers</div>
+        </div>
+      </div>
+
+      <div class="radius-card">
+        <div class="radius-demo" style="background: var(--color-accent); border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;">Sheet, Modal</div>
+        <div class="radius-meta">
+          <div class="radius-label">Sheet / Modal</div>
+          <div class="radius-value">20px (top corners)</div>
+          <div class="radius-uses">Bottom sheets, side panels, modals — the most pronounced radius signals a distinct surface layer</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       4. SHADOWS
+       ════════════════════════════════════════════════════════════ -->
+
+  <section class="section">
+    <h2 class="section-heading">4. Shadows</h2>
+    <p class="section-desc">Minimal approach — depth comes from warm color separation, not heavy shadows. Two tiers only.</p>
+
+    <div class="shadow-grid">
+
+      <div class="shadow-card">
+        <div class="shadow-ground">
+          <div class="shadow-demo" style="box-shadow: var(--shadow-card);">
+            <div class="word">serendipity</div>
+            <div class="def">The occurrence of fortunate events by chance</div>
+            <div class="tags">
+              <span class="tag">literary</span>
+              <span class="tag">chance</span>
+            </div>
+          </div>
+          <div class="shadow-demo" style="box-shadow: var(--shadow-float);">
+            <div class="word">ephemeral</div>
+            <div class="def">Lasting for a very short time</div>
+            <div class="tags">
+              <span class="tag">temporal</span>
+            </div>
+          </div>
+        </div>
+        <div class="shadow-info">
+          <div class="shadow-label">Card (ground)</div>
+          <div class="shadow-value">0 1px 3px rgba(0,0,0,0.04),<br>0 4px 16px rgba(0,0,0,0.06)</div>
+          <div class="shadow-uses">Cards, panels, entry lists — resting on the page</div>
+          <br>
+          <div class="shadow-label">Floating</div>
+          <div class="shadow-value">0 2px 8px rgba(0,0,0,0.06),<br>0 8px 24px rgba(0,0,0,0.08)</div>
+          <div class="shadow-uses">Dropdowns, bottom sheets, modals — elevated above the page</div>
+        </div>
+      </div>
+
+      <div class="shadow-card">
+        <div class="shadow-demo" style="border: 1px solid var(--color-border); background: var(--color-page);">
+          <div class="shadow-demo" style="box-shadow: var(--shadow-card); margin-bottom: 24px;">
+            <div class="word">sonder</div>
+            <div class="def">The realization that every passerby lives a life as vivid as your own</div>
+            <div class="tags">
+              <span class="tag">neologism</span>
+              <span class="tag">empathy</span>
+              <span class="tag">perspective</span>
+            </div>
+          </div>
+          <div class="shadow-demo" style="box-shadow: var(--shadow-float);">
+            <div class="word">palimpsest</div>
+            <div class="def">A manuscript page reused after earlier writing has been erased</div>
+            <div class="tags">
+              <span class="tag">etymology</span>
+              <span class="tag">history</span>
+            </div>
+          </div>
+        </div>
+        <div class="shadow-info">
+          <div style="font-size: 0.78rem; color: var(--color-dim); line-height: 1.5; text-align: center;">
+            Shadow is a <strong style="color: var(--color-accent);">depth</strong> signal, not decoration.
+            Cards rest on the page with a gentle lift. Floating elements
+            (sheets, dropdowns) need more visual separation from dense
+            content beneath them.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       5. FULL COMPOSITION
+       ════════════════════════════════════════════════════════════ -->
+
+  <section class="section">
+    <h2 class="section-heading">5. Full Composition</h2>
+    <p class="section-desc">All tokens applied together in a capture-screen preview — the Moss palette with Balanced radius and Minimal shadows.</p>
+
+    <div class="composition">
+      <!-- Tabs -->
+      <div class="comp-tabs">
+        <div class="comp-tab active">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>
+          Capture
+        </div>
+        <div class="comp-tab">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+          Review
+        </div>
+        <div class="comp-tab">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" /></svg>
+          Word Bank
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div class="comp-body">
+        <!-- Capture input -->
+        <div class="comp-input-row">
+          <input class="comp-input" value="serendipity p.45" readonly>
+          <div class="comp-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+            Capture
+          </div>
+        </div>
+
+        <!-- Entry 1 -->
+        <div class="comp-entry">
+          <div class="entry-word">serendipity</div>
+          <div class="entry-def">The faculty of making fortunate discoveries by accident — used to describe the role of chance in scientific breakthroughs.</div>
+          <div class="entry-tags">
+            <span class="entry-tag">literary</span>
+            <span class="entry-tag">chance</span>
+            <span class="entry-tag">positive</span>
+          </div>
+          <div class="entry-actions">
+            <span class="comp-btn-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+              Approve
+            </span>
+            <span class="comp-btn-sm comp-btn-ghost">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+              Reject
+            </span>
+            <div class="comp-spacer"></div>
+            <span class="comp-btn-sm comp-btn-ghost" style="color: var(--color-accent);">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" /></svg>
+              Enrich
+            </span>
+          </div>
+        </div>
+
+        <!-- Entry 2 -->
+        <div class="comp-entry">
+          <div class="entry-word">palimpsest</div>
+          <div class="entry-def">A manuscript page from which the text has been scraped off so the page can be reused — metaphorically, something with visible layers of its own history.</div>
+          <div class="entry-tags">
+            <span class="entry-tag">etymology</span>
+            <span class="entry-tag">history</span>
+          </div>
+          <div class="entry-actions">
+            <span class="comp-btn-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+              Approve
+            </span>
+            <span class="comp-btn-sm comp-btn-ghost">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+              Reject
+            </span>
+            <div class="comp-spacer"></div>
+            <span class="comp-btn-sm comp-btn-ghost" style="color: var(--color-accent);">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" /></svg>
+              Enrich
+            </span>
+          </div>
+        </div>
+
+        <!-- Entry 3 -->
+        <div class="comp-entry">
+          <div class="entry-word">sonder</div>
+          <div class="entry-def">The realization that every random passerby is living a life as vivid and complex as your own.</div>
+          <div class="entry-tags">
+            <span class="entry-tag">neologism</span>
+            <span class="entry-tag">empathy</span>
+            <span class="entry-tag">perspective</span>
+          </div>
+          <div class="entry-actions">
+            <span class="comp-btn-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+              Approve
+            </span>
+            <span class="comp-btn-sm comp-btn-ghost">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+              Reject
+            </span>
+            <div class="comp-spacer"></div>
+            <span class="comp-btn-sm comp-btn-ghost" style="color: var(--color-accent);">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" /></svg>
+              Enrich
+            </span>
+          </div>
+        </div>
+
+        <!-- Sheet preview -->
+        <div class="comp-sheet">
+          <div class="sheet-title">Review Detail</div>
+          <div class="sheet-body">Tap an entry to see full definition, source, and enrichment suggestions. Swipe down or tap outside to dismiss.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       6. QUICK REFERENCE
+       ════════════════════════════════════════════════════════════ -->
+
+  <section class="section">
+    <h2 class="section-heading">6. Quick Reference</h2>
+    <p class="section-desc">Every token at a glance.</p>
+
+    <table class="token-table">
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>CSS Variable</th>
+          <th>Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Color</td><td>--color-page</td><td>#F6F4EF</td></tr>
+        <tr><td>Color</td><td>--color-surface</td><td>#FDFCF7</td></tr>
+        <tr><td>Color</td><td>--color-border</td><td>#E2E3DA</td></tr>
+        <tr><td>Color</td><td>--color-ink</td><td>#1C1E1C</td></tr>
+        <tr><td>Color</td><td>--color-dim</td><td>#7E847A</td></tr>
+        <tr><td>Color</td><td>--color-accent</td><td>#456859</td></tr>
+        <tr><td>Color</td><td>--color-accent-subtle</td><td>#E8EDE4</td></tr>
+        <tr><td>Color</td><td>--color-chip-bg</td><td>#E9ECE4</td></tr>
+        <tr><td>Color</td><td>--color-chip-text</td><td>#5C6A58</td></tr>
+        <tr><td>Typography</td><td>--font-ui</td><td>Manrope (400, 500, 600)</td></tr>
+        <tr><td>Typography</td><td>--font-display</td><td>Newsreader (400, 700, italic)</td></tr>
+        <tr><td>Typography</td><td>--font-arabic</td><td>Noto Sans Arabic (400, 700)</td></tr>
+        <tr><td>Radius</td><td>--radius-button</td><td>10px</td></tr>
+        <tr><td>Radius</td><td>--radius-card</td><td>14px</td></tr>
+        <tr><td>Radius</td><td>--radius-sheet</td><td>20px</td></tr>
+        <tr><td>Shadow</td><td>--shadow-card</td><td>0 1px 3px / 0 4px 16px</td></tr>
+        <tr><td>Shadow</td><td>--shadow-float</td><td>0 2px 8px / 0 8px 24px</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</div>
+
+</body>
+</html>
