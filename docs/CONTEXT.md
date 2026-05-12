@@ -109,7 +109,7 @@ A badge on the Review tab shows the count of pending entries, so the user always
 | Layer | Choice | Rationale |
 |---|---|---|
 | Backend | tRPC + Express | End-to-end type safety, familiar DX, transport-agnostic service layer |
-| Frontend | React + Vite (PWA) | Single codebase for capture + review + browse; installable on mobile |
+| Frontend | React + Vite (PWA) + react-router v7 | Declarative routing with layout routes; single codebase for capture + review + browse; installable on mobile |
 | Database | SQLite + Prisma + FTS5 | Zero-ops deployment, Prisma for type-safe queries, FTS5 for full-text search |
 | Voice | OS-level dictation into text input | No audio pipeline needed — works everywhere, zero browser compatibility issues |
 | Capture parsing | LLM on server | Handles natural variations in how users describe items and locators |
@@ -165,6 +165,10 @@ Tags: ["literary", "positive-connotation", "chance"]
 **Connections to other Entries** in the Word Bank are included — they turn isolated entries into a network.
 
 ## UI design
+
+### Visual direction: Warm precision
+
+A clean, warm, restrained aesthetic — never stark white, never pure black. Light-mode first, with a botanical-inspired palette (Moss) that pairs warm creams with deep sage accents. Typography uses Manrope for UI, Newsreader for item names and headings, and Noto Sans Arabic for translations. Icons from Heroicons, components built with Tailwind CSS v4 and Radix UI primitives (`@radix-ui/react-dialog` for Sheet, `@radix-ui/react-tabs`, `@radix-ui/react-popover`), motion handled by CSS transitions only. Routing via react-router v7 declarative mode. Full design tokens defined in [`design/DESIGN_SYSTEM.md`](../design/DESIGN_SYSTEM.md).
 
 ### Screen architecture
 

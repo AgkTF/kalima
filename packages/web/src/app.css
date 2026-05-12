@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+@theme {
+  /* Moss color palette */
+  --color-page: #f6f4ef;
+  --color-surface: #fdfcf7;
+  --color-divider: #e2e3da;
+  --color-ink: #1c1e1c;
+  --color-dim: #7e847a;
+  --color-accent: #456859;
+  --color-accent-subtle: #e8ede4;
+  --color-chip: #e9ece4;
+  --color-chip-text: #5c6a58;
+
+  /* Border radius scale */
+  --radius-button: 10px;
+  --radius-card: 14px;
+  --radius-sheet: 20px;
+
+  /* Shadow scale */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.06);
+  --shadow-floating:
+    0 2px 8px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.08);
+
+  /* Typefaces */
+  --font-ui: "Manrope", system-ui, sans-serif;
+  --font-display: "Newsreader", serif;
+  --font-arabic: "Noto Sans Arabic", sans-serif;
+}
+
+/* Global defaults */
+html {
+  background-color: var(--color-page);
+  color: var(--color-ink);
+  font-family: var(--font-ui);
+}
