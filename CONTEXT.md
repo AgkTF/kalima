@@ -168,7 +168,7 @@ Tags: ["literary", "positive-connotation", "chance"]
 
 ### Visual direction: Warm precision
 
-A clean, warm, restrained aesthetic — never stark white, never pure black. Light-mode first, with a botanical-inspired palette (Moss) that pairs warm creams with deep sage accents. Typography uses Manrope for UI, Newsreader for item names and headings, and Noto Sans Arabic for translations. Icons from Heroicons, components built with Tailwind CSS v4 and Radix UI primitives (`@radix-ui/react-dialog` for Sheet, `@radix-ui/react-tabs`, `@radix-ui/react-popover`), motion handled by CSS transitions only. Routing via react-router v7 declarative mode. Full design tokens defined in [`design/DESIGN_SYSTEM.md`](../design/DESIGN_SYSTEM.md).
+A clean, warm, restrained aesthetic — never stark white, never pure black. Light-mode first, with a botanical-inspired palette (Moss) that pairs warm creams with deep sage accents. Typography uses Manrope for UI, Newsreader for item names and headings, and Noto Sans Arabic for translations. Icons from Heroicons, components built with Tailwind CSS v4 and Radix UI primitives (`@radix-ui/react-dialog` for Sheet, `@radix-ui/react-tabs`, `@radix-ui/react-popover`), motion handled by CSS transitions only. Routing via react-router v7 declarative mode. Full design tokens defined in [`design/DESIGN_SYSTEM.md`](./design/DESIGN_SYSTEM.md).
 
 ### Screen architecture
 
@@ -207,4 +207,4 @@ The capture input is never gated behind session setup. **Session management** (o
 
 ## See also
 
-- [`UBIQUITOUS_LANGUAGE.md`](./UBIQUITOUS_LANGUAGE.md) — domain terminology, relationships, and flagged ambiguities
+- [`UBIQUITOUS_LANGUAGE.md`](./docs/UBIQUITOUS_LANGUAGE.md) — domain terminology, relationships, and flagged ambiguities
