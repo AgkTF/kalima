@@ -2,7 +2,7 @@ import {
   BookmarkIcon as BookmarkSolid,
   BookOpenIcon as BookOpenSolid,
   ClipboardDocumentListIcon as ClipboardSolid,
-} from "@heroicons/react/20/solid";
+} from "@heroicons/react/24/solid";
 import {
   BookmarkIcon as BookmarkOutline,
   BookOpenIcon as BookOpenOutline,
@@ -44,7 +44,7 @@ export function BottomTabBar() {
       className="fixed bottom-0 left-0 right-0 z-40 flex border-t border-divider bg-surface"
       aria-label="Main navigation"
     >
-      {tabs.map((tab) => (
+      {tabs.map(tab => (
         <NavLink key={tab.to} to={tab.to} className="flex flex-1">
           {({ isActive }) => {
             const Icon = isActive ? tab.solidIcon : tab.outlineIcon;

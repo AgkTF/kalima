@@ -40,7 +40,7 @@ export function CaptureScreen() {
   const utils = trpc.useUtils();
   const captures = trpc.capture.list.useQuery();
   const createCapture = trpc.capture.create.useMutation({
-    onSuccess: (data) => {
+    onSuccess: data => {
       utils.capture.list.invalidate();
       const parts = [data.item];
       if (data.locator) parts.push(data.locator);
@@ -80,7 +80,7 @@ export function CaptureScreen() {
           </div>
         ) : (
           <ul className="px-5">
-            {captures.data.map((capture) => (
+            {captures.data.map(capture => (
               <CaptureEntry key={capture.id} capture={capture} />
             ))}
           </ul>
@@ -89,12 +89,12 @@ export function CaptureScreen() {
 
       {/* Inline feedback */}
       {lastParsed && (
-        <p className="mx-3 mb-1 rounded-button bg-accent-subtle px-3 py-1.5 text-sm text-accent">
+        <p className="rounded-button bg-accent-subtle px-3 py-2 text-sm text-accent fixed bottom-32 left-3 right-3 border border-dim">
           Captured: {lastParsed}
         </p>
       )}
       {createCapture.error && (
-        <p className="mx-3 mb-1 text-sm text-accent">
+        <p className="fixed bottom-32 left-3 right-3 rounded-button border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
           {createCapture.error.message}
         </p>
       )}
@@ -105,17 +105,17 @@ export function CaptureScreen() {
           <input
             type="text"
             value={rawText}
-            onChange={(e) => setRawText(e.target.value)}
-            placeholder="Capture a word or phrase"
+            onChange={e => setRawText(e.target.value)}
+            placeholder="Capture a word or phrase..."
             disabled={createCapture.isPending}
-            className="min-w-0 flex-1 rounded-button border border-divider bg-surface px-3 py-2 font-ui text-ink placeholder:text-dim focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
+            className="min-w-0 flex-1 rounded-button border border-divider bg-surface px-3 py-2 font-ui text-ink placeholder:text-dim placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
             // biome-ignore lint/a11y/noAutofocus: capture input is the primary action, autofocus is intentional
             autoFocus
           />
           <button
             type="submit"
             disabled={createCapture.isPending || !rawText.trim()}
-            className="shrink-0 rounded-button bg-accent px-4 py-2 font-ui font-medium text-page transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="shrink-0 rounded-button bg-accent px-4 py-2 font-ui font-medium text-page transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
           >
             {createCapture.isPending ? "\u2026" : "Capture"}
           </button>
