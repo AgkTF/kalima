@@ -61,9 +61,9 @@ export function CaptureScreen() {
   const count = captures.data?.length ?? 0;
 
   return (
-    <main className="flex flex-1 flex-col pb-16">
+    <main className="flex flex-1 flex-col pb-32 relative">
       {/* Top bar */}
-      <header className="flex items-center justify-between px-4 py-2.5">
+      <header className="flex items-center justify-between px-5 pt-4 pb-2">
         <h1 className="font-display text-lg font-bold text-ink">Capture</h1>
         {count > 0 && (
           <span className="rounded-full bg-accent-subtle px-2 text-xs text-dim">
@@ -79,7 +79,7 @@ export function CaptureScreen() {
             <p className="font-ui text-dim">Capture your first word</p>
           </div>
         ) : (
-          <ul className="px-4">
+          <ul className="px-5">
             {captures.data.map((capture) => (
               <CaptureEntry key={capture.id} capture={capture} />
             ))}
@@ -100,13 +100,13 @@ export function CaptureScreen() {
       )}
 
       {/* Capture input */}
-      <div className="border-t border-divider bg-surface p-3">
+      <div className="border-t border-divider bg-surface py-3 px-5 w-full fixed bottom-14">
         <form onSubmit={handleSubmit} className="flex gap-2">
           <input
             type="text"
             value={rawText}
             onChange={(e) => setRawText(e.target.value)}
-            placeholder="Capture a word or phrase\u2026"
+            placeholder="Capture a word or phrase"
             disabled={createCapture.isPending}
             className="min-w-0 flex-1 rounded-button border border-divider bg-surface px-3 py-2 font-ui text-ink placeholder:text-dim focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
             // biome-ignore lint/a11y/noAutofocus: capture input is the primary action, autofocus is intentional

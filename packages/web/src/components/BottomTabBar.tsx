@@ -50,12 +50,12 @@ export function BottomTabBar() {
             const Icon = isActive ? tab.solidIcon : tab.outlineIcon;
             return (
               <span
-                className={`flex w-full flex-col items-center gap-0.5 py-2 text-xs font-medium transition-colors ${
+                className={`flex w-full flex-col items-center gap-0.5 py-2 text-[10px] font-semibold transition-colors ${
                   isActive ? "text-accent" : "text-dim"
                 }`}
               >
                 <Icon
-                  className={isActive ? "h-5 w-5" : "h-6 w-6"}
+                  className={isActive ? "h-6 w-6" : "h-6 w-6"}
                   aria-hidden="true"
                 />
                 {tab.label}
