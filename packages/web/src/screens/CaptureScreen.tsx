@@ -48,6 +48,9 @@ export function CaptureScreen() {
   const [sourceName, setSourceName] = useState("");
   const [sourceType, setSourceType] =
     useState<(typeof SOURCE_TYPES)[number]["value"]>("book");
+  const [sourceTypeLocked, setSourceTypeLocked] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const utils = trpc.useUtils();
 
@@ -57,6 +60,12 @@ export function CaptureScreen() {
   const sessionCaptures = trpc.capture.listSession.useQuery(
     { sessionId: activeSession.data?.id ?? 0 },
     { enabled: activeSession.data != null },
+  );
+
+  // Source search for autocomplete
+  const sourceSuggestions = trpc.source.search.useQuery(
+    { query: searchQuery },
+    { enabled: searchQuery.length > 0 },
   );
 
   // Mutations
@@ -81,6 +90,8 @@ export function CaptureScreen() {
       utils.session.getActive.invalidate();
       setShowSessionForm(false);
       setSourceName("");
+      setSourceTypeLocked(false);
+      setSearchQuery("");
     },
   });
 
@@ -106,12 +117,27 @@ export function CaptureScreen() {
     setRawText("");
   }
 
+  function handleSourceNameChange(value: string) {
+    setSourceName(value);
+    setSourceTypeLocked(false);
+    setSearchQuery(value);
+    setShowSuggestions(true);
+  }
+
+  function handleSelectSuggestion(source: { name: string; type: string }) {
+    setSourceName(source.name);
+    setSourceType(source.type as (typeof SOURCE_TYPES)[number]["value"]);
+    setSourceTypeLocked(true);
+    setShowSuggestions(false);
+    setSearchQuery("");
+  }
+
   async function handleStartSession(e: React.FormEvent) {
     e.preventDefault();
     if (!sourceName.trim() || openSession.isPending) return;
 
     await openSession.mutateAsync({
-      sourceName: sourceName.trim(),
+      name: sourceName.trim(),
       type: sourceType,
     });
   }
@@ -146,10 +172,10 @@ export function CaptureScreen() {
         <div className="mx-5 mb-2 flex items-center justify-between rounded-button border border-divider bg-surface px-3 py-2.5">
           <div className="min-w-0 flex-1">
             <div className="truncate font-display text-sm font-semibold text-ink">
-              {activeSession.data?.sourceName}
+              {activeSession.data?.source?.name}
             </div>
             <div className="mt-0.5 text-xs text-dim">
-              {activeSession.data?.type}
+              {activeSession.data?.source?.type}
             </div>
           </div>
           <button
@@ -179,16 +205,55 @@ export function CaptureScreen() {
               onSubmit={handleStartSession}
               className="space-y-2 rounded-button border border-accent bg-surface p-3"
             >
-              <input
-                type="text"
-                value={sourceName}
-                onChange={(e) => setSourceName(e.target.value)}
-                placeholder="Source title (e.g. Moby Dick)"
-                disabled={openSession.isPending}
-                className="w-full rounded-button border border-divider bg-surface px-3 py-2 font-ui text-sm text-ink placeholder:text-dim focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
-                // biome-ignore lint/a11y/noAutofocus: session start is the primary action when shown, autofocus is intentional
-                autoFocus
-              />
+              {/* Autocomplete input */}
+              <div className="relative">
+                <input
+                  type="text"
+                  value={sourceName}
+                  onChange={(e) => handleSourceNameChange(e.target.value)}
+                  onFocus={() => {
+                    if (searchQuery.length > 0) setShowSuggestions(true);
+                  }}
+                  onBlur={() => {
+                    // Delay to allow click on suggestion
+                    setTimeout(() => setShowSuggestions(false), 150);
+                  }}
+                  placeholder="Source title (e.g. Moby Dick)"
+                  disabled={openSession.isPending}
+                  className="w-full rounded-button border border-divider bg-surface px-3 py-2 font-ui text-sm text-ink placeholder:text-dim focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
+                  // biome-ignore lint/a11y/noAutofocus: session start is the primary action when shown
+                  autoFocus
+                />
+                {/* Suggestion dropdown */}
+                {showSuggestions &&
+                  sourceSuggestions.data &&
+                  sourceSuggestions.data.length > 0 && (
+                    <ul className="absolute z-10 mt-1 w-full rounded-button border border-divider bg-surface shadow-lg">
+                      {sourceSuggestions.data.map((s) => (
+                        <li key={s.id}>
+                          <button
+                            type="button"
+                            onMouseDown={(e) => {
+                              // Prevent onBlur from closing before click
+                              e.preventDefault();
+                              handleSelectSuggestion(s);
+                            }}
+                            className="flex w-full items-center justify-between px-3 py-2 text-sm transition-colors hover:bg-accent-subtle cursor-pointer"
+                          >
+                            <span className="font-display font-medium text-ink">
+                              {s.name}
+                            </span>
+                            <span className="ml-2 shrink-0 text-xs text-dim">
+                              {s.type}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+              </div>
+
+              {/* Type selector */}
               <div className="flex gap-2">
                 <select
                   value={sourceType}
@@ -197,8 +262,8 @@ export function CaptureScreen() {
                       e.target.value as (typeof SOURCE_TYPES)[number]["value"],
                     )
                   }
-                  disabled={openSession.isPending}
-                  className="rounded-button border border-divider bg-surface px-3 py-2 font-ui text-sm text-ink focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50 cursor-pointer"
+                  disabled={openSession.isPending || sourceTypeLocked}
+                  className="rounded-button border border-divider bg-surface px-3 py-2 font-ui text-sm text-ink focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                 >
                   {SOURCE_TYPES.map((t) => (
                     <option key={t.value} value={t.value}>
@@ -216,7 +281,11 @@ export function CaptureScreen() {
               </div>
               <button
                 type="button"
-                onClick={() => setShowSessionForm(false)}
+                onClick={() => {
+                  setShowSessionForm(false);
+                  setSourceTypeLocked(false);
+                  setSearchQuery("");
+                }}
                 className="w-full text-center text-xs text-dim hover:text-ink transition-colors cursor-pointer"
               >
                 Cancel
