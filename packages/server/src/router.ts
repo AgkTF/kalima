@@ -29,14 +29,32 @@ export const appRouter = t.router({
     close: t.procedure.mutation(async ({ ctx }) =>
       SessionService.close(ctx.prisma),
     ),
+    getActive: t.procedure.query(async ({ ctx }) =>
+      SessionService.getActive(ctx.prisma),
+    ),
   }),
   capture: t.router({
     create: t.procedure
-      .input(z.object({ rawText: z.string().min(1) }))
+      .input(
+        z.object({
+          rawText: z.string().min(1),
+          sessionId: z.number().optional(),
+        }),
+      )
       .mutation(async ({ input, ctx }) =>
-        CaptureService.create(input.rawText, ctx.prisma, ctx.llm),
+        CaptureService.create(
+          input.rawText,
+          ctx.prisma,
+          ctx.llm,
+          input.sessionId,
+        ),
       ),
     list: t.procedure.query(({ ctx }) => CaptureService.list(ctx.prisma)),
+    listSession: t.procedure
+      .input(z.object({ sessionId: z.number() }))
+      .query(async ({ input, ctx }) =>
+        CaptureService.listSession(input.sessionId, ctx.prisma),
+      ),
   }),
 });
 

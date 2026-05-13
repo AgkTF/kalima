@@ -3,7 +3,12 @@ import { CaptureParser } from "./capture-parser.js";
 import type { LLMClient } from "./llm-client.js";
 
 export const CaptureService = {
-  async create(rawText: string, prisma: PrismaClient, llm: LLMClient) {
+  async create(
+    rawText: string,
+    prisma: PrismaClient,
+    llm: LLMClient,
+    sessionId?: number,
+  ) {
     const parser = new CaptureParser(llm);
     const parsed = await parser.parse(rawText);
 
@@ -13,6 +18,7 @@ export const CaptureService = {
         item: parsed.item,
         locator: parsed.locator,
         sourceHint: parsed.sourceHint,
+        sessionId: sessionId ?? null,
       },
     });
   },
@@ -20,6 +26,13 @@ export const CaptureService = {
   async list(prisma: PrismaClient) {
     return prisma.capture.findMany({
       where: { sessionId: null },
+      orderBy: { createdAt: "desc" },
+    });
+  },
+
+  async listSession(sessionId: number, prisma: PrismaClient) {
+    return prisma.capture.findMany({
+      where: { sessionId },
       orderBy: { createdAt: "desc" },
     });
   },

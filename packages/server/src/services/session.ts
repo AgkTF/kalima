@@ -35,4 +35,10 @@ export const SessionService = {
       data: { closedAt: new Date() },
     });
   },
+
+  async getActive(prisma: PrismaClient) {
+    return prisma.session.findFirst({
+      where: { closedAt: null },
+    });
+  },
 };
