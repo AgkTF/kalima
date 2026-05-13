@@ -247,4 +247,53 @@ describe("captures scoped to a session", () => {
     await prisma.session.delete({ where: { id: session.id } });
     await prisma.source.deleteMany({ where: { name: "List Book" } });
   });
+
+  it("captures from different sessions of the same source are queryable together", async () => {
+    const caller = appRouter.createCaller({ prisma, llm: mockLLM });
+
+    // Session 1: Moby Dick
+    const session1 = await caller.session.open({
+      name: "Moby Dick",
+      type: "book",
+    });
+    await caller.capture.create({
+      rawText: "whale p.5",
+      sessionId: session1.id,
+    });
+    await caller.capture.create({
+      rawText: "harpoon p.10",
+      sessionId: session1.id,
+    });
+    await caller.session.close();
+
+    // Session 2: Same source (Moby Dick), reopened
+    const session2 = await caller.session.open({
+      name: "Moby Dick",
+      type: "book",
+    });
+    await caller.capture.create({
+      rawText: "ahab p.20",
+      sessionId: session2.id,
+    });
+
+    // Both sessions share the same source
+    expect(session2.sourceId).toBe(session1.sourceId);
+
+    // Query captures for that source via session.source relation
+    const sourceCaptures = await prisma.capture.findMany({
+      where: { session: { sourceId: session1.sourceId } },
+      orderBy: { createdAt: "asc" },
+    });
+    expect(sourceCaptures).toHaveLength(3);
+    expect(sourceCaptures.map((c) => c.item)).toEqual([
+      "session-word",
+      "session-word",
+      "session-word",
+    ]);
+
+    // Cleanup
+    await prisma.capture.deleteMany();
+    await prisma.session.deleteMany();
+    await prisma.source.deleteMany({ where: { name: "Moby Dick" } });
+  });
 });
