@@ -1,55 +1,12 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { CaptureInput } from "../components/CaptureInput";
+import { CaptureList } from "../components/CaptureList";
+import { SessionForm } from "../components/SessionForm";
 import { trpc } from "../trpc";
 
-function CaptureEntry({
-  capture,
-}: {
-  capture: {
-    id: number;
-    item: string;
-    locator: string | null;
-    sourceHint: string | null;
-  };
-}) {
-  const locator = capture.locator || "\u2014"; // em dash
-
-  return (
-    <li className="border-b border-divider py-2.5 last:border-b-0">
-      <div className="font-display text-base italic font-semibold text-ink">
-        {capture.item}
-      </div>
-      <div className="mt-0.5 flex items-center gap-1.5 text-xs">
-        <span className="font-medium text-accent">{locator}</span>
-        {capture.sourceHint && (
-          <>
-            <span className="select-none text-divider">&middot;</span>
-            <span className="rounded-[5px] bg-chip px-1.5 py-px font-medium text-chip-text">
-              {capture.sourceHint}
-            </span>
-          </>
-        )}
-      </div>
-    </li>
-  );
-}
-
-const SOURCE_TYPES = [
-  { value: "book", label: "Book" },
-  { value: "video", label: "Video" },
-  { value: "article", label: "Article" },
-] as const;
-
 export function CaptureScreen() {
-  const [rawText, setRawText] = useState("");
   const [lastParsed, setLastParsed] = useState<string | null>(null);
-
-  // Session start form state
   const [showSessionForm, setShowSessionForm] = useState(false);
-  const [sourceName, setSourceName] = useState("");
-  const [sourceType, setSourceType] =
-    useState<(typeof SOURCE_TYPES)[number]["value"]>("book");
-  const [sourceTypeLocked, setSourceTypeLocked] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const utils = trpc.useUtils();
 
@@ -63,13 +20,6 @@ export function CaptureScreen() {
   const allSources = trpc.source.list.useQuery(undefined, {
     staleTime: Infinity,
   });
-
-  // Filter sources locally for autocomplete
-  const matchedSources = useMemo(() => {
-    if (!allSources.data || sourceName.trim().length === 0) return [];
-    const query = sourceName.toLowerCase();
-    return allSources.data.filter((s) => s.name.toLowerCase().includes(query));
-  }, [allSources.data, sourceName]);
 
   // Mutations
   const createCapture = trpc.capture.create.useMutation({
@@ -93,8 +43,6 @@ export function CaptureScreen() {
       utils.session.getActive.invalidate();
       utils.source.list.invalidate();
       setShowSessionForm(false);
-      setSourceName("");
-      setSourceTypeLocked(false);
     },
   });
 
@@ -104,57 +52,10 @@ export function CaptureScreen() {
     },
   });
 
-  // Handlers
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!rawText.trim() || createCapture.isPending) return;
-
-    const input: { rawText: string; sessionId?: number } = {
-      rawText: rawText.trim(),
-    };
-    if (activeSession.data) {
-      input.sessionId = activeSession.data.id;
-    }
-
-    await createCapture.mutateAsync(input);
-    setRawText("");
-  }
-
-  function handleSourceNameChange(value: string) {
-    setSourceName(value);
-    setSourceTypeLocked(false);
-    setShowSuggestions(true);
-  }
-
-  function handleSelectSuggestion(source: { name: string; type: string }) {
-    setSourceName(source.name);
-    setSourceType(source.type as (typeof SOURCE_TYPES)[number]["value"]);
-    setSourceTypeLocked(true);
-    setShowSuggestions(false);
-  }
-
-  async function handleStartSession(e: React.FormEvent) {
-    e.preventDefault();
-    if (!sourceName.trim() || openSession.isPending) return;
-
-    await openSession.mutateAsync({
-      name: sourceName.trim(),
-      type: sourceType,
-    });
-  }
-
-  function handleCloseSession() {
-    if (!closeSession.isPending) {
-      closeSession.mutate();
-    }
-  }
-
-  // Determine which captures to show
-  const activeCaptures = activeSession.data
+  const hasSession = activeSession.data != null;
+  const activeCaptures = hasSession
     ? (sessionCaptures.data ?? [])
     : (captures.data ?? []);
-  const isEmpty = activeCaptures.length === 0;
-  const hasSession = activeSession.data != null;
 
   return (
     <main className="flex flex-1 flex-col relative">
@@ -181,7 +82,7 @@ export function CaptureScreen() {
           </div>
           <button
             type="button"
-            onClick={handleCloseSession}
+            onClick={() => closeSession.mutate()}
             disabled={closeSession.isPending}
             className="ml-2 shrink-0 rounded-button border border-divider px-3 py-1 text-xs font-medium text-dim transition-colors hover:border-red-200 hover:text-red-600 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
           >
@@ -202,148 +103,36 @@ export function CaptureScreen() {
               Start a Session
             </button>
           ) : (
-            <form
-              onSubmit={handleStartSession}
-              className="space-y-2 rounded-button border border-accent bg-surface p-3"
-            >
-              {/* Autocomplete input */}
-              <div className="relative">
-                <input
-                  type="text"
-                  value={sourceName}
-                  onChange={(e) => handleSourceNameChange(e.target.value)}
-                  onFocus={() => {
-                    if (sourceName.trim().length > 0) setShowSuggestions(true);
-                  }}
-                  onBlur={() => {
-                    setTimeout(() => setShowSuggestions(false), 150);
-                  }}
-                  placeholder="Source title (e.g. Moby Dick)"
-                  disabled={openSession.isPending}
-                  className="w-full rounded-button border border-divider bg-surface px-3 py-2 font-ui text-sm text-ink placeholder:text-dim focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
-                  // biome-ignore lint/a11y/noAutofocus: session start is the primary action when shown
-                  autoFocus
-                />
-                {/* Suggestion dropdown */}
-                {showSuggestions && matchedSources.length > 0 && (
-                  <ul className="absolute z-10 mt-1 w-full rounded-button border border-divider bg-surface shadow-lg">
-                    {matchedSources.map((s) => (
-                      <li key={s.id}>
-                        <button
-                          type="button"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            handleSelectSuggestion(s);
-                          }}
-                          className="flex w-full items-center justify-between px-3 py-2 text-sm transition-colors hover:bg-accent-subtle cursor-pointer"
-                        >
-                          <span className="font-display font-medium text-ink">
-                            {s.name}
-                          </span>
-                          <span className="ml-2 shrink-0 text-xs text-dim">
-                            {s.type}
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-
-              {/* Type selector */}
-              <div className="flex gap-2">
-                <select
-                  value={sourceType}
-                  onChange={(e) =>
-                    setSourceType(
-                      e.target.value as (typeof SOURCE_TYPES)[number]["value"],
-                    )
-                  }
-                  disabled={openSession.isPending || sourceTypeLocked}
-                  className="rounded-button border border-divider bg-surface px-3 py-2 font-ui text-sm text-ink focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-                >
-                  {SOURCE_TYPES.map((t) => (
-                    <option key={t.value} value={t.value}>
-                      {t.label}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="submit"
-                  disabled={openSession.isPending || !sourceName.trim()}
-                  className="flex-1 rounded-button bg-accent px-4 py-2 font-ui text-sm font-medium text-page transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-                >
-                  {openSession.isPending ? "\u2026" : "Open Session"}
-                </button>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowSessionForm(false);
-                  setSourceTypeLocked(false);
-                }}
-                className="w-full text-center text-xs text-dim hover:text-ink transition-colors cursor-pointer"
-              >
-                Cancel
-              </button>
-            </form>
+            <SessionForm
+              sources={allSources.data ?? []}
+              isPending={openSession.isPending}
+              onStart={(name, type) =>
+                openSession.mutate({
+                  name,
+                  type: type as "book" | "video" | "article",
+                })
+              }
+              onCancel={() => setShowSessionForm(false)}
+            />
           )}
         </div>
       )}
 
-      {/* Capture list area */}
-      <div className="flex flex-1 flex-col overflow-y-auto pb-40">
-        {isEmpty ? (
-          <div className="flex flex-1 items-center justify-center">
-            <p className="font-ui text-dim">
-              {hasSession
-                ? "Capture your first word in this session"
-                : "Capture your first word"}
-            </p>
-          </div>
-        ) : (
-          <ul className="px-5">
-            {activeCaptures.map((capture) => (
-              <CaptureEntry key={capture.id} capture={capture} />
-            ))}
-          </ul>
-        )}
-      </div>
+      {/* Capture list */}
+      <CaptureList captures={activeCaptures} hasSession={hasSession} />
 
-      {/* Inline feedback */}
-      {lastParsed && (
-        <p className="fixed bottom-32 left-3 right-3 rounded-button border border-dim bg-accent-subtle px-3 py-2 text-sm text-accent">
-          Captured: {lastParsed}
-        </p>
-      )}
-      {createCapture.error && (
-        <p className="fixed bottom-32 left-3 right-3 rounded-button border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
-          {createCapture.error.message}
-        </p>
-      )}
-
-      {/* Capture input */}
-      <div className="fixed bottom-14 w-full border-t border-divider bg-surface px-5 py-3">
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <input
-            type="text"
-            value={rawText}
-            onChange={(e) => setRawText(e.target.value)}
-            placeholder="Capture a word or phrase..."
-            disabled={createCapture.isPending}
-            className="min-w-0 flex-1 rounded-button border border-divider bg-surface px-3 py-2 font-ui text-ink placeholder:text-dim placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
-            // biome-ignore lint/a11y/noAutofocus: capture input is the primary action, autofocus is intentional
-            autoFocus
-          />
-          <button
-            type="submit"
-            disabled={createCapture.isPending || !rawText.trim()}
-            className="shrink-0 rounded-button bg-accent px-4 py-2 font-ui font-medium text-page transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-          >
-            {createCapture.isPending ? "\u2026" : "Capture"}
-          </button>
-        </form>
-      </div>
+      {/* Capture input + feedback */}
+      <CaptureInput
+        isPending={createCapture.isPending}
+        error={createCapture.error?.message ?? null}
+        lastParsed={lastParsed}
+        onSubmit={(text) =>
+          createCapture.mutate({
+            rawText: text,
+            sessionId: activeSession.data?.id,
+          })
+        }
+      />
     </main>
   );
 }
