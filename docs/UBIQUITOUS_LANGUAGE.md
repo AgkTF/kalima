@@ -48,6 +48,7 @@
 ## Relationships
 
 - A **Session** is associated with exactly one **Source**
+- A **Source** can have many **Sessions**
 - A **Session** has many **Captures**
 - A **Capture** belongs to exactly one **Session** or is a **One-off**
 - A **Capture** may include a **Locator** (chapter, page, timestamp)

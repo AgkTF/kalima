@@ -26,9 +26,11 @@ model Capture {
 }
 
 model Session {
-  id        Int      @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   sourceName String
-  createdAt DateTime @default(now())
+  type       String
+  createdAt  DateTime  @default(now())
+  closedAt   DateTime?
 
-  captures  Capture[]
+  captures   Capture[]
 }
