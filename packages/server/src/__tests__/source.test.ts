@@ -75,7 +75,7 @@ describe("source.create mutation", () => {
   });
 });
 
-describe("source.search query", () => {
+describe("source.list query", () => {
   const adapter = new PrismaBetterSqlite3({
     url: "file:./prisma/dev.db",
   });
@@ -85,52 +85,43 @@ describe("source.search query", () => {
     await prisma.$disconnect();
   });
 
-  it("returns sources matching name prefix, ordered by name", async () => {
+  it("returns all sources ordered by name", async () => {
     const caller = appRouter.createCaller({
       prisma,
       llm: { complete: async () => "{}" } as never,
     });
 
-    // Seed sources
-    await caller.source.create({ name: "Moby Dick", type: "book" });
-    await caller.source.create({ name: "Moby Dick (Abridged)", type: "book" });
-    await caller.source.create({ name: "Mozart Biography", type: "book" });
+    await caller.source.create({ name: "Zebra Book", type: "book" });
+    await caller.source.create({ name: "Alpha Article", type: "article" });
+    await caller.source.create({ name: "Middle Video", type: "video" });
 
-    const results = await caller.source.search({ query: "Mob" });
+    const results = await caller.source.list();
 
-    expect(results).toHaveLength(2);
+    expect(results).toHaveLength(3);
     expect(results.map((s) => s.name)).toEqual([
-      "Moby Dick",
-      "Moby Dick (Abridged)",
+      "Alpha Article",
+      "Middle Video",
+      "Zebra Book",
     ]);
 
+    // Verify all three columns are present
+    for (const s of results) {
+      expect(s.id).toBeTypeOf("number");
+      expect(s.name).toBeTypeOf("string");
+      expect(s.type).toBeTypeOf("string");
+    }
+
     // Cleanup
     await prisma.source.deleteMany();
   });
 
-  it("returns empty array when no sources match", async () => {
+  it("returns empty array when no sources exist", async () => {
     const caller = appRouter.createCaller({
       prisma,
       llm: { complete: async () => "{}" } as never,
     });
 
-    const results = await caller.source.search({ query: "zzz_nonexistent" });
+    const results = await caller.source.list();
     expect(results).toHaveLength(0);
-  });
-
-  it("matches case-insensitively", async () => {
-    const caller = appRouter.createCaller({
-      prisma,
-      llm: { complete: async () => "{}" } as never,
-    });
-
-    await caller.source.create({ name: "The Great Gatsby", type: "book" });
-
-    const results = await caller.source.search({ query: "the great" });
-    expect(results).toHaveLength(1);
-    expect(results[0].name).toBe("The Great Gatsby");
-
-    // Cleanup
-    await prisma.source.deleteMany();
   });
 });

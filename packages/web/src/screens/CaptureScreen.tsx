@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { trpc } from "../trpc";
 
 function CaptureEntry({
@@ -50,7 +50,6 @@ export function CaptureScreen() {
     useState<(typeof SOURCE_TYPES)[number]["value"]>("book");
   const [sourceTypeLocked, setSourceTypeLocked] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
 
   const utils = trpc.useUtils();
 
@@ -61,12 +60,16 @@ export function CaptureScreen() {
     { sessionId: activeSession.data?.id ?? 0 },
     { enabled: activeSession.data != null },
   );
+  const allSources = trpc.source.list.useQuery(undefined, {
+    staleTime: Infinity,
+  });
 
-  // Source search for autocomplete
-  const sourceSuggestions = trpc.source.search.useQuery(
-    { query: searchQuery },
-    { enabled: searchQuery.length > 0 },
-  );
+  // Filter sources locally for autocomplete
+  const matchedSources = useMemo(() => {
+    if (!allSources.data || sourceName.trim().length === 0) return [];
+    const query = sourceName.toLowerCase();
+    return allSources.data.filter((s) => s.name.toLowerCase().includes(query));
+  }, [allSources.data, sourceName]);
 
   // Mutations
   const createCapture = trpc.capture.create.useMutation({
@@ -88,10 +91,10 @@ export function CaptureScreen() {
   const openSession = trpc.session.open.useMutation({
     onSuccess: () => {
       utils.session.getActive.invalidate();
+      utils.source.list.invalidate();
       setShowSessionForm(false);
       setSourceName("");
       setSourceTypeLocked(false);
-      setSearchQuery("");
     },
   });
 
@@ -120,7 +123,6 @@ export function CaptureScreen() {
   function handleSourceNameChange(value: string) {
     setSourceName(value);
     setSourceTypeLocked(false);
-    setSearchQuery(value);
     setShowSuggestions(true);
   }
 
@@ -129,7 +131,6 @@ export function CaptureScreen() {
     setSourceType(source.type as (typeof SOURCE_TYPES)[number]["value"]);
     setSourceTypeLocked(true);
     setShowSuggestions(false);
-    setSearchQuery("");
   }
 
   async function handleStartSession(e: React.FormEvent) {
@@ -212,10 +213,9 @@ export function CaptureScreen() {
                   value={sourceName}
                   onChange={(e) => handleSourceNameChange(e.target.value)}
                   onFocus={() => {
-                    if (searchQuery.length > 0) setShowSuggestions(true);
+                    if (sourceName.trim().length > 0) setShowSuggestions(true);
                   }}
                   onBlur={() => {
-                    // Delay to allow click on suggestion
                     setTimeout(() => setShowSuggestions(false), 150);
                   }}
                   placeholder="Source title (e.g. Moby Dick)"
@@ -225,32 +225,29 @@ export function CaptureScreen() {
                   autoFocus
                 />
                 {/* Suggestion dropdown */}
-                {showSuggestions &&
-                  sourceSuggestions.data &&
-                  sourceSuggestions.data.length > 0 && (
-                    <ul className="absolute z-10 mt-1 w-full rounded-button border border-divider bg-surface shadow-lg">
-                      {sourceSuggestions.data.map((s) => (
-                        <li key={s.id}>
-                          <button
-                            type="button"
-                            onMouseDown={(e) => {
-                              // Prevent onBlur from closing before click
-                              e.preventDefault();
-                              handleSelectSuggestion(s);
-                            }}
-                            className="flex w-full items-center justify-between px-3 py-2 text-sm transition-colors hover:bg-accent-subtle cursor-pointer"
-                          >
-                            <span className="font-display font-medium text-ink">
-                              {s.name}
-                            </span>
-                            <span className="ml-2 shrink-0 text-xs text-dim">
-                              {s.type}
-                            </span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                {showSuggestions && matchedSources.length > 0 && (
+                  <ul className="absolute z-10 mt-1 w-full rounded-button border border-divider bg-surface shadow-lg">
+                    {matchedSources.map((s) => (
+                      <li key={s.id}>
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            handleSelectSuggestion(s);
+                          }}
+                          className="flex w-full items-center justify-between px-3 py-2 text-sm transition-colors hover:bg-accent-subtle cursor-pointer"
+                        >
+                          <span className="font-display font-medium text-ink">
+                            {s.name}
+                          </span>
+                          <span className="ml-2 shrink-0 text-xs text-dim">
+                            {s.type}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
 
               {/* Type selector */}
@@ -284,7 +281,6 @@ export function CaptureScreen() {
                 onClick={() => {
                   setShowSessionForm(false);
                   setSourceTypeLocked(false);
-                  setSearchQuery("");
                 }}
                 className="w-full text-center text-xs text-dim hover:text-ink transition-colors cursor-pointer"
               >
