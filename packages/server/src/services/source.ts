@@ -11,4 +11,14 @@ export const SourceService = {
       data: { name, type },
     });
   },
+
+  async search(query: string, prisma: PrismaClient) {
+    return prisma.source.findMany({
+      where: {
+        name: { contains: query },
+      },
+      orderBy: { name: "asc" },
+      take: 10,
+    });
+  },
 };

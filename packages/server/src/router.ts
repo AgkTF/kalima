@@ -45,6 +45,11 @@ export const appRouter = t.router({
       .mutation(async ({ input, ctx }) =>
         SourceService.create(input.name, input.type, ctx.prisma),
       ),
+    search: t.procedure
+      .input(z.object({ query: z.string().min(1) }))
+      .query(async ({ input, ctx }) =>
+        SourceService.search(input.query, ctx.prisma),
+      ),
   }),
   capture: t.router({
     create: t.procedure

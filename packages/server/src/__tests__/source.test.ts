@@ -74,3 +74,63 @@ describe("source.create mutation", () => {
     await prisma.source.delete({ where: { id: first.id } });
   });
 });
+
+describe("source.search query", () => {
+  const adapter = new PrismaBetterSqlite3({
+    url: "file:./prisma/dev.db",
+  });
+  const prisma = new PrismaClient({ adapter });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
+  it("returns sources matching name prefix, ordered by name", async () => {
+    const caller = appRouter.createCaller({
+      prisma,
+      llm: { complete: async () => "{}" } as never,
+    });
+
+    // Seed sources
+    await caller.source.create({ name: "Moby Dick", type: "book" });
+    await caller.source.create({ name: "Moby Dick (Abridged)", type: "book" });
+    await caller.source.create({ name: "Mozart Biography", type: "book" });
+
+    const results = await caller.source.search({ query: "Mob" });
+
+    expect(results).toHaveLength(2);
+    expect(results.map((s) => s.name)).toEqual([
+      "Moby Dick",
+      "Moby Dick (Abridged)",
+    ]);
+
+    // Cleanup
+    await prisma.source.deleteMany();
+  });
+
+  it("returns empty array when no sources match", async () => {
+    const caller = appRouter.createCaller({
+      prisma,
+      llm: { complete: async () => "{}" } as never,
+    });
+
+    const results = await caller.source.search({ query: "zzz_nonexistent" });
+    expect(results).toHaveLength(0);
+  });
+
+  it("matches case-insensitively", async () => {
+    const caller = appRouter.createCaller({
+      prisma,
+      llm: { complete: async () => "{}" } as never,
+    });
+
+    await caller.source.create({ name: "The Great Gatsby", type: "book" });
+
+    const results = await caller.source.search({ query: "the great" });
+    expect(results).toHaveLength(1);
+    expect(results[0].name).toBe("The Great Gatsby");
+
+    // Cleanup
+    await prisma.source.deleteMany();
+  });
+});
