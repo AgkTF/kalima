@@ -1,4 +1,11 @@
 -- CreateTable
+CREATE TABLE "AppMeta" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "key" TEXT NOT NULL,
+    "value" TEXT NOT NULL
+);
+
+-- CreateTable
 CREATE TABLE "Capture" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "rawText" TEXT NOT NULL,
@@ -16,3 +23,6 @@ CREATE TABLE "Session" (
     "sourceName" TEXT NOT NULL,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "AppMeta_key_key" ON "AppMeta"("key");
