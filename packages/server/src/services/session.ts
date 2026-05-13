@@ -1,8 +1,9 @@
 import { TRPCError } from "@trpc/server";
 import type { PrismaClient } from "../generated/prisma/client.js";
+import { SourceService } from "./source.js";
 
 export const SessionService = {
-  async open(sourceName: string, type: string, prisma: PrismaClient) {
+  async open(name: string, type: string, prisma: PrismaClient) {
     const active = await prisma.session.findFirst({
       where: { closedAt: null },
     });
@@ -14,8 +15,11 @@ export const SessionService = {
       });
     }
 
+    const source = await SourceService.create(name, type, prisma);
+
     return prisma.session.create({
-      data: { sourceName, type },
+      data: { sourceId: source.id },
+      include: { source: true },
     });
   },
 
@@ -39,6 +43,7 @@ export const SessionService = {
   async getActive(prisma: PrismaClient) {
     return prisma.session.findFirst({
       where: { closedAt: null },
+      include: { source: true },
     });
   },
 };

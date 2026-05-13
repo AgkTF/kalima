@@ -25,12 +25,22 @@ model Capture {
   session   Session? @relation(fields: [sessionId], references: [id])
 }
 
-model Session {
-  id         Int       @id @default(autoincrement())
-  sourceName String
-  type       String
-  createdAt  DateTime  @default(now())
-  closedAt   DateTime?
+model Source {
+  id   Int    @id @default(autoincrement())
+  name String
+  type String
 
-  captures   Capture[]
+  sessions Session[]
+
+  @@unique([name, type])
+}
+
+model Session {
+  id        Int       @id @default(autoincrement())
+  sourceId  Int
+  createdAt DateTime  @default(now())
+  closedAt  DateTime?
+
+  source   Source   @relation(fields: [sourceId], references: [id])
+  captures Capture[]
 }
