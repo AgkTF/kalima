@@ -26,6 +26,9 @@ export const appRouter = t.router({
       .mutation(async ({ input, ctx }) =>
         SessionService.open(input.sourceName, input.type, ctx.prisma),
       ),
+    close: t.procedure.mutation(async ({ ctx }) =>
+      SessionService.close(ctx.prisma),
+    ),
   }),
   capture: t.router({
     create: t.procedure
