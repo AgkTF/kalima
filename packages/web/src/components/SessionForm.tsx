@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useCombobox } from "downshift";
+import { useState } from "react";
 
 const SOURCE_TYPES = [
   { value: "book", label: "Book" },
@@ -23,35 +24,47 @@ export function SessionForm({
   onStart: (name: string, type: string) => void;
   onCancel: () => void;
 }) {
-  const [name, setName] = useState("");
   const [type, setType] =
     useState<(typeof SOURCE_TYPES)[number]["value"]>("book");
   const [typeLocked, setTypeLocked] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [inputItems, setInputItems] = useState<SourceSuggestion[]>([]);
 
-  const matchedSources = useMemo(() => {
-    if (name.trim().length === 0) return [];
-    const query = name.toLowerCase();
-    return sources.filter((s) => s.name.toLowerCase().includes(query));
-  }, [sources, name]);
-
-  function handleNameChange(value: string) {
-    setName(value);
-    setTypeLocked(false);
-    setShowSuggestions(true);
-  }
-
-  function handleSelectSuggestion(source: SourceSuggestion) {
-    setName(source.name);
-    setType(source.type as (typeof SOURCE_TYPES)[number]["value"]);
-    setTypeLocked(true);
-    setShowSuggestions(false);
-  }
+  const {
+    isOpen,
+    getMenuProps,
+    getInputProps,
+    getItemProps,
+    highlightedIndex,
+    selectedItem,
+    inputValue,
+  } = useCombobox({
+    items: inputItems,
+    itemToString: (item) => item?.name ?? "",
+    onInputValueChange({ inputValue: value, selectedItem: current }) {
+      const query = (value ?? "").toLowerCase();
+      setInputItems(
+        query.length === 0
+          ? []
+          : sources.filter((s) => s.name.toLowerCase().includes(query)),
+      );
+      if (value !== current?.name) {
+        setTypeLocked(false);
+      }
+    },
+    onSelectedItemChange({ selectedItem: source }) {
+      if (source) {
+        setType(source.type as (typeof SOURCE_TYPES)[number]["value"]);
+        setTypeLocked(true);
+      }
+    },
+  });
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim() || isPending) return;
-    onStart(name.trim(), type);
+    const name = (selectedItem?.name ?? inputValue ?? "").trim();
+    if (!name || isPending) return;
+    const resolvedType = selectedItem?.type ?? type;
+    onStart(name, resolvedType);
   }
 
   return (
@@ -59,50 +72,49 @@ export function SessionForm({
       onSubmit={handleSubmit}
       className="space-y-2 rounded-button border border-accent bg-surface p-3"
     >
-      {/* Autocomplete input */}
       <div className="relative">
         <input
-          type="text"
-          value={name}
-          onChange={(e) => handleNameChange(e.target.value)}
-          onFocus={() => {
-            if (name.trim().length > 0) setShowSuggestions(true);
-          }}
-          onBlur={() => {
-            setTimeout(() => setShowSuggestions(false), 150);
-          }}
-          placeholder="Source title (e.g. Moby Dick)"
-          disabled={isPending}
-          className="w-full rounded-button border border-divider bg-surface px-3 py-2 font-ui text-sm text-ink placeholder:text-dim focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
+          {...getInputProps({
+            placeholder: "Source title (e.g. Moby Dick)",
+            disabled: isPending,
+            className:
+              "w-full rounded-button border border-divider bg-surface px-3 py-2 font-ui text-sm text-ink placeholder:text-dim focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50",
+          })}
           // biome-ignore lint/a11y/noAutofocus: session start is the primary action when shown
           autoFocus
         />
-        {showSuggestions && matchedSources.length > 0 && (
-          <ul className="absolute z-10 mt-1 w-full rounded-button border border-divider bg-surface shadow-lg">
-            {matchedSources.map((s) => (
-              <li key={s.id}>
-                <button
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    handleSelectSuggestion(s);
-                  }}
-                  className="flex w-full items-center justify-between px-3 py-2 text-sm transition-colors hover:bg-accent-subtle cursor-pointer"
-                >
-                  <span className="font-display font-medium text-ink">
-                    {s.name}
-                  </span>
-                  <span className="ml-2 shrink-0 text-xs text-dim">
-                    {s.type}
-                  </span>
-                </button>
+        <ul
+          {...getMenuProps({
+            className: `absolute z-10 mt-1 w-full rounded-button border border-divider bg-surface shadow-lg ${
+              !(isOpen && inputItems.length > 0) ? "hidden" : ""
+            }`,
+          })}
+        >
+          {isOpen &&
+            inputItems.map((source, index) => (
+              <li
+                key={source.id}
+                {...getItemProps({
+                  item: source,
+                  index,
+                })}
+                className={`flex w-full items-center justify-between px-3 py-2 text-sm transition-colors cursor-pointer ${
+                  highlightedIndex === index
+                    ? "bg-accent-subtle"
+                    : "hover:bg-accent-subtle"
+                }`}
+              >
+                <span className="font-display font-medium text-ink">
+                  {source.name}
+                </span>
+                <span className="ml-2 shrink-0 text-xs text-dim">
+                  {source.type}
+                </span>
               </li>
             ))}
-          </ul>
-        )}
+        </ul>
       </div>
 
-      {/* Type selector */}
       <div className="flex gap-2">
         <select
           value={type}
@@ -120,7 +132,9 @@ export function SessionForm({
         </select>
         <button
           type="submit"
-          disabled={isPending || !name.trim()}
+          disabled={
+            isPending || !(selectedItem?.name ?? inputValue ?? "").trim()
+          }
           className="flex-1 rounded-button bg-accent px-4 py-2 font-ui text-sm font-medium text-page transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
         >
           {isPending ? "\u2026" : "Open Session"}
