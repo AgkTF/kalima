@@ -28,28 +28,36 @@ describe("session.open mutation", () => {
     const caller = appRouter.createCaller({ prisma, llm: mockLLM });
 
     const result = await caller.session.open({
-      sourceName: "Moby Dick",
+      name: "Moby Dick",
       type: "book",
     });
 
     expect(result).toMatchObject({
-      sourceName: "Moby Dick",
-      type: "book",
+      source: { name: "Moby Dick", type: "book" },
       closedAt: null,
     });
+    expect(result.sourceId).toBeTypeOf("number");
 
     // Verify persisted
     const found = await prisma.session.findUnique({
       where: { id: result.id },
+      include: { source: true },
     });
     expect(found).toMatchObject({
-      sourceName: "Moby Dick",
-      type: "book",
+      source: { name: "Moby Dick", type: "book" },
       closedAt: null,
     });
 
+    // Verify a Source record was created
+    const sources = await prisma.source.findMany({
+      where: { name: "Moby Dick", type: "book" },
+    });
+    expect(sources).toHaveLength(1);
+    expect(sources[0].id).toBe(result.sourceId);
+
     // Cleanup
     await prisma.session.delete({ where: { id: result.id } });
+    await prisma.source.deleteMany({ where: { name: "Moby Dick" } });
   });
 
   it("throws when another session is already active", async () => {
@@ -57,17 +65,18 @@ describe("session.open mutation", () => {
 
     // Open first session
     const first = await caller.session.open({
-      sourceName: "Moby Dick",
+      name: "Moby Dick",
       type: "book",
     });
 
     // Second open should throw
     await expect(
-      caller.session.open({ sourceName: "Another Book", type: "book" }),
+      caller.session.open({ name: "Another Book", type: "book" }),
     ).rejects.toThrow();
 
     // Cleanup
     await prisma.session.delete({ where: { id: first.id } });
+    await prisma.source.deleteMany({ where: { name: "Moby Dick" } });
   });
 });
 
@@ -94,7 +103,7 @@ describe("session.close mutation", () => {
 
     // Open a session
     const session = await caller.session.open({
-      sourceName: "Closing Time",
+      name: "Closing Time",
       type: "article",
     });
 
@@ -105,13 +114,14 @@ describe("session.close mutation", () => {
 
     // Now we should be able to open a new session
     const second = await caller.session.open({
-      sourceName: "Second Session",
+      name: "Second Session",
       type: "video",
     });
     expect(second.closedAt).toBeNull();
 
     // Cleanup
     await prisma.session.deleteMany();
+    await prisma.source.deleteMany();
   });
 });
 
@@ -139,24 +149,24 @@ describe("session.getActive query", () => {
     expect(result).toBeNull();
   });
 
-  it("returns the active session when one is open", async () => {
+  it("returns the active session with source data when one is open", async () => {
     const caller = appRouter.createCaller({ prisma, llm: mockLLM });
 
     const session = await caller.session.open({
-      sourceName: "Active Test",
+      name: "Active Test",
       type: "book",
     });
 
     const result = await caller.session.getActive();
     expect(result).toMatchObject({
       id: session.id,
-      sourceName: "Active Test",
-      type: "book",
+      source: { name: "Active Test", type: "book" },
       closedAt: null,
     });
 
     // Cleanup
     await prisma.session.delete({ where: { id: session.id } });
+    await prisma.source.deleteMany({ where: { name: "Active Test" } });
   });
 });
 
@@ -184,7 +194,7 @@ describe("captures scoped to a session", () => {
     const caller = appRouter.createCaller({ prisma, llm: mockLLM });
 
     const session = await caller.session.open({
-      sourceName: "Capture Book",
+      name: "Capture Book",
       type: "book",
     });
 
@@ -204,13 +214,14 @@ describe("captures scoped to a session", () => {
     // Cleanup
     await prisma.capture.delete({ where: { id: capture.id } });
     await prisma.session.delete({ where: { id: session.id } });
+    await prisma.source.deleteMany({ where: { name: "Capture Book" } });
   });
 
   it("lists captures belonging to a session", async () => {
     const caller = appRouter.createCaller({ prisma, llm: mockLLM });
 
     const session = await caller.session.open({
-      sourceName: "List Book",
+      name: "List Book",
       type: "book",
     });
 
@@ -234,5 +245,6 @@ describe("captures scoped to a session", () => {
     // Cleanup
     await prisma.capture.deleteMany({ where: { sessionId: session.id } });
     await prisma.session.delete({ where: { id: session.id } });
+    await prisma.source.deleteMany({ where: { name: "List Book" } });
   });
 });

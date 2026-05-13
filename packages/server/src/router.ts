@@ -20,12 +20,12 @@ export const appRouter = t.router({
     open: t.procedure
       .input(
         z.object({
-          sourceName: z.string().min(1),
+          name: z.string().min(1),
           type: z.enum(["book", "video", "article"]),
         }),
       )
       .mutation(async ({ input, ctx }) =>
-        SessionService.open(input.sourceName, input.type, ctx.prisma),
+        SessionService.open(input.name, input.type, ctx.prisma),
       ),
     close: t.procedure.mutation(async ({ ctx }) =>
       SessionService.close(ctx.prisma),
