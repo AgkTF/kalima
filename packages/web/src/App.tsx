@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { BottomTabBar } from "./components/BottomTabBar";
-import { CaptureScreen } from "./screens/CaptureScreen";
+import { CaptureScreen } from "./screens/CaptureScreen/CaptureScreen";
 import { ReviewScreen } from "./screens/ReviewScreen";
 import { WordBankScreen } from "./screens/WordBankScreen";
 

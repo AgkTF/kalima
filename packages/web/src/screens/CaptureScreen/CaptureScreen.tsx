@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { CaptureInput } from "../components/CaptureInput";
-import { CaptureList } from "../components/CaptureList";
-import { SessionForm } from "../components/SessionForm";
-import { trpc } from "../trpc";
+import { trpc } from "../../trpc";
+import { CaptureInput } from "./CaptureInput";
+import { CaptureList } from "./CaptureList";
+import { SessionForm } from "./SessionForm";
 
 export function CaptureScreen() {
   const [lastParsed, setLastParsed] = useState<string | null>(null);
