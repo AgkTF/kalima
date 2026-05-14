@@ -1,0 +1,99 @@
+import type { PrismaClient } from "../../generated/prisma/client.js";
+import type { LLMClient } from "../llm-client.js";
+import { EnrichmentPipeline } from "./enrichment-pipeline.js";
+
+export const EnrichmentService = {
+  async enrichSessionCaptures(
+    sessionId: number,
+    prisma: PrismaClient,
+    llm: LLMClient,
+  ): Promise<void> {
+    const pipeline = new EnrichmentPipeline(llm);
+
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
+      include: { source: true },
+    });
+
+    if (!session) return;
+
+    const captures = await prisma.capture.findMany({
+      where: { sessionId },
+    });
+
+    const existingEntries = await prisma.entry.findMany({
+      include: { capture: { select: { item: true } } },
+    });
+
+    const existingItemNames = existingEntries.map((e) => e.capture.item);
+
+    for (const capture of captures) {
+      const result = await pipeline.enrich({
+        capture: {
+          item: capture.item,
+          locator: capture.locator,
+          rawText: capture.rawText,
+        },
+        source: session.source,
+        existingEntries: existingItemNames,
+      });
+
+      await prisma.entry.create({
+        data: {
+          captureId: capture.id,
+          definition: result.definition,
+          translationArabic: result.translationArabic,
+          nuance: result.nuance,
+          examples: JSON.stringify(result.examples),
+          tags: JSON.stringify(result.tags),
+          relatedEntries: JSON.stringify(result.relatedEntries),
+        },
+      });
+    }
+  },
+
+  async enrichCapture(
+    captureId: number,
+    prisma: PrismaClient,
+    llm: LLMClient,
+  ): Promise<void> {
+    const pipeline = new EnrichmentPipeline(llm);
+
+    const capture = await prisma.capture.findUnique({
+      where: { id: captureId },
+      include: {
+        session: { include: { source: true } },
+      },
+    });
+
+    if (!capture) return;
+
+    const existingEntries = await prisma.entry.findMany({
+      include: { capture: { select: { item: true } } },
+    });
+
+    const existingItemNames = existingEntries.map((e) => e.capture.item);
+
+    const result = await pipeline.enrich({
+      capture: {
+        item: capture.item,
+        locator: capture.locator,
+        rawText: capture.rawText,
+      },
+      source: capture.session?.source ?? null,
+      existingEntries: existingItemNames,
+    });
+
+    await prisma.entry.create({
+      data: {
+        captureId: capture.id,
+        definition: result.definition,
+        translationArabic: result.translationArabic,
+        nuance: result.nuance,
+        examples: JSON.stringify(result.examples),
+        tags: JSON.stringify(result.tags),
+        relatedEntries: JSON.stringify(result.relatedEntries),
+      },
+    });
+  },
+};
