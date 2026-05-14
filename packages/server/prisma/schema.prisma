@@ -23,6 +23,7 @@ model Capture {
   createdAt DateTime @default(now())
 
   session   Session? @relation(fields: [sessionId], references: [id])
+  entry     Entry?
 }
 
 model Source {
@@ -41,6 +42,25 @@ model Session {
   createdAt DateTime  @default(now())
   closedAt  DateTime?
 
-  source   Source   @relation(fields: [sourceId], references: [id])
+  source   Source    @relation(fields: [sourceId], references: [id])
   captures Capture[]
+}
+
+model Entry {
+  id                 Int      @id @default(autoincrement())
+  captureId          Int      @unique
+  status             String   @default("pending_review")
+  definition         String
+  translationArabic  String
+  nuance             String
+  examples           String
+  tags               String
+  /// Stores item names from LLM enrichment output.
+  /// OPEN DECISION: Some names may not resolve to existing Entries.
+  /// Keep as unresolved references (display differently in UI) or drop on resolution?
+  /// Decide in Word Bank slice.
+  relatedEntries     String
+  enrichedAt         DateTime @default(now())
+
+  capture            Capture  @relation(fields: [captureId], references: [id], onDelete: Cascade)
 }
