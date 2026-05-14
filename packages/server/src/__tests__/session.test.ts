@@ -20,6 +20,12 @@ describe("session.open mutation", () => {
         item: "serendipity",
         locator: null,
         sourceHint: null,
+        definition: "A test definition",
+        translationArabic: "اختبار",
+        nuance: "Test nuance",
+        examples: ["Example"],
+        tags: ["test"],
+        relatedEntries: [],
       }),
     ),
   } as unknown as LLMClient;
@@ -91,11 +97,19 @@ describe("session.close mutation", () => {
   });
 
   const mockLLM: LLMClient = {
-    complete: vi
-      .fn()
-      .mockResolvedValue(
-        JSON.stringify({ item: "test", locator: null, sourceHint: null }),
-      ),
+    complete: vi.fn().mockResolvedValue(
+      JSON.stringify({
+        item: "test",
+        locator: null,
+        sourceHint: null,
+        definition: "Test",
+        translationArabic: "اختبار",
+        nuance: "Test",
+        examples: ["Test"],
+        tags: ["test"],
+        relatedEntries: [],
+      }),
+    ),
   } as unknown as LLMClient;
 
   it("sets closedAt on the active session, allowing a new one to be opened", async () => {
@@ -136,11 +150,19 @@ describe("session.getActive query", () => {
   });
 
   const mockLLM: LLMClient = {
-    complete: vi
-      .fn()
-      .mockResolvedValue(
-        JSON.stringify({ item: "test", locator: null, sourceHint: null }),
-      ),
+    complete: vi.fn().mockResolvedValue(
+      JSON.stringify({
+        item: "test",
+        locator: null,
+        sourceHint: null,
+        definition: "Test",
+        translationArabic: "اختبار",
+        nuance: "Test",
+        examples: ["Test"],
+        tags: ["test"],
+        relatedEntries: [],
+      }),
+    ),
   } as unknown as LLMClient;
 
   it("returns null when no session is active", async () => {
@@ -186,6 +208,12 @@ describe("captures scoped to a session", () => {
         item: "session-word",
         locator: "p.10",
         sourceHint: null,
+        definition: "Test definition",
+        translationArabic: "اختبار",
+        nuance: "Test",
+        examples: ["Example"],
+        tags: ["test"],
+        relatedEntries: [],
       }),
     ),
   } as unknown as LLMClient;
@@ -292,6 +320,7 @@ describe("captures scoped to a session", () => {
     ]);
 
     // Cleanup
+    await prisma.entry.deleteMany();
     await prisma.capture.deleteMany();
     await prisma.session.deleteMany();
     await prisma.source.deleteMany({ where: { name: "Moby Dick" } });

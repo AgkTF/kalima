@@ -62,5 +62,5 @@ model Entry {
   relatedEntries     String
   enrichedAt         DateTime @default(now())
 
-  capture            Capture  @relation(fields: [captureId], references: [id])
+  capture            Capture  @relation(fields: [captureId], references: [id], onDelete: Cascade)
 }
