@@ -3,6 +3,7 @@ import { z } from "zod";
 import { AppService } from "./services/app.js";
 import { CaptureService } from "./services/capture.js";
 import { EnrichmentService } from "./services/enrichment/enrichment-service.js";
+import { ReviewService } from "./services/review.js";
 import { SessionService } from "./services/session.js";
 import { SourceService } from "./services/source.js";
 
@@ -112,6 +113,40 @@ export const appRouter = t.router({
           orderBy: { enrichedAt: "desc" },
         });
       }),
+  }),
+  review: t.router({
+    getPending: t.procedure.query(async ({ ctx }) =>
+      ReviewService.getPending(ctx.prisma),
+    ),
+    approve: t.procedure
+      .input(z.object({ entryId: z.number() }))
+      .mutation(async ({ input, ctx }) =>
+        ReviewService.approve(input.entryId, ctx.prisma),
+      ),
+    approveAll: t.procedure
+      .input(z.object({ entryIds: z.array(z.number()) }))
+      .mutation(async ({ input, ctx }) =>
+        ReviewService.approveAll(input.entryIds, ctx.prisma),
+      ),
+    reject: t.procedure
+      .input(
+        z.object({
+          entryId: z.number(),
+          flaggedFields: z.array(z.string()),
+          note: z.string().nullable(),
+        }),
+      )
+      .mutation(async ({ input, ctx }) =>
+        ReviewService.reject(
+          input.entryId,
+          input.flaggedFields,
+          input.note,
+          ctx.prisma,
+        ),
+      ),
+    badgeCount: t.procedure.query(async ({ ctx }) =>
+      ReviewService.badgeCount(ctx.prisma),
+    ),
   }),
 });
 
