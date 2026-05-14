@@ -41,7 +41,7 @@ const tabs: Tab[] = [
 
 export function BottomTabBar() {
   const pending = trpc.review.getPending.useQuery(undefined, {
-    refetchInterval: 10_000,
+    refetchInterval: 5_000,
   });
 
   const badgeCount =

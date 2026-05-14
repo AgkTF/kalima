@@ -208,7 +208,9 @@ export function ReviewScreen() {
   const [rejectingId, setRejectingId] = useState<number | null>(null);
   const utils = trpc.useUtils();
 
-  const pending = trpc.review.getPending.useQuery();
+  const pending = trpc.review.getPending.useQuery(undefined, {
+    refetchInterval: 5_000,
+  });
 
   const approve = trpc.review.approve.useMutation({
     onSuccess: () => {
