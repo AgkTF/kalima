@@ -1,4 +1,8 @@
-import { CheckIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import {
+  ArrowPathIcon,
+  CheckIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
 import { useState } from "react";
 import { trpc } from "../trpc";
 
@@ -66,7 +70,7 @@ function RejectForm({ entryId, onClose }: RejectFormProps) {
         ))}
       </div>
       <textarea
-        placeholder="Optional note explaining what's wrong\u2026"
+        placeholder="Optional note explaining what's wrong…"
         value={note}
         onChange={(e) => setNote(e.target.value)}
         className="w-full rounded-button border border-divider bg-page px-3 py-2 text-xs text-ink placeholder-dim resize-none"
@@ -85,7 +89,7 @@ function RejectForm({ entryId, onClose }: RejectFormProps) {
           disabled={selectedFields.size === 0 || reject.isPending}
           className="rounded-button bg-red-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
         >
-          {reject.isPending ? "\u2026" : "Reject"}
+          {reject.isPending ? "…" : "Reject"}
         </button>
         <button
           type="button"
@@ -95,6 +99,108 @@ function RejectForm({ entryId, onClose }: RejectFormProps) {
           Cancel
         </button>
       </div>
+    </div>
+  );
+}
+
+interface PendingEntry {
+  id: number;
+  status: string;
+  definition: string;
+  translationArabic: string;
+  tags: string;
+  flaggedFields: string | null;
+  rejectionNote: string | null;
+  capture: { id: number; item: string };
+}
+
+interface EntryCardProps {
+  entry: PendingEntry;
+  isApproving: boolean;
+  isRejecting: boolean;
+  onApprove: (entryId: number) => void;
+  onToggleReject: (entryId: number) => void;
+}
+
+function EntryCard({
+  entry,
+  isApproving,
+  isRejecting,
+  onApprove,
+  onToggleReject,
+}: EntryCardProps) {
+  const isProcessing = entry.status === "processing";
+
+  if (isProcessing) {
+    return (
+      <div className="mb-2 rounded-button border border-divider bg-surface p-3">
+        <div className="flex items-center gap-2 mb-1">
+          <ArrowPathIcon className="h-3.5 w-3.5 animate-spin text-dim" />
+          <p className="font-display text-sm font-semibold text-ink">
+            {entry.capture.item}
+          </p>
+        </div>
+        <p className="text-xs text-dim">Enriching…</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-2 rounded-button border border-divider bg-surface p-3">
+      <div className="flex items-start justify-between gap-2 mb-1">
+        <p className="font-display text-sm font-semibold text-ink">
+          {entry.capture.item}
+        </p>
+        <div className="flex gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={() => onApprove(entry.id)}
+            disabled={isApproving}
+            className="rounded-full p-1 text-green-600 cursor-pointer hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Approve"
+          >
+            <CheckIcon className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => onToggleReject(entry.id)}
+            className="rounded-full p-1 text-dim cursor-pointer hover:bg-red-50 hover:text-red-600"
+            title="Reject"
+          >
+            <XMarkIcon className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      <p className="text-xs text-ink leading-relaxed mb-1">
+        {entry.definition}
+      </p>
+      <p className="text-xs text-dim font-arabic">{entry.translationArabic}</p>
+
+      <div className="mt-1 flex flex-wrap gap-1">
+        {parseJsonField(entry.tags).map((tag: string) => (
+          <span
+            key={tag}
+            className="rounded-full bg-accent-subtle px-1.5 py-0.5 text-[10px] text-dim"
+          >
+            {tag}
+          </span>
+        ))}
+      </div>
+
+      {entry.flaggedFields && (
+        <div className="mt-1.5 text-[10px] text-red-500">
+          Previously flagged: {parseJsonField(entry.flaggedFields).join(", ")}
+          {entry.rejectionNote && ` — "${entry.rejectionNote}"`}
+        </div>
+      )}
+
+      {isRejecting && (
+        <RejectForm
+          entryId={entry.id}
+          onClose={() => onToggleReject(entry.id)}
+        />
+      )}
     </div>
   );
 }
@@ -132,7 +238,7 @@ export function ReviewScreen() {
   if (pending.isLoading) {
     return (
       <main className="flex flex-1 items-center justify-center pb-16">
-        <p className="font-ui text-dim">Loading\u2026</p>
+        <p className="font-ui text-dim">Loading…</p>
       </main>
     );
   }
@@ -180,72 +286,16 @@ export function ReviewScreen() {
             </div>
 
             {group.entries.map((entry) => (
-              <div
+              <EntryCard
                 key={entry.id}
-                className="mb-2 rounded-button border border-divider bg-surface p-3"
-              >
-                <div className="flex items-start justify-between gap-2 mb-1">
-                  <p className="font-display text-sm font-semibold text-ink">
-                    {entry.capture.item}
-                  </p>
-                  <div className="flex gap-1 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => approve.mutate({ entryId: entry.id })}
-                      disabled={approve.isPending}
-                      className="rounded-full p-1 text-green-600 cursor-pointer hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Approve"
-                    >
-                      <CheckIcon className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setRejectingId(
-                          rejectingId === entry.id ? null : entry.id,
-                        )
-                      }
-                      className="rounded-full p-1 text-dim cursor-pointer hover:bg-red-50 hover:text-red-600"
-                      title="Reject"
-                    >
-                      <XMarkIcon className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-
-                <p className="text-xs text-ink leading-relaxed mb-1">
-                  {entry.definition}
-                </p>
-                <p className="text-xs text-dim font-arabic">
-                  {entry.translationArabic}
-                </p>
-
-                <div className="mt-1 flex flex-wrap gap-1">
-                  {parseJsonField(entry.tags).map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-full bg-accent-subtle px-1.5 py-0.5 text-[10px] text-dim"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-
-                {entry.flaggedFields && (
-                  <div className="mt-1.5 text-[10px] text-red-500">
-                    Previously flagged:{" "}
-                    {parseJsonField(entry.flaggedFields).join(", ")}
-                    {entry.rejectionNote && ` — "${entry.rejectionNote}"`}
-                  </div>
-                )}
-
-                {rejectingId === entry.id && (
-                  <RejectForm
-                    entryId={entry.id}
-                    onClose={() => setRejectingId(null)}
-                  />
-                )}
-              </div>
+                entry={entry}
+                isApproving={approve.isPending}
+                isRejecting={rejectingId === entry.id}
+                onApprove={(id) => approve.mutate({ entryId: id })}
+                onToggleReject={(id) =>
+                  setRejectingId(rejectingId === id ? null : id)
+                }
+              />
             ))}
           </section>
         ))}
@@ -275,72 +325,16 @@ export function ReviewScreen() {
             </div>
 
             {pending.data.oneOffs.map((entry) => (
-              <div
+              <EntryCard
                 key={entry.id}
-                className="mb-2 rounded-button border border-divider bg-surface p-3"
-              >
-                <div className="flex items-start justify-between gap-2 mb-1">
-                  <p className="font-display text-sm font-semibold text-ink">
-                    {entry.capture.item}
-                  </p>
-                  <div className="flex gap-1 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => approve.mutate({ entryId: entry.id })}
-                      disabled={approve.isPending}
-                      className="rounded-full p-1 text-green-600 cursor-pointer hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Approve"
-                    >
-                      <CheckIcon className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setRejectingId(
-                          rejectingId === entry.id ? null : entry.id,
-                        )
-                      }
-                      className="rounded-full p-1 text-dim cursor-pointer hover:bg-red-50 hover:text-red-600"
-                      title="Reject"
-                    >
-                      <XMarkIcon className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-
-                <p className="text-xs text-ink leading-relaxed mb-1">
-                  {entry.definition}
-                </p>
-                <p className="text-xs text-dim font-arabic">
-                  {entry.translationArabic}
-                </p>
-
-                <div className="mt-1 flex flex-wrap gap-1">
-                  {parseJsonField(entry.tags).map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-full bg-accent-subtle px-1.5 py-0.5 text-[10px] text-dim"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-
-                {entry.flaggedFields && (
-                  <div className="mt-1.5 text-[10px] text-red-500">
-                    Previously flagged:{" "}
-                    {parseJsonField(entry.flaggedFields).join(", ")}
-                    {entry.rejectionNote && ` — "${entry.rejectionNote}"`}
-                  </div>
-                )}
-
-                {rejectingId === entry.id && (
-                  <RejectForm
-                    entryId={entry.id}
-                    onClose={() => setRejectingId(null)}
-                  />
-                )}
-              </div>
+                entry={entry}
+                isApproving={approve.isPending}
+                isRejecting={rejectingId === entry.id}
+                onApprove={(id) => approve.mutate({ entryId: id })}
+                onToggleReject={(id) =>
+                  setRejectingId(rejectingId === id ? null : id)
+                }
+              />
             ))}
           </section>
         )}

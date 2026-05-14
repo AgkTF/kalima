@@ -12,7 +12,7 @@ describe("ReviewService.badgeCount", () => {
     await prisma.$disconnect();
   });
 
-  it("returns the number of entries with status pending_review", async () => {
+  it("returns the number of entries with status processing or pending_review", async () => {
     const source = await SourceService.create(
       "Badge Count Book",
       "book",
@@ -54,6 +54,35 @@ describe("ReviewService.badgeCount", () => {
 
     const count = await ReviewService.badgeCount(prisma);
     expect(count).toBe(2);
+  });
+
+  it("counts entries with status processing", async () => {
+    const source = await SourceService.create(
+      "Processing Count Book",
+      "book",
+      prisma,
+    );
+    const session = await prisma.session.create({
+      data: { sourceId: source.id },
+    });
+    const capture = await prisma.capture.create({
+      data: { rawText: "proc", item: "proc", sessionId: session.id },
+    });
+    await prisma.entry.create({
+      data: {
+        captureId: capture.id,
+        status: "processing",
+        definition: "",
+        translationArabic: "",
+        nuance: "",
+        examples: "[]",
+        tags: "[]",
+        relatedEntries: "[]",
+      },
+    });
+
+    const count = await ReviewService.badgeCount(prisma);
+    expect(count).toBeGreaterThanOrEqual(1);
   });
 });
 
@@ -252,7 +281,7 @@ describe("ReviewService.getPending", () => {
     await prisma.$disconnect();
   });
 
-  it("returns only entries with status pending_review", async () => {
+  it("includes entries with status processing and pending_review", async () => {
     const source = await SourceService.create(
       "GetPending Book",
       "book",
@@ -282,9 +311,25 @@ describe("ReviewService.getPending", () => {
     const e2 = await prisma.entry.create({
       data: {
         captureId: c2.id,
-        definition: "B",
-        translationArabic: "ب",
-        nuance: "b",
+        definition: "",
+        translationArabic: "",
+        nuance: "",
+        examples: "[]",
+        tags: "[]",
+        relatedEntries: "[]",
+        status: "processing",
+      },
+    });
+    // Should NOT be included — approved
+    const c3 = await prisma.capture.create({
+      data: { rawText: "c", item: "c", sessionId: session.id },
+    });
+    await prisma.entry.create({
+      data: {
+        captureId: c3.id,
+        definition: "C",
+        translationArabic: "ت",
+        nuance: "c",
         examples: "[]",
         tags: "[]",
         relatedEntries: "[]",
@@ -299,8 +344,11 @@ describe("ReviewService.getPending", () => {
       ...result.oneOffs,
     ];
     expect(allEntries.some((e) => e.id === e1.id)).toBe(true);
-    expect(allEntries.some((e) => e.id === e2.id)).toBe(false);
-    expect(allEntries.every((e) => e.status === "pending_review")).toBe(true);
+    expect(allEntries.some((e) => e.id === e2.id)).toBe(true);
+    expect(allEntries.some((e) => e.id === c3)).toBe(false);
+    expect(["processing", "pending_review"]).toContain(
+      allEntries.find((e) => e.id === e2.id)?.status ?? "",
+    );
   });
 
   it("groups entries by session with source headers", async () => {

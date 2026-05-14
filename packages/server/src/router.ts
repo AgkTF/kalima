@@ -31,7 +31,9 @@ export const appRouter = t.router({
       ),
     close: t.procedure.mutation(async ({ ctx }) => {
       const session = await SessionService.close(ctx.prisma);
-      // Fire-and-forget enrichment for all session captures
+      // Create placeholder entries immediately so the user sees them in Review
+      await EnrichmentService.createPlaceholderEntries(session.id, ctx.prisma);
+      // Fire-and-forget enrichment to fill in real data
       EnrichmentService.enrichSessionCaptures(
         session.id,
         ctx.prisma,
@@ -75,6 +77,11 @@ export const appRouter = t.router({
         );
         // Fire-and-forget enrichment for one-off captures
         if (!input.sessionId) {
+          // Create placeholder entry immediately so the user sees it in Review
+          await EnrichmentService.createPlaceholderEntry(
+            capture.id,
+            ctx.prisma,
+          );
           EnrichmentService.enrichCapture(
             capture.id,
             ctx.prisma,

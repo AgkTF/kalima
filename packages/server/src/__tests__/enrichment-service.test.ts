@@ -16,7 +16,7 @@ describe("EnrichmentService.enrichSessionCaptures", () => {
     await prisma.$disconnect();
   });
 
-  it("creates Entry records for all captures in a session", async () => {
+  it("updates placeholder entries for all captures in a session", async () => {
     const mockLLM: LLMClient = {
       complete: vi.fn().mockResolvedValue(
         JSON.stringify({
@@ -57,6 +57,9 @@ describe("EnrichmentService.enrichSessionCaptures", () => {
         sessionId: session.id,
       },
     });
+
+    // Create placeholder entries first (as the router would)
+    await EnrichmentService.createPlaceholderEntries(session.id, prisma);
 
     await EnrichmentService.enrichSessionCaptures(session.id, prisma, mockLLM);
 
@@ -136,6 +139,9 @@ describe("EnrichmentService.enrichSessionCaptures", () => {
         sessionId: session.id,
       },
     });
+
+    // Create placeholder entries first
+    await EnrichmentService.createPlaceholderEntries(session.id, prisma);
 
     await EnrichmentService.enrichSessionCaptures(session.id, prisma, mockLLM);
 
