@@ -32,4 +32,19 @@ describe("EnrichmentPromptBuilder", () => {
     // Should signal these are existing entries, not new items
     expect(prompt).toContain("Existing");
   });
+
+  it("handles missing source and locator for one-off captures", () => {
+    const prompt = builder.build({
+      item: "ephemeral",
+      source: null,
+      locator: null,
+      existingEntries: [],
+    });
+
+    // Should still produce a valid prompt with the item
+    expect(prompt).toContain("ephemeral");
+    // Should not crash or include source/locator sections
+    expect(prompt).not.toContain("Source:");
+    expect(prompt).not.toContain("Locator:");
+  });
 });
