@@ -60,6 +60,11 @@ model Entry {
   /// Keep as unresolved references (display differently in UI) or drop on resolution?
   /// Decide in Word Bank slice.
   relatedEntries     String
+  /// JSON array of field names flagged as wrong on rejection.
+  /// Example: ["definition", "translationArabic"]
+  flaggedFields      String?
+  /// Free-form note explaining why the enrichment was rejected.
+  rejectionNote      String?
   enrichedAt         DateTime @default(now())
 
   capture            Capture  @relation(fields: [captureId], references: [id], onDelete: Cascade)
