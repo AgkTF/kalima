@@ -64,6 +64,7 @@ export const ReviewService = {
     await prisma.entry.update({
       where: { id: entryId },
       data: {
+        status: "rejected",
         flaggedFields: JSON.stringify(flaggedFields),
         rejectionNote: note,
       },

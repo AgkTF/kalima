@@ -207,7 +207,7 @@ describe("ReviewService.reject", () => {
     await prisma.$disconnect();
   });
 
-  it("stores flagged fields and note, keeps status as pending_review", async () => {
+  it("stores flagged fields, note, and sets status to rejected", async () => {
     const source = await SourceService.create("Reject Book", "book", prisma);
     const session = await prisma.session.create({
       data: { sourceId: source.id },
@@ -235,12 +235,12 @@ describe("ReviewService.reject", () => {
     );
 
     const updated = await prisma.entry.findUnique({ where: { id: entry.id } });
-    expect(updated?.status).toBe("pending_review");
+    expect(updated?.status).toBe("rejected");
     expect(updated?.flaggedFields).toBe('["definition","translationArabic"]');
     expect(updated?.rejectionNote).toBe("Wrong sense");
   });
 
-  it("rejection note is optional", async () => {
+  it("rejection note is optional, status still set to rejected", async () => {
     const source = await SourceService.create(
       "Reject No Note Book",
       "book",
@@ -267,7 +267,7 @@ describe("ReviewService.reject", () => {
     await ReviewService.reject(entry.id, ["nuance"], null, prisma);
 
     const updated = await prisma.entry.findUnique({ where: { id: entry.id } });
-    expect(updated?.status).toBe("pending_review");
+    expect(updated?.status).toBe("rejected");
     expect(updated?.flaggedFields).toBe('["nuance"]');
     expect(updated?.rejectionNote).toBeNull();
   });
