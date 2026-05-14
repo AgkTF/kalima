@@ -151,10 +151,8 @@ export const appRouter = t.router({
           ctx.prisma,
         ),
       ),
-    badgeCount: t.procedure.query(async ({ ctx }) =>
-      ReviewService.badgeCount(ctx.prisma),
-    ),
   }),
-});
+  }),
+})
 
 export type AppRouter = typeof appRouter;

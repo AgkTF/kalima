@@ -36,7 +36,6 @@ function RejectForm({ entryId, onClose }: RejectFormProps) {
   const reject = trpc.review.reject.useMutation({
     onSuccess: () => {
       utils.review.getPending.invalidate();
-      utils.review.badgeCount.invalidate();
       onClose();
     },
   });
@@ -214,14 +213,12 @@ export function ReviewScreen() {
   const approve = trpc.review.approve.useMutation({
     onSuccess: () => {
       utils.review.getPending.invalidate();
-      utils.review.badgeCount.invalidate();
     },
   });
 
   const approveAll = trpc.review.approveAll.useMutation({
     onSuccess: () => {
       utils.review.getPending.invalidate();
-      utils.review.badgeCount.invalidate();
     },
   });
 

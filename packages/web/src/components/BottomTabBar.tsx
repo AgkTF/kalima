@@ -40,9 +40,15 @@ const tabs: Tab[] = [
 ];
 
 export function BottomTabBar() {
-  const badgeCount = trpc.review.badgeCount.useQuery(undefined, {
+  const pending = trpc.review.getPending.useQuery(undefined, {
     refetchInterval: 10_000,
   });
+
+  const badgeCount =
+    (pending.data?.sessionGroups.reduce(
+      (acc, g) => acc + g.entries.length,
+      0,
+    ) ?? 0) + (pending.data?.oneOffs.length ?? 0);
 
   return (
     <nav
@@ -64,9 +70,9 @@ export function BottomTabBar() {
                     className={isActive ? "h-6 w-6" : "h-6 w-6"}
                     aria-hidden="true"
                   />
-                  {tab.to === "/review" && (badgeCount.data ?? 0) > 0 && (
+                  {tab.to === "/review" && badgeCount > 0 && (
                     <span className="absolute -top-0.5 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-white leading-none">
-                      {badgeCount.data}
+                      {badgeCount}
                     </span>
                   )}
                 </span>
