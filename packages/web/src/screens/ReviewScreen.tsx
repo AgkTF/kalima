@@ -36,6 +36,7 @@ function RejectForm({ entryId, onClose }: RejectFormProps) {
   const reject = trpc.review.reject.useMutation({
     onSuccess: () => {
       utils.review.getPending.invalidate();
+      utils.review.getRejected.invalidate();
       onClose();
     },
   });
@@ -122,6 +123,150 @@ interface EntryCardProps {
   isRejecting: boolean;
   onApprove: (entryId: number) => void;
   onToggleReject: (entryId: number) => void;
+}
+
+function RejectedEntryCard({
+  entry,
+  onReEnrich,
+}: {
+  entry: PendingEntry;
+  onReEnrich: (entryId: number) => void;
+}) {
+  const [expanded, setExpanded] = useState(true);
+  const flagged = new Set(parseJsonField(entry.flaggedFields ?? "[]"));
+
+  const fieldClass = (key: string) =>
+    flagged.has(key) ? "border-red-300 bg-red-50 rounded px-1 -mx-1" : "";
+
+  return (
+    <div className="mb-2 rounded-button border border-divider bg-surface p-3 opacity-80">
+      <div className="flex items-start justify-between gap-2 mb-1">
+        <p className="font-display text-sm font-semibold text-ink">
+          {entry.capture.item}
+        </p>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={() => setExpanded(!expanded)}
+            className="p-0.5 text-dim cursor-pointer hover:text-accent"
+            title={expanded ? "Show less" : "Show all"}
+          >
+            {expanded ? (
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M5 15l7-7 7 7"
+                />
+              </svg>
+            ) : (
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => onReEnrich(entry.id)}
+            className="rounded-button border border-accent px-2 py-0.5 text-[10px] font-medium text-accent cursor-pointer hover:bg-accent hover:text-white transition-colors"
+            title="Re-enrich"
+          >
+            Re-enrich
+          </button>
+        </div>
+      </div>
+
+      <p
+        className={`text-xs text-ink leading-relaxed mb-1 ${fieldClass("definition")}`}
+      >
+        {entry.definition}
+      </p>
+      <p
+        className={`text-xs text-dim font-arabic ${fieldClass("translationArabic")}`}
+      >
+        {entry.translationArabic}
+      </p>
+
+      <div className="mt-1 flex flex-wrap gap-1">
+        {parseJsonField(entry.tags).map((tag: string) => (
+          <span
+            key={tag}
+            className={`rounded-full px-1.5 py-0.5 text-[10px] ${flagged.has("tags") ? "text-red-700 bg-red-50 border border-red-300" : "bg-accent-subtle text-dim"}`}
+          >
+            {tag}
+          </span>
+        ))}
+      </div>
+
+      {expanded && (
+        <div className="mt-2 pt-2 border-t border-divider space-y-1.5">
+          {entry.nuance && (
+            <div>
+              <span className="text-[10px] font-semibold text-dim">Nuance</span>
+              <p
+                className={`text-xs text-ink leading-relaxed ${fieldClass("nuance")}`}
+              >
+                {entry.nuance}
+              </p>
+            </div>
+          )}
+          <div>
+            <span className="text-[10px] font-semibold text-dim">Examples</span>
+            <ul
+              className={`list-disc list-inside text-xs text-ink ${fieldClass("examples")}`}
+            >
+              {parseJsonField(entry.examples).map((ex: string) => (
+                <li key={ex} className="leading-relaxed">
+                  {ex}
+                </li>
+              ))}
+            </ul>
+          </div>
+          {parseJsonField(entry.relatedEntries).length > 0 && (
+            <div>
+              <span className="text-[10px] font-semibold text-dim">
+                Related entries
+              </span>
+              <div className="flex flex-wrap gap-1 mt-0.5">
+                {parseJsonField(entry.relatedEntries).map((r: string) => (
+                  <span
+                    key={r}
+                    className={`rounded-full border px-1.5 py-0.5 text-[10px] ${flagged.has("relatedEntries") ? "border-red-300 bg-red-50 text-red-700" : "border-accent/30 bg-accent/5 text-accent"}`}
+                  >
+                    {r}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {entry.rejectionNote && (
+        <p className="mt-1.5 text-[10px] text-dim italic">
+          Note: {entry.rejectionNote}
+        </p>
+      )}
+    </div>
+  );
 }
 
 function EntryCard({
@@ -286,9 +431,14 @@ function EntryCard({
 
 export function ReviewScreen() {
   const [rejectingId, setRejectingId] = useState<number | null>(null);
+  const [showRejected, setShowRejected] = useState(false);
   const utils = trpc.useUtils();
 
   const pending = trpc.review.getPending.useQuery(undefined, {
+    refetchInterval: 5_000,
+  });
+
+  const rejected = trpc.review.getRejected.useQuery(undefined, {
     refetchInterval: 5_000,
   });
 
@@ -301,6 +451,13 @@ export function ReviewScreen() {
   const approveAll = trpc.review.approveAll.useMutation({
     onSuccess: () => {
       utils.review.getPending.invalidate();
+    },
+  });
+
+  const reEnrich = trpc.review.reEnrich.useMutation({
+    onSuccess: () => {
+      utils.review.getPending.invalidate();
+      utils.review.getRejected.invalidate();
     },
   });
 
@@ -329,6 +486,8 @@ export function ReviewScreen() {
       </main>
     );
   }
+
+  const rejectedCount = rejected.data?.length ?? 0;
 
   return (
     <main className="flex flex-1 flex-col pb-16">
@@ -415,6 +574,47 @@ export function ReviewScreen() {
                 }
               />
             ))}
+          </section>
+        )}
+
+        {/* Rejected section */}
+        {rejectedCount > 0 && (
+          <section className="mb-5">
+            <button
+              type="button"
+              onClick={() => setShowRejected(!showRejected)}
+              className="flex items-center gap-2 w-full text-left mb-2 p-2 rounded-button hover:bg-surface cursor-pointer"
+            >
+              <svg
+                className={`h-3.5 w-3.5 text-dim transition-transform ${showRejected ? "rotate-90" : ""}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+              <span className="font-display text-sm font-semibold text-dim">
+                Rejected
+              </span>
+              <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-600">
+                {rejectedCount}
+              </span>
+            </button>
+
+            {showRejected &&
+              rejected.data?.map((entry) => (
+                <RejectedEntryCard
+                  key={entry.id}
+                  entry={entry}
+                  onReEnrich={(id) => reEnrich.mutate({ entryId: id })}
+                />
+              ))}
           </section>
         )}
       </div>

@@ -151,6 +151,27 @@ export const appRouter = t.router({
           ctx.prisma,
         ),
       ),
+    getRejected: t.procedure.query(async ({ ctx }) =>
+      ReviewService.getRejected(ctx.prisma),
+    ),
+    reEnrich: t.procedure
+      .input(z.object({ entryId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        await ReviewService.reEnrich(input.entryId, ctx.prisma);
+        // Fire-and-forget re-enrichment
+        const entry = await ctx.prisma.entry.findUnique({
+          where: { id: input.entryId },
+          include: { capture: true },
+        });
+        if (entry?.capture) {
+          const { enrichCapture } = await import(
+            "./services/enrichment/enrichment-service.js"
+          );
+          enrichCapture(entry.capture, ctx.prisma).catch((err: unknown) => {
+            console.error("Re-enrichment failed:", err);
+          });
+        }
+      }),
   }),
 });
 

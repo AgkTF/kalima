@@ -420,3 +420,106 @@ describe("ReviewService.getPending", () => {
     expect(result.oneOffs[0].capture.sessionId).toBeNull();
   });
 });
+
+describe("ReviewService.getRejected", () => {
+  const adapter = new PrismaBetterSqlite3({ url: "file:./prisma/dev.db" });
+  const prisma = new PrismaClient({ adapter });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
+  it("returns only entries with status rejected", async () => {
+    const source = await SourceService.create(
+      "Rejected List Book",
+      "book",
+      prisma,
+    );
+    const session = await prisma.session.create({
+      data: { sourceId: source.id },
+    });
+    const c1 = await prisma.capture.create({
+      data: { rawText: "rejA", item: "rejA", sessionId: session.id },
+    });
+    const c2 = await prisma.capture.create({
+      data: { rawText: "pendA", item: "pendA", sessionId: session.id },
+    });
+
+    const e1 = await prisma.entry.create({
+      data: {
+        captureId: c1.id,
+        definition: "RA",
+        translationArabic: "ر",
+        nuance: "r",
+        examples: "[]",
+        tags: "[]",
+        relatedEntries: "[]",
+        status: "rejected",
+        flaggedFields: '["definition"]',
+      },
+    });
+    await prisma.entry.create({
+      data: {
+        captureId: c2.id,
+        definition: "PA",
+        translationArabic: "ب",
+        nuance: "p",
+        examples: "[]",
+        tags: "[]",
+        relatedEntries: "[]",
+        status: "pending_review",
+      },
+    });
+
+    const result = await ReviewService.getRejected(prisma);
+
+    // All returned entries must have status "rejected"
+    for (const e of result) {
+      expect(e.status).toBe("rejected");
+    }
+    // Our specific rejected entry must be present
+    expect(result.some((e) => e.id === e1.id)).toBe(true);
+    // The pending entry must NOT be present
+    expect(result.some((e) => e.capture.item === "pendA")).toBe(false);
+  });
+});
+
+describe("ReviewService.reEnrich", () => {
+  const adapter = new PrismaBetterSqlite3({ url: "file:./prisma/dev.db" });
+  const prisma = new PrismaClient({ adapter });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
+  it("resets status to processing and clears flagged fields", async () => {
+    const capture = await prisma.capture.create({
+      data: { rawText: "re-enrich-me", item: "re-enrich-me" },
+    });
+    const entry = await prisma.entry.create({
+      data: {
+        captureId: capture.id,
+        definition: "Bad",
+        translationArabic: "خطأ",
+        nuance: "n",
+        examples: "[]",
+        tags: "[]",
+        relatedEntries: "[]",
+        status: "rejected",
+        flaggedFields: '["definition","nuance"]',
+        rejectionNote: "Wrong",
+      },
+    });
+
+    await ReviewService.reEnrich(entry.id, prisma);
+
+    const updated = await prisma.entry.findUnique({
+      where: { id: entry.id },
+    });
+    expect(updated?.status).toBe("processing");
+    expect(updated?.flaggedFields).toBeNull();
+    expect(updated?.rejectionNote).toBeNull();
+    // Existing data preserved (enrichment service will overwrite)
+    expect(updated?.definition).toBe("Bad");
+  });
+});

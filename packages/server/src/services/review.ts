@@ -129,4 +129,35 @@ export const ReviewService = {
 
     return { sessionGroups, oneOffs };
   },
+
+  async getRejected(prisma: PrismaClient): Promise<EntryWithCapture[]> {
+    const entries = await prisma.entry.findMany({
+      where: { status: "rejected" },
+      include: {
+        capture: {
+          select: {
+            id: true,
+            item: true,
+            locator: true,
+            rawText: true,
+            sessionId: true,
+          },
+        },
+      },
+      orderBy: { enrichedAt: "desc" },
+    });
+
+    return entries as unknown as EntryWithCapture[];
+  },
+
+  async reEnrich(entryId: number, prisma: PrismaClient): Promise<void> {
+    await prisma.entry.update({
+      where: { id: entryId },
+      data: {
+        status: "processing",
+        flaggedFields: null,
+        rejectionNote: null,
+      },
+    });
+  },
 };
