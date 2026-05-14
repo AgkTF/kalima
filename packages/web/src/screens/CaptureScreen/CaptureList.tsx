@@ -1,12 +1,29 @@
+import { ArrowPathIcon } from "@heroicons/react/24/outline";
+
 interface Capture {
   id: number;
   item: string;
   locator: string | null;
   sourceHint: string | null;
+  entry: { status: string } | null;
 }
 
 function CaptureEntry({ capture }: { capture: Capture }) {
-  const locator = capture.locator || "\u2014"; // em dash
+  const isProcessing = capture.entry?.status === "processing";
+
+  if (isProcessing) {
+    return (
+      <li className="border-b border-divider py-2.5 last:border-b-0">
+        <div className="flex items-center gap-2 font-display text-base italic font-semibold text-ink">
+          <ArrowPathIcon className="h-4 w-4 animate-spin text-dim shrink-0" />
+          {capture.item}
+        </div>
+        <p className="mt-0.5 text-xs text-dim">Enriching…</p>
+      </li>
+    );
+  }
+
+  const locator = capture.locator || "—";
 
   return (
     <li className="border-b border-divider py-2.5 last:border-b-0">

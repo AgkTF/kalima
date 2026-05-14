@@ -27,7 +27,10 @@ export const CaptureService = {
     return prisma.capture.findMany({
       where: {
         sessionId: null,
-        entry: null,
+        OR: [{ entry: null }, { entry: { status: "processing" } }],
+      },
+      include: {
+        entry: { select: { status: true } },
       },
       orderBy: { createdAt: "desc" },
     });
