@@ -1,7 +1,350 @@
-export function ReviewScreen() {
+import { CheckIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { useState } from "react";
+import { trpc } from "../trpc";
+
+const ENRICHMENT_FIELDS = [
+  { key: "definition", label: "Definition" },
+  { key: "translationArabic", label: "Translation (Arabic)" },
+  { key: "nuance", label: "Nuance" },
+  { key: "examples", label: "Examples" },
+  { key: "tags", label: "Tags" },
+  { key: "relatedEntries", label: "Related Entries" },
+] as const;
+
+function parseJsonField(raw: string): string[] {
+  try {
+    return JSON.parse(raw) as string[];
+  } catch {
+    return [];
+  }
+}
+
+interface RejectFormProps {
+  entryId: number;
+  onClose: () => void;
+}
+
+function RejectForm({ entryId, onClose }: RejectFormProps) {
+  const [selectedFields, setSelectedFields] = useState<Set<string>>(new Set());
+  const [note, setNote] = useState("");
+  const utils = trpc.useUtils();
+
+  const reject = trpc.review.reject.useMutation({
+    onSuccess: () => {
+      utils.review.getPending.invalidate();
+      utils.review.badgeCount.invalidate();
+      onClose();
+    },
+  });
+
+  const toggle = (key: string) => {
+    const next = new Set(selectedFields);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    setSelectedFields(next);
+  };
+
   return (
-    <main className="flex flex-1 items-center justify-center pb-16">
-      <p className="font-ui text-dim">All caught up</p>
+    <div className="mt-2 rounded-button border border-divider bg-surface p-3">
+      <p className="text-xs font-semibold text-ink mb-2">
+        Flag incorrect fields:
+      </p>
+      <div className="flex flex-wrap gap-1.5 mb-3">
+        {ENRICHMENT_FIELDS.map((f) => (
+          <button
+            key={f.key}
+            type="button"
+            onClick={() => toggle(f.key)}
+            className={`rounded-full px-2.5 py-1 text-xs border cursor-pointer transition-colors ${
+              selectedFields.has(f.key)
+                ? "border-red-300 bg-red-50 text-red-700"
+                : "border-divider text-dim hover:border-accent"
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+      <textarea
+        placeholder="Optional note explaining what's wrong\u2026"
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        className="w-full rounded-button border border-divider bg-page px-3 py-2 text-xs text-ink placeholder-dim resize-none"
+        rows={2}
+      />
+      <div className="flex gap-2 mt-2">
+        <button
+          type="button"
+          onClick={() =>
+            reject.mutate({
+              entryId,
+              flaggedFields: [...selectedFields],
+              note: note || null,
+            })
+          }
+          disabled={selectedFields.size === 0 || reject.isPending}
+          className="rounded-button bg-red-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+        >
+          {reject.isPending ? "\u2026" : "Reject"}
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-button border border-divider px-3 py-1.5 text-xs text-dim cursor-pointer hover:text-ink"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function ReviewScreen() {
+  const [rejectingId, setRejectingId] = useState<number | null>(null);
+  const utils = trpc.useUtils();
+
+  const pending = trpc.review.getPending.useQuery();
+
+  const approve = trpc.review.approve.useMutation({
+    onSuccess: () => {
+      utils.review.getPending.invalidate();
+      utils.review.badgeCount.invalidate();
+    },
+  });
+
+  const approveAll = trpc.review.approveAll.useMutation({
+    onSuccess: () => {
+      utils.review.getPending.invalidate();
+      utils.review.badgeCount.invalidate();
+    },
+  });
+
+  const groupCount = pending.data?.sessionGroups.length ?? 0;
+  const oneOffCount = pending.data?.oneOffs.length ?? 0;
+  const total =
+    groupCount > 0 || oneOffCount > 0
+      ? pending.data?.sessionGroups.reduce(
+          (acc, g) => acc + g.entries.length,
+          0,
+        ) + (pending.data?.oneOffs.length ?? 0)
+      : 0;
+
+  if (pending.isLoading) {
+    return (
+      <main className="flex flex-1 items-center justify-center pb-16">
+        <p className="font-ui text-dim">Loading\u2026</p>
+      </main>
+    );
+  }
+
+  if (pending.isError || total === 0) {
+    return (
+      <main className="flex flex-1 items-center justify-center pb-16">
+        <p className="font-ui text-dim">All caught up</p>
+      </main>
+    );
+  }
+
+  return (
+    <main className="flex flex-1 flex-col pb-16">
+      <header className="flex items-center justify-between px-5 pt-4 pb-2">
+        <h1 className="font-display text-lg font-bold text-ink">Review</h1>
+        <span className="rounded-full bg-accent-subtle px-2.5 py-0.5 text-xs font-semibold text-accent">
+          {total}
+        </span>
+      </header>
+
+      <div className="flex-1 overflow-y-auto px-5">
+        {/* Session groups */}
+        {pending.data?.sessionGroups.map((group) => (
+          <section key={group.sessionId} className="mb-5">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <h2 className="font-display text-sm font-semibold text-ink">
+                  {group.sourceName}
+                </h2>
+                <p className="text-xs text-dim">{group.sourceType}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  approveAll.mutate({
+                    entryIds: group.entries.map((e) => e.id),
+                  })
+                }
+                disabled={approveAll.isPending}
+                className="rounded-button border border-accent px-2.5 py-1 text-xs font-medium text-accent cursor-pointer hover:bg-accent hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Approve all ({group.entries.length})
+              </button>
+            </div>
+
+            {group.entries.map((entry) => (
+              <div
+                key={entry.id}
+                className="mb-2 rounded-button border border-divider bg-surface p-3"
+              >
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <p className="font-display text-sm font-semibold text-ink">
+                    {entry.capture.item}
+                  </p>
+                  <div className="flex gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => approve.mutate({ entryId: entry.id })}
+                      disabled={approve.isPending}
+                      className="rounded-full p-1 text-green-600 cursor-pointer hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Approve"
+                    >
+                      <CheckIcon className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setRejectingId(
+                          rejectingId === entry.id ? null : entry.id,
+                        )
+                      }
+                      className="rounded-full p-1 text-dim cursor-pointer hover:bg-red-50 hover:text-red-600"
+                      title="Reject"
+                    >
+                      <XMarkIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <p className="text-xs text-ink leading-relaxed mb-1">
+                  {entry.definition}
+                </p>
+                <p className="text-xs text-dim font-arabic">
+                  {entry.translationArabic}
+                </p>
+
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {parseJsonField(entry.tags).map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full bg-accent-subtle px-1.5 py-0.5 text-[10px] text-dim"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+
+                {entry.flaggedFields && (
+                  <div className="mt-1.5 text-[10px] text-red-500">
+                    Previously flagged:{" "}
+                    {parseJsonField(entry.flaggedFields).join(", ")}
+                    {entry.rejectionNote && ` — "${entry.rejectionNote}"`}
+                  </div>
+                )}
+
+                {rejectingId === entry.id && (
+                  <RejectForm
+                    entryId={entry.id}
+                    onClose={() => setRejectingId(null)}
+                  />
+                )}
+              </div>
+            ))}
+          </section>
+        ))}
+
+        {/* One-offs group */}
+        {pending.data && pending.data.oneOffs.length > 0 && (
+          <section className="mb-5">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <h2 className="font-display text-sm font-semibold text-ink">
+                  One-offs
+                </h2>
+                <p className="text-xs text-dim">No source</p>
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  approveAll.mutate({
+                    entryIds: pending.data.oneOffs.map((e) => e.id),
+                  })
+                }
+                disabled={approveAll.isPending}
+                className="rounded-button border border-accent px-2.5 py-1 text-xs font-medium text-accent cursor-pointer hover:bg-accent hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Approve all ({pending.data.oneOffs.length})
+              </button>
+            </div>
+
+            {pending.data.oneOffs.map((entry) => (
+              <div
+                key={entry.id}
+                className="mb-2 rounded-button border border-divider bg-surface p-3"
+              >
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <p className="font-display text-sm font-semibold text-ink">
+                    {entry.capture.item}
+                  </p>
+                  <div className="flex gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => approve.mutate({ entryId: entry.id })}
+                      disabled={approve.isPending}
+                      className="rounded-full p-1 text-green-600 cursor-pointer hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Approve"
+                    >
+                      <CheckIcon className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setRejectingId(
+                          rejectingId === entry.id ? null : entry.id,
+                        )
+                      }
+                      className="rounded-full p-1 text-dim cursor-pointer hover:bg-red-50 hover:text-red-600"
+                      title="Reject"
+                    >
+                      <XMarkIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <p className="text-xs text-ink leading-relaxed mb-1">
+                  {entry.definition}
+                </p>
+                <p className="text-xs text-dim font-arabic">
+                  {entry.translationArabic}
+                </p>
+
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {parseJsonField(entry.tags).map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full bg-accent-subtle px-1.5 py-0.5 text-[10px] text-dim"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+
+                {entry.flaggedFields && (
+                  <div className="mt-1.5 text-[10px] text-red-500">
+                    Previously flagged:{" "}
+                    {parseJsonField(entry.flaggedFields).join(", ")}
+                    {entry.rejectionNote && ` — "${entry.rejectionNote}"`}
+                  </div>
+                )}
+
+                {rejectingId === entry.id && (
+                  <RejectForm
+                    entryId={entry.id}
+                    onClose={() => setRejectingId(null)}
+                  />
+                )}
+              </div>
+            ))}
+          </section>
+        )}
+      </div>
     </main>
   );
 }

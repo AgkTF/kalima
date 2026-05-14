@@ -30,19 +30,23 @@ describe("App", () => {
     expect(screen.getByText("Capture your first word")).toBeInTheDocument();
   });
 
-  it("shows Capture empty state when navigating to /capture", () => {
+  it("shows Capture empty state when navigating to /capture", async () => {
     renderApp("/capture");
-    expect(screen.getByText("Capture your first word")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Capture your first word"),
+    ).toBeInTheDocument();
   });
 
-  it("shows Review empty state when navigating to /review", () => {
+  it("shows Review empty state when navigating to /review", async () => {
     renderApp("/review");
-    expect(screen.getByText("All caught up")).toBeInTheDocument();
+    expect(await screen.findByText("All caught up")).toBeInTheDocument();
   });
 
-  it("shows Word Bank empty state when navigating to /wordbank", () => {
+  it("shows Word Bank empty state when navigating to /wordbank", async () => {
     renderApp("/wordbank");
-    expect(screen.getByText("Your word bank is empty")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Your word bank is empty"),
+    ).toBeInTheDocument();
   });
 
   it("renders bottom tab bar with three navigation links", () => {
