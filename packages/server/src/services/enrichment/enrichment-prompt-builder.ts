@@ -7,7 +7,7 @@ export interface EnrichmentPromptParams {
 
 export class EnrichmentPromptBuilder {
   build(params: EnrichmentPromptParams): string {
-    const { item, source, locator } = params;
+    const { item, source, locator, existingEntries } = params;
 
     let prompt = `Enrich the following item: "${item}"\n\n`;
 
@@ -17,6 +17,13 @@ export class EnrichmentPromptBuilder {
 
     if (locator) {
       prompt += `Locator: ${locator}\n`;
+    }
+
+    if (existingEntries.length > 0) {
+      prompt += `\nExisting word bank entries for context:\n`;
+      for (const entry of existingEntries) {
+        prompt += `- ${entry}\n`;
+      }
     }
 
     return prompt;
