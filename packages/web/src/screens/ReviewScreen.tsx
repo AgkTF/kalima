@@ -107,7 +107,10 @@ interface PendingEntry {
   status: string;
   definition: string;
   translationArabic: string;
+  nuance: string;
+  examples: string;
   tags: string;
+  relatedEntries: string;
   flaggedFields: string | null;
   rejectionNote: string | null;
   capture: { id: number; item: string };
@@ -129,6 +132,7 @@ function EntryCard({
   onToggleReject,
 }: EntryCardProps) {
   const isProcessing = entry.status === "processing";
+  const [expanded, setExpanded] = useState(false);
 
   if (isProcessing) {
     return (
@@ -150,7 +154,45 @@ function EntryCard({
         <p className="font-display text-sm font-semibold text-ink">
           {entry.capture.item}
         </p>
-        <div className="flex gap-1 shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={() => setExpanded(!expanded)}
+            className="p-0.5 text-dim cursor-pointer hover:text-accent"
+            title={expanded ? "Show less" : "Show all"}
+          >
+            {expanded ? (
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M5 15l7-7 7 7"
+                />
+              </svg>
+            ) : (
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            )}
+          </button>
           <button
             type="button"
             onClick={() => onApprove(entry.id)}
@@ -186,6 +228,44 @@ function EntryCard({
           </span>
         ))}
       </div>
+
+      {expanded && (
+        <div className="mt-2 pt-2 border-t border-divider space-y-1.5">
+          {entry.nuance && (
+            <div>
+              <span className="text-[10px] font-semibold text-dim">Nuance</span>
+              <p className="text-xs text-ink leading-relaxed">{entry.nuance}</p>
+            </div>
+          )}
+          <div>
+            <span className="text-[10px] font-semibold text-dim">Examples</span>
+            <ul className="list-disc list-inside text-xs text-ink">
+              {parseJsonField(entry.examples).map((ex: string) => (
+                <li key={ex} className="leading-relaxed">
+                  {ex}
+                </li>
+              ))}
+            </ul>
+          </div>
+          {parseJsonField(entry.relatedEntries).length > 0 && (
+            <div>
+              <span className="text-[10px] font-semibold text-dim">
+                Related entries
+              </span>
+              <div className="flex flex-wrap gap-1 mt-0.5">
+                {parseJsonField(entry.relatedEntries).map((r: string) => (
+                  <span
+                    key={r}
+                    className="rounded-full border border-accent/30 bg-accent/5 px-1.5 py-0.5 text-[10px] text-accent"
+                  >
+                    {r}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {entry.flaggedFields && (
         <div className="mt-1.5 text-[10px] text-red-500">
