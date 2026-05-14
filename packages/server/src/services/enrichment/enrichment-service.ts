@@ -22,6 +22,7 @@ export const EnrichmentService = {
     });
 
     const existingEntries = await prisma.entry.findMany({
+      where: { capture: { session: { sourceId: session.sourceId } } },
       include: { capture: { select: { item: true } } },
     });
 
@@ -74,11 +75,16 @@ export const EnrichmentService = {
 
       if (!capture) return;
 
-      const existingEntries = await prisma.entry.findMany({
-        include: { capture: { select: { item: true } } },
-      });
+      const source = capture.session?.source ?? null;
 
-      const existingItemNames = existingEntries.map((e) => e.capture.item);
+      let existingItemNames: string[] = [];
+      if (source) {
+        const existingEntries = await prisma.entry.findMany({
+          where: { capture: { session: { sourceId: source.id } } },
+          include: { capture: { select: { item: true } } },
+        });
+        existingItemNames = existingEntries.map((e) => e.capture.item);
+      }
 
       const result = await pipeline.enrich({
         capture: {
@@ -86,7 +92,7 @@ export const EnrichmentService = {
           locator: capture.locator,
           rawText: capture.rawText,
         },
-        source: capture.session?.source ?? null,
+        source,
         existingEntries: existingItemNames,
       });
 
