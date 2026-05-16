@@ -463,7 +463,7 @@ export function ReviewScreen() {
   const oneOffCount = pending.data?.oneOffs.length ?? 0;
   const total =
     groupCount > 0 || oneOffCount > 0
-      ? pending.data?.sessionGroups.reduce(
+      ? (pending.data?.sessionGroups ?? []).reduce(
           (acc, g) => acc + g.entries.length,
           0,
         ) + (pending.data?.oneOffs.length ?? 0)

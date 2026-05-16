@@ -345,7 +345,7 @@ describe("ReviewService.getPending", () => {
     ];
     expect(allEntries.some((e) => e.id === e1.id)).toBe(true);
     expect(allEntries.some((e) => e.id === e2.id)).toBe(true);
-    expect(allEntries.some((e) => e.id === c3)).toBe(false);
+    expect(allEntries.some((e) => e.captureId === c3.id)).toBe(false);
     expect(["processing", "pending_review"]).toContain(
       allEntries.find((e) => e.id === e2.id)?.status ?? "",
     );
