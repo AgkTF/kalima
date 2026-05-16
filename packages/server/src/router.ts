@@ -164,10 +164,11 @@ export const appRouter = t.router({
           include: { capture: true },
         });
         if (entry?.capture) {
-          const { enrichCapture } = await import(
-            "./services/enrichment/enrichment-service.js"
-          );
-          enrichCapture(entry.capture, ctx.prisma).catch((err: unknown) => {
+          EnrichmentService.enrichCapture(
+            entry.capture.id,
+            ctx.prisma,
+            ctx.llm,
+          ).catch((err: unknown) => {
             console.error("Re-enrichment failed:", err);
           });
         }
