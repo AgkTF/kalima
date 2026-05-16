@@ -1,8 +1,4 @@
-import {
-  ArrowPathIcon,
-  CheckIcon,
-  XMarkIcon,
-} from "@heroicons/react/24/outline";
+import { CheckIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
 import { trpc } from "../trpc";
 
@@ -200,12 +196,12 @@ function RejectedEntryCard({
         {entry.definition}
       </p>
       <p
-        className={`text-xs text-dim font-arabic ${fieldClass("translationArabic")}`}
+        className={`text-xs text-dim font-arabic text-end ${fieldClass("translationArabic")}`}
       >
         {entry.translationArabic}
       </p>
 
-      <div className="mt-1 flex flex-wrap gap-1">
+      <div className="mt-2 flex flex-wrap gap-1">
         {parseJsonField(entry.tags).map((tag: string) => (
           <span
             key={tag}
@@ -282,13 +278,13 @@ function EntryCard({
   if (isProcessing) {
     return (
       <div className="mb-2 rounded-button border border-divider bg-surface p-3">
-        <div className="flex items-center gap-2 mb-1">
-          <ArrowPathIcon className="h-3.5 w-3.5 animate-spin text-dim" />
-          <p className="font-display text-sm font-semibold text-ink">
-            {entry.capture.item}
-          </p>
+        <div className="flex items-center gap-2.5 font-display text-sm font-semibold text-ink/80">
+          <span className="relative flex h-2 w-2 shrink-0">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-dim opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-dim" />
+          </span>
+          {entry.capture.item}
         </div>
-        <p className="text-xs text-dim">Enriching…</p>
       </div>
     );
   }
@@ -361,9 +357,11 @@ function EntryCard({
       <p className="text-xs text-ink leading-relaxed mb-1">
         {entry.definition}
       </p>
-      <p className="text-xs text-dim font-arabic">{entry.translationArabic}</p>
+      <p className="text-xs text-dim font-arabic text-end">
+        {entry.translationArabic}
+      </p>
 
-      <div className="mt-1 flex flex-wrap gap-1">
+      <div className="mt-2 flex flex-wrap gap-1">
         {parseJsonField(entry.tags).map((tag: string) => (
           <span
             key={tag}

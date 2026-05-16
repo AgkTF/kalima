@@ -1,5 +1,3 @@
-import { ArrowPathIcon } from "@heroicons/react/24/outline";
-
 interface Capture {
   id: number;
   item: string;
@@ -8,26 +6,39 @@ interface Capture {
   entry: { status: string } | null;
 }
 
-function CaptureEntry({ capture }: { capture: Capture }) {
-  const isProcessing = capture.entry?.status === "processing";
-
-  if (isProcessing) {
-    return (
-      <li className="border-b border-divider py-2.5 last:border-b-0">
-        <div className="flex items-center gap-2 font-display text-base italic font-semibold text-ink">
-          <ArrowPathIcon className="h-4 w-4 animate-spin text-dim shrink-0" />
-          {capture.item}
-        </div>
-        <p className="mt-0.5 text-xs text-dim">Enriching…</p>
-      </li>
-    );
-  }
-
+/* ── Processing capture entry (B3: dim ping dot, 80% text) ── */
+function ProcessingCaptureEntry({ capture }: { capture: Capture }) {
   const locator = capture.locator || "—";
-
   return (
     <li className="border-b border-divider py-2.5 last:border-b-0">
-      <div className="font-display text-base italic font-semibold text-ink">
+      <div className="flex items-center gap-2.5 font-display text-base font-semibold text-ink/80">
+        <span className="relative flex h-2 w-2 shrink-0">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-dim opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-dim" />
+        </span>
+        {capture.item}
+      </div>
+      <div className="mt-0.5 flex items-center gap-1.5 text-xs text-dim/60">
+        <span className="font-medium text-accent/60">{locator}</span>
+        {capture.sourceHint && (
+          <>
+            <span className="select-none text-divider">&middot;</span>
+            <span className="rounded-[5px] bg-chip/50 px-1.5 py-px font-medium text-chip-text/60">
+              {capture.sourceHint}
+            </span>
+          </>
+        )}
+      </div>
+    </li>
+  );
+}
+
+/* ── Normal (non-processing) capture entry ── */
+function NormalCaptureEntry({ capture }: { capture: Capture }) {
+  const locator = capture.locator || "—";
+  return (
+    <li className="border-b border-divider py-2.5 last:border-b-0">
+      <div className="font-display text-base font-semibold text-ink">
         {capture.item}
       </div>
       <div className="mt-0.5 flex items-center gap-1.5 text-xs">
@@ -43,6 +54,14 @@ function CaptureEntry({ capture }: { capture: Capture }) {
       </div>
     </li>
   );
+}
+
+/* ── Entry point ── */
+function CaptureEntry({ capture }: { capture: Capture }) {
+  if (capture.entry?.status === "processing") {
+    return <ProcessingCaptureEntry capture={capture} />;
+  }
+  return <NormalCaptureEntry capture={capture} />;
 }
 
 export function CaptureList({
