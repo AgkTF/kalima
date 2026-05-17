@@ -65,6 +65,8 @@ model Entry {
   flaggedFields      String?
   /// Free-form note explaining why the enrichment was rejected.
   rejectionNote      String?
+  /// Self-assessed confidence from the enrichment agent: "high" or "low"
+  confidence          String?
   enrichedAt         DateTime @default(now())
 
   capture            Capture  @relation(fields: [captureId], references: [id], onDelete: Cascade)

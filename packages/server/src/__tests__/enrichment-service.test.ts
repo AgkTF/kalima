@@ -29,6 +29,7 @@ describe("EnrichmentService.enrichSessionCaptures", () => {
           ],
           tags: ["maritime", "hunting", "weapon"],
           relatedEntries: ["whale", "ship"],
+          confidence: "high",
         }),
       ),
     } as unknown as LLMClient;
@@ -70,7 +71,7 @@ describe("EnrichmentService.enrichSessionCaptures", () => {
 
     expect(entries).toHaveLength(2);
     for (const entry of entries) {
-      expect(entry.status).toBe("pending_review");
+      expect(entry.status).toBe("auto_approved");
       expect(entry.definition).toBeTruthy();
       expect(entry.translationArabic).toBeTruthy();
       expect(entry.nuance).toBeTruthy();
@@ -97,6 +98,7 @@ describe("EnrichmentService.enrichSessionCaptures", () => {
           examples: ["Example 1"],
           tags: ["maritime"],
           relatedEntries: ["whale"],
+          confidence: "high",
         }),
       ),
     } as unknown as LLMClient;
@@ -158,6 +160,183 @@ describe("EnrichmentService.enrichSessionCaptures", () => {
     await prisma.session.deleteMany();
     await prisma.source.deleteMany({
       where: { name: "Enrich Context Book" },
+    });
+  });
+});
+
+describe("EnrichmentService confidence-based routing", () => {
+  const adapter = new PrismaBetterSqlite3({
+    url: "file:./prisma/test.db",
+  });
+  const prisma = new PrismaClient({ adapter });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
+  function mockLLMWithConfidence(confidence: "high" | "low"): LLMClient {
+    return {
+      complete: vi.fn().mockResolvedValue(
+        JSON.stringify({
+          definition: "A test definition",
+          translationArabic: "اختبار",
+          nuance: "Test nuance",
+          examples: ["Example 1", "Example 2"],
+          tags: ["test"],
+          relatedEntries: [],
+          confidence,
+        }),
+      ),
+    } as unknown as LLMClient;
+  }
+
+  it("sets auto_approved status when enrichment returns high confidence", async () => {
+    const mockLLM = mockLLMWithConfidence("high");
+
+    const source = await SourceService.create(
+      "High Confidence Book",
+      "book",
+      prisma,
+    );
+    const session = await prisma.session.create({
+      data: { sourceId: source.id },
+    });
+    const capture = await prisma.capture.create({
+      data: {
+        rawText: "confident-word",
+        item: "confident-word",
+        sessionId: session.id,
+      },
+    });
+
+    await EnrichmentService.createPlaceholderEntries(session.id, prisma);
+    await EnrichmentService.enrichSessionCaptures(session.id, prisma, mockLLM);
+
+    const entry = await prisma.entry.findUnique({
+      where: { captureId: capture.id },
+    });
+    expect(entry?.status).toBe("auto_approved");
+    expect(entry?.confidence).toBe("high");
+
+    await prisma.entry.deleteMany();
+    await prisma.capture.deleteMany();
+    await prisma.session.deleteMany();
+    await prisma.source.deleteMany({
+      where: { name: "High Confidence Book" },
+    });
+  });
+
+  it("sets flagged status when enrichment returns low confidence", async () => {
+    const mockLLM = mockLLMWithConfidence("low");
+
+    const source = await SourceService.create(
+      "Low Confidence Book",
+      "book",
+      prisma,
+    );
+    const session = await prisma.session.create({
+      data: { sourceId: source.id },
+    });
+    const capture = await prisma.capture.create({
+      data: {
+        rawText: "obscure-word",
+        item: "obscure-word",
+        sessionId: session.id,
+      },
+    });
+
+    await EnrichmentService.createPlaceholderEntries(session.id, prisma);
+    await EnrichmentService.enrichSessionCaptures(session.id, prisma, mockLLM);
+
+    const entry = await prisma.entry.findUnique({
+      where: { captureId: capture.id },
+    });
+    expect(entry?.status).toBe("flagged");
+    expect(entry?.confidence).toBe("low");
+
+    await prisma.entry.deleteMany();
+    await prisma.capture.deleteMany();
+    await prisma.session.deleteMany();
+    await prisma.source.deleteMany({
+      where: { name: "Low Confidence Book" },
+    });
+  });
+
+  it("routes mixed-confidence captures correctly within a single session", async () => {
+    // Mock that returns high for first call, low for second
+    const mockComplete = vi
+      .fn()
+      .mockResolvedValueOnce(
+        JSON.stringify({
+          definition: "Confident",
+          translationArabic: "واثق",
+          nuance: "Clear",
+          examples: ["Example"],
+          tags: ["test"],
+          relatedEntries: [],
+          confidence: "high",
+        }),
+      )
+      .mockResolvedValueOnce(
+        JSON.stringify({
+          definition: "Unsure",
+          translationArabic: "غير متأكد",
+          nuance: "Ambiguous",
+          examples: ["Example"],
+          tags: ["test"],
+          relatedEntries: [],
+          confidence: "low",
+        }),
+      );
+
+    const mockLLM: LLMClient = {
+      complete: mockComplete,
+    } as unknown as LLMClient;
+
+    const source = await SourceService.create(
+      "Mixed Confidence Book",
+      "book",
+      prisma,
+    );
+    const session = await prisma.session.create({
+      data: { sourceId: source.id },
+    });
+
+    const c1 = await prisma.capture.create({
+      data: {
+        rawText: "clear",
+        item: "clear",
+        sessionId: session.id,
+      },
+    });
+    const c2 = await prisma.capture.create({
+      data: {
+        rawText: "fuzzy",
+        item: "fuzzy",
+        sessionId: session.id,
+      },
+    });
+
+    await EnrichmentService.createPlaceholderEntries(session.id, prisma);
+    await EnrichmentService.enrichSessionCaptures(session.id, prisma, mockLLM);
+
+    const entry1 = await prisma.entry.findUnique({
+      where: { captureId: c1.id },
+    });
+    const entry2 = await prisma.entry.findUnique({
+      where: { captureId: c2.id },
+    });
+
+    expect(entry1?.status).toBe("auto_approved");
+    expect(entry1?.confidence).toBe("high");
+    expect(entry2?.status).toBe("flagged");
+    expect(entry2?.confidence).toBe("low");
+
+    await prisma.entry.deleteMany();
+    await prisma.capture.deleteMany();
+    await prisma.session.deleteMany();
+    await prisma.source.deleteMany({
+      where: { name: "Mixed Confidence Book" },
     });
   });
 });

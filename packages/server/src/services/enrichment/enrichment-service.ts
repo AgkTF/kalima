@@ -106,7 +106,8 @@ export const EnrichmentService = {
             examples: JSON.stringify(result.examples),
             tags: JSON.stringify(result.tags),
             relatedEntries: JSON.stringify(result.relatedEntries),
-            status: "pending_review",
+            confidence: result.confidence,
+            status: result.confidence === "high" ? "auto_approved" : "flagged",
           },
         });
       } catch {
@@ -163,7 +164,8 @@ export const EnrichmentService = {
           examples: JSON.stringify(result.examples),
           tags: JSON.stringify(result.tags),
           relatedEntries: JSON.stringify(result.relatedEntries),
-          status: "pending_review",
+          confidence: result.confidence,
+          status: result.confidence === "high" ? "auto_approved" : "flagged",
         },
       });
     } catch {
