@@ -174,8 +174,8 @@ describe("EnrichmentService confidence-based routing", () => {
     await prisma.$disconnect();
   });
 
-  function mockLLMWithConfidence(confidence: "high" | "low"): LLMClient {
-    return {
+  it("sets auto_approved status when enrichment returns high confidence", async () => {
+    const mockLLM: LLMClient = {
       complete: vi.fn().mockResolvedValue(
         JSON.stringify({
           definition: "A test definition",
@@ -184,14 +184,10 @@ describe("EnrichmentService confidence-based routing", () => {
           examples: ["Example 1", "Example 2"],
           tags: ["test"],
           relatedEntries: [],
-          confidence,
+          confidence: "high",
         }),
       ),
     } as unknown as LLMClient;
-  }
-
-  it("sets auto_approved status when enrichment returns high confidence", async () => {
-    const mockLLM = mockLLMWithConfidence("high");
 
     const source = await SourceService.create(
       "High Confidence Book",
@@ -227,7 +223,35 @@ describe("EnrichmentService confidence-based routing", () => {
   });
 
   it("sets flagged status when enrichment returns low confidence", async () => {
-    const mockLLM = mockLLMWithConfidence("low");
+    const mockComplete = vi
+      .fn()
+      .mockResolvedValueOnce(
+        JSON.stringify({
+          definition: "A test definition",
+          translationArabic: "اختبار",
+          nuance: "Test nuance",
+          examples: ["Example 1", "Example 2"],
+          tags: ["test"],
+          relatedEntries: [],
+          confidence: "low",
+        }),
+      )
+      // Premium pass also returns low (entry stays pending_review with low confidence)
+      .mockResolvedValueOnce(
+        JSON.stringify({
+          definition: "A test definition",
+          translationArabic: "اختبار",
+          nuance: "Test nuance",
+          examples: ["Example 1", "Example 2"],
+          tags: ["test"],
+          relatedEntries: [],
+          confidence: "low",
+        }),
+      );
+
+    const mockLLM: LLMClient = {
+      complete: mockComplete,
+    } as unknown as LLMClient;
 
     const source = await SourceService.create(
       "Low Confidence Book",
@@ -251,7 +275,7 @@ describe("EnrichmentService confidence-based routing", () => {
     const entry = await prisma.entry.findUnique({
       where: { captureId: capture.id },
     });
-    expect(entry?.status).toBe("flagged");
+    expect(entry?.status).toBe("pending_review");
     expect(entry?.confidence).toBe("low");
 
     await prisma.entry.deleteMany();
@@ -337,6 +361,81 @@ describe("EnrichmentService confidence-based routing", () => {
     await prisma.session.deleteMany();
     await prisma.source.deleteMany({
       where: { name: "Mixed Confidence Book" },
+    });
+  });
+
+  it("runs premium second pass for flagged entries, upgrading to pending_review", async () => {
+    const mockComplete = vi
+      .fn()
+      // First call: cheap enrichment returns low confidence
+      .mockResolvedValueOnce(
+        JSON.stringify({
+          definition: "Uncertain cheap",
+          translationArabic: "غير واضح",
+          nuance: "Could not determine",
+          examples: ["Example"],
+          tags: ["uncertain"],
+          relatedEntries: [],
+          confidence: "low",
+        }),
+      )
+      // Second call: premium enrichment returns high confidence with better data
+      .mockResolvedValueOnce(
+        JSON.stringify({
+          definition: "Clear premium definition",
+          translationArabic: "واضح",
+          nuance: "Now determined with high confidence",
+          examples: ["Better example 1", "Better example 2"],
+          tags: ["premium", "clear"],
+          relatedEntries: [],
+          confidence: "high",
+        }),
+      );
+
+    const mockLLM: LLMClient = {
+      complete: mockComplete,
+    } as unknown as LLMClient;
+
+    const source = await SourceService.create(
+      "Premium Pass Book",
+      "book",
+      prisma,
+    );
+    const session = await prisma.session.create({
+      data: { sourceId: source.id },
+    });
+    const capture = await prisma.capture.create({
+      data: {
+        rawText: "premium-target",
+        item: "premium-target",
+        sessionId: session.id,
+      },
+    });
+
+    await EnrichmentService.createPlaceholderEntries(session.id, prisma);
+    await EnrichmentService.enrichSessionCaptures(session.id, prisma, mockLLM);
+
+    const entry = await prisma.entry.findUnique({
+      where: { captureId: capture.id },
+    });
+
+    // After premium pass, entry should be pending_review with premium-enriched data
+    expect(entry?.status).toBe("pending_review");
+    expect(entry?.definition).toBe("Clear premium definition");
+    expect(entry?.translationArabic).toBe("واضح");
+    expect(entry?.confidence).toBe("high");
+
+    // Verify both cheap and premium tiers were called
+    const calls = mockComplete.mock.calls;
+    expect(calls).toHaveLength(2);
+    expect(calls[0][1].tier).toBe("cheap");
+    expect(calls[1][1].tier).toBe("premium");
+
+    await prisma.entry.deleteMany();
+    await prisma.capture.deleteMany();
+    await prisma.session.deleteMany();
+    await prisma.source.deleteMany({
+      where: { name: "Premium Pass Book" },
     });
   });
 });

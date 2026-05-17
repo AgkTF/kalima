@@ -85,6 +85,8 @@ export const EnrichmentService = {
 
     const existingItemNames = existingEntries.map((e) => e.capture.item);
 
+    const flaggedCaptureIds: number[] = [];
+
     for (const capture of captures) {
       try {
         const result = await pipeline.enrich({
@@ -97,6 +99,9 @@ export const EnrichmentService = {
           existingEntries: existingItemNames,
         });
 
+        const status =
+          result.confidence === "high" ? "auto_approved" : "flagged";
+
         await prisma.entry.update({
           where: { captureId: capture.id },
           data: {
@@ -107,12 +112,50 @@ export const EnrichmentService = {
             tags: JSON.stringify(result.tags),
             relatedEntries: JSON.stringify(result.relatedEntries),
             confidence: result.confidence,
-            status: result.confidence === "high" ? "auto_approved" : "flagged",
+            status,
           },
         });
+
+        if (status === "flagged") {
+          flaggedCaptureIds.push(capture.id);
+        }
       } catch {
         // Entry may have been deleted or enrichment failed.
         // Skip and continue with remaining captures.
+      }
+    }
+
+    // Premium second pass for flagged captures
+    for (const captureId of flaggedCaptureIds) {
+      try {
+        const capture = captures.find((c) => c.id === captureId);
+        if (!capture) continue;
+
+        const result = await pipeline.enrichPremium({
+          capture: {
+            item: capture.item,
+            locator: capture.locator,
+            rawText: capture.rawText,
+          },
+          source: session.source,
+          existingEntries: existingItemNames,
+        });
+
+        await prisma.entry.update({
+          where: { captureId },
+          data: {
+            definition: result.definition,
+            translationArabic: result.translationArabic,
+            nuance: result.nuance,
+            examples: JSON.stringify(result.examples),
+            tags: JSON.stringify(result.tags),
+            relatedEntries: JSON.stringify(result.relatedEntries),
+            confidence: result.confidence,
+            status: "pending_review",
+          },
+        });
+      } catch {
+        // Premium pass failed; entry stays flagged for human review
       }
     }
   },
@@ -155,6 +198,8 @@ export const EnrichmentService = {
         existingEntries: existingItemNames,
       });
 
+      const status = result.confidence === "high" ? "auto_approved" : "flagged";
+
       await prisma.entry.update({
         where: { captureId: capture.id },
         data: {
@@ -165,9 +210,36 @@ export const EnrichmentService = {
           tags: JSON.stringify(result.tags),
           relatedEntries: JSON.stringify(result.relatedEntries),
           confidence: result.confidence,
-          status: result.confidence === "high" ? "auto_approved" : "flagged",
+          status,
         },
       });
+
+      // Premium second pass for flagged entries
+      if (status === "flagged") {
+        const premiumResult = await pipeline.enrichPremium({
+          capture: {
+            item: capture.item,
+            locator: capture.locator,
+            rawText: capture.rawText,
+          },
+          source,
+          existingEntries: existingItemNames,
+        });
+
+        await prisma.entry.update({
+          where: { captureId: capture.id },
+          data: {
+            definition: premiumResult.definition,
+            translationArabic: premiumResult.translationArabic,
+            nuance: premiumResult.nuance,
+            examples: JSON.stringify(premiumResult.examples),
+            tags: JSON.stringify(premiumResult.tags),
+            relatedEntries: JSON.stringify(premiumResult.relatedEntries),
+            confidence: premiumResult.confidence,
+            status: "pending_review",
+          },
+        });
+      }
     } catch {
       // Entry may have been deleted before enrichment completed.
     }
