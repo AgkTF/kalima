@@ -12,7 +12,7 @@ describe("ReviewService.badgeCount", () => {
     await prisma.$disconnect();
   });
 
-  it("returns the number of entries with status processing or pending_review", async () => {
+  it("returns the number of entries with status processing, pending_review, or auto_approved", async () => {
     const source = await SourceService.create(
       "Badge Count Book",
       "book",
@@ -75,6 +75,35 @@ describe("ReviewService.badgeCount", () => {
         definition: "",
         translationArabic: "",
         nuance: "",
+        examples: "[]",
+        tags: "[]",
+        relatedEntries: "[]",
+      },
+    });
+
+    const count = await ReviewService.badgeCount(prisma);
+    expect(count).toBeGreaterThanOrEqual(1);
+  });
+
+  it("counts entries with status auto_approved", async () => {
+    const source = await SourceService.create(
+      "AutoApproved Count Book",
+      "book",
+      prisma,
+    );
+    const session = await prisma.session.create({
+      data: { sourceId: source.id },
+    });
+    const capture = await prisma.capture.create({
+      data: { rawText: "auto", item: "auto", sessionId: session.id },
+    });
+    await prisma.entry.create({
+      data: {
+        captureId: capture.id,
+        status: "auto_approved",
+        definition: "A",
+        translationArabic: "أ",
+        nuance: "n",
         examples: "[]",
         tags: "[]",
         relatedEntries: "[]",
@@ -346,7 +375,7 @@ describe("ReviewService.getPending", () => {
     expect(allEntries.some((e) => e.id === e1.id)).toBe(true);
     expect(allEntries.some((e) => e.id === e2.id)).toBe(true);
     expect(allEntries.some((e) => e.captureId === c3.id)).toBe(false);
-    expect(["processing", "pending_review"]).toContain(
+    expect(["processing", "pending_review", "auto_approved"]).toContain(
       allEntries.find((e) => e.id === e2.id)?.status ?? "",
     );
   });
@@ -418,6 +447,130 @@ describe("ReviewService.getPending", () => {
     expect(result.oneOffs).toHaveLength(1);
     expect(result.oneOffs[0].capture.item).toBe("oneoff");
     expect(result.oneOffs[0].capture.sessionId).toBeNull();
+  });
+});
+
+describe("ReviewService.approveAllAutoApproved", () => {
+  const adapter = new PrismaBetterSqlite3({ url: "file:./prisma/test.db" });
+  const prisma = new PrismaClient({ adapter });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
+  it("approves all auto_approved entries while leaving pending_review untouched", async () => {
+    const source = await SourceService.create(
+      "Auto Approve Book",
+      "book",
+      prisma,
+    );
+    const session = await prisma.session.create({
+      data: { sourceId: source.id },
+    });
+
+    const c1 = await prisma.capture.create({
+      data: { rawText: "auto", item: "auto", sessionId: session.id },
+    });
+    const c2 = await prisma.capture.create({
+      data: { rawText: "manual", item: "manual", sessionId: session.id },
+    });
+
+    await prisma.entry.createMany({
+      data: [
+        {
+          captureId: c1.id,
+          definition: "Auto",
+          translationArabic: "ت",
+          nuance: "a",
+          examples: "[]",
+          tags: "[]",
+          relatedEntries: "[]",
+          status: "auto_approved",
+        },
+        {
+          captureId: c2.id,
+          definition: "Manual",
+          translationArabic: "ي",
+          nuance: "m",
+          examples: "[]",
+          tags: "[]",
+          relatedEntries: "[]",
+          status: "pending_review",
+        },
+      ],
+    });
+
+    await ReviewService.approveAllAutoApproved(prisma);
+
+    const autoEntry = await prisma.entry.findUnique({
+      where: { captureId: c1.id },
+    });
+    const manualEntry = await prisma.entry.findUnique({
+      where: { captureId: c2.id },
+    });
+
+    expect(autoEntry?.status).toBe("approved");
+    expect(manualEntry?.status).toBe("pending_review");
+
+    await prisma.entry.deleteMany();
+    await prisma.capture.deleteMany();
+    await prisma.session.deleteMany();
+    await prisma.source.deleteMany({
+      where: { name: "Auto Approve Book" },
+    });
+  });
+
+  it("returns count of approved entries", async () => {
+    const source = await SourceService.create(
+      "Batch Count Book",
+      "book",
+      prisma,
+    );
+    const session = await prisma.session.create({
+      data: { sourceId: source.id },
+    });
+
+    const c1 = await prisma.capture.create({
+      data: { rawText: "a1", item: "a1", sessionId: session.id },
+    });
+    const c2 = await prisma.capture.create({
+      data: { rawText: "a2", item: "a2", sessionId: session.id },
+    });
+
+    await prisma.entry.createMany({
+      data: [
+        {
+          captureId: c1.id,
+          definition: "A1",
+          translationArabic: "١",
+          nuance: "a",
+          examples: "[]",
+          tags: "[]",
+          relatedEntries: "[]",
+          status: "auto_approved",
+        },
+        {
+          captureId: c2.id,
+          definition: "A2",
+          translationArabic: "٢",
+          nuance: "b",
+          examples: "[]",
+          tags: "[]",
+          relatedEntries: "[]",
+          status: "auto_approved",
+        },
+      ],
+    });
+
+    const count = await ReviewService.approveAllAutoApproved(prisma);
+    expect(count).toBe(2);
+
+    await prisma.entry.deleteMany();
+    await prisma.capture.deleteMany();
+    await prisma.session.deleteMany();
+    await prisma.source.deleteMany({
+      where: { name: "Batch Count Book" },
+    });
   });
 });
 
