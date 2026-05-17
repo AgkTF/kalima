@@ -5,6 +5,7 @@
     "dev:server": "pnpm --filter server dev",
     "dev:web": "pnpm --filter web dev",
     "dev": "concurrently \"pnpm dev:server\" \"pnpm dev:web\"",
+    "dev:qa": "LLM_FORCE_CONFIDENCE=low concurrently \"pnpm dev:server\" \"pnpm dev:web\"",
     "lint": "biome check packages/*/src",
     "lint:fix": "biome check --write packages/*/src",
     "typecheck": "pnpm -r typecheck",
