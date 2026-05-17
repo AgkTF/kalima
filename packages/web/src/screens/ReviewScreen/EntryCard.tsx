@@ -2,7 +2,7 @@ import { CheckIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
 import { EnrichmentFields } from "./EnrichmentFields";
 import { RejectForm } from "./RejectForm";
-import { parseJsonField, type PendingEntry } from "./utils";
+import { type PendingEntry, parseJsonField } from "./utils";
 
 interface EntryCardProps {
   entry: PendingEntry;
@@ -20,6 +20,7 @@ export function EntryCard({
   onToggleReject,
 }: EntryCardProps) {
   const isProcessing = entry.status === "processing";
+  const isAutoApproved = entry.status === "auto_approved";
   const [expanded, setExpanded] = useState(false);
 
   if (isProcessing) {
@@ -32,6 +33,39 @@ export function EntryCard({
           </span>
           {entry.capture.item}
         </div>
+      </div>
+    );
+  }
+
+  // Auto-approved: compact quick-skim card — Item, Definition, Translation only
+  if (isAutoApproved) {
+    return (
+      <div className="mb-2 rounded-button border border-accent/20 bg-accent/5 p-3">
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <div className="flex items-center gap-2">
+            <p className="font-display text-sm font-semibold text-ink">
+              {entry.capture.item}
+            </p>
+            <span className="rounded-full bg-accent-subtle px-1.5 py-0.5 text-[10px] font-medium text-accent">
+              auto
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => onApprove(entry.id)}
+            disabled={isApproving}
+            className="rounded-full p-1 text-green-600 cursor-pointer hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Approve"
+          >
+            <CheckIcon className="h-4 w-4" />
+          </button>
+        </div>
+        <p className="text-xs text-ink leading-relaxed mb-1">
+          {entry.definition}
+        </p>
+        <p className="text-xs text-dim font-arabic text-end">
+          {entry.translationArabic}
+        </p>
       </div>
     );
   }

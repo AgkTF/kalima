@@ -28,6 +28,14 @@ export function ReviewScreen() {
     },
   });
 
+  const approveAllAutoApproved = trpc.review.approveAllAutoApproved.useMutation(
+    {
+      onSuccess: () => {
+        utils.review.getPending.invalidate();
+      },
+    },
+  );
+
   const reEnrich = trpc.review.reEnrich.useMutation({
     onSuccess: () => {
       utils.review.getPending.invalidate();
@@ -35,15 +43,14 @@ export function ReviewScreen() {
     },
   });
 
-  const groupCount = pending.data?.sessionGroups.length ?? 0;
-  const oneOffCount = pending.data?.oneOffs.length ?? 0;
-  const total =
-    groupCount > 0 || oneOffCount > 0
-      ? (pending.data?.sessionGroups ?? []).reduce(
-          (acc, g) => acc + g.entries.length,
-          0,
-        ) + (pending.data?.oneOffs.length ?? 0)
-      : 0;
+  const allEntries = [
+    ...(pending.data?.sessionGroups ?? []).flatMap((g) => g.entries),
+    ...(pending.data?.oneOffs ?? []),
+  ];
+
+  const autoApprovedCount = allEntries.filter(
+    (e) => e.status === "auto_approved",
+  ).length;
 
   if (pending.isLoading) {
     return (
@@ -53,7 +60,7 @@ export function ReviewScreen() {
     );
   }
 
-  if (pending.isError || total === 0) {
+  if (pending.isError || allEntries.length === 0) {
     return (
       <main className="flex flex-1 items-center justify-center pb-16">
         <p className="font-ui text-dim">All caught up</p>
@@ -68,13 +75,26 @@ export function ReviewScreen() {
       <header className="flex items-center justify-between px-5 pt-4 pb-2">
         <h1 className="font-display text-lg font-bold text-ink">Review</h1>
         <span className="rounded-full bg-accent-subtle px-2.5 py-0.5 text-xs font-semibold text-accent">
-          {total}
+          {allEntries.length}
         </span>
       </header>
 
       <div className="flex-1 overflow-y-auto px-5">
+        {/* Global "Approve all auto-approved" batch button */}
+        {autoApprovedCount > 0 && (
+          <div className="mb-4">
+            <button
+              type="button"
+              onClick={() => approveAllAutoApproved.mutate()}
+              disabled={approveAllAutoApproved.isPending}
+              className="w-full rounded-button border border-accent px-3 py-2 text-sm font-medium text-accent cursor-pointer hover:bg-accent hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Approve all auto-approved ({autoApprovedCount})
+            </button>
+          </div>
+        )}
         {/* Inline by design (2 uses). Extract at 3+ uses. See ADR 0006. */}
-        {pending.data?.sessionGroups.map(group => (
+        {pending.data?.sessionGroups.map((group) => (
           <section key={group.sessionId} className="mb-5">
             <div className="flex items-center justify-between mb-2">
               <div>
@@ -87,7 +107,7 @@ export function ReviewScreen() {
                 type="button"
                 onClick={() =>
                   approveAll.mutate({
-                    entryIds: group.entries.map(e => e.id),
+                    entryIds: group.entries.map((e) => e.id),
                   })
                 }
                 disabled={approveAll.isPending}
@@ -97,14 +117,14 @@ export function ReviewScreen() {
               </button>
             </div>
 
-            {group.entries.map(entry => (
+            {group.entries.map((entry) => (
               <EntryCard
                 key={entry.id}
                 entry={entry}
                 isApproving={approve.isPending}
                 isRejecting={rejectingId === entry.id}
-                onApprove={id => approve.mutate({ entryId: id })}
-                onToggleReject={id =>
+                onApprove={(id) => approve.mutate({ entryId: id })}
+                onToggleReject={(id) =>
                   setRejectingId(rejectingId === id ? null : id)
                 }
               />
@@ -126,7 +146,7 @@ export function ReviewScreen() {
                 type="button"
                 onClick={() =>
                   approveAll.mutate({
-                    entryIds: pending.data.oneOffs.map(e => e.id),
+                    entryIds: pending.data.oneOffs.map((e) => e.id),
                   })
                 }
                 disabled={approveAll.isPending}
@@ -136,14 +156,14 @@ export function ReviewScreen() {
               </button>
             </div>
 
-            {pending.data.oneOffs.map(entry => (
+            {pending.data.oneOffs.map((entry) => (
               <EntryCard
                 key={entry.id}
                 entry={entry}
                 isApproving={approve.isPending}
                 isRejecting={rejectingId === entry.id}
-                onApprove={id => approve.mutate({ entryId: id })}
-                onToggleReject={id =>
+                onApprove={(id) => approve.mutate({ entryId: id })}
+                onToggleReject={(id) =>
                   setRejectingId(rejectingId === id ? null : id)
                 }
               />
@@ -182,11 +202,11 @@ export function ReviewScreen() {
             </button>
 
             {showRejected &&
-              rejected.data?.map(entry => (
+              rejected.data?.map((entry) => (
                 <RejectedEntryCard
                   key={entry.id}
                   entry={entry}
-                  onReEnrich={id => reEnrich.mutate({ entryId: id })}
+                  onReEnrich={(id) => reEnrich.mutate({ entryId: id })}
                 />
               ))}
           </section>

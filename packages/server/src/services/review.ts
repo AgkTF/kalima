@@ -10,6 +10,7 @@ export interface EntryWithCapture {
   examples: string;
   tags: string;
   relatedEntries: string;
+  confidence: string | null;
   flaggedFields: string | null;
   rejectionNote: string | null;
   enrichedAt: Date;
