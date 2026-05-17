@@ -12,7 +12,7 @@ export interface CompleteOptions {
   systemPrompt?: string;
 }
 
-const CHEAP_MODEL_DEFAULT = "Qwen/Qwen3-235B-A22B-Instruct-2507";
+const CHEAP_MODEL_DEFAULT = "gpt-4o-mini";
 const PREMIUM_MODEL_DEFAULT = "google/gemma-4-31B-it";
 
 export class LLMClient {

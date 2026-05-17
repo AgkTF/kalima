@@ -27,21 +27,7 @@ export const CaptureService = {
     return prisma.capture.findMany({
       where: {
         sessionId: null,
-        OR: [
-          { entry: null },
-          {
-            entry: {
-              status: {
-                in: [
-                  "processing",
-                  "auto_approved",
-                  "flagged",
-                  "pending_review",
-                ],
-              },
-            },
-          },
-        ],
+        OR: [{ entry: null }, { entry: { status: "processing" } }],
       },
       include: {
         entry: { select: { status: true } },
