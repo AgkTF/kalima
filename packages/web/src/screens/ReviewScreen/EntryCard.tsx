@@ -19,7 +19,9 @@ export function EntryCard({
   onApprove,
   onToggleReject,
 }: EntryCardProps) {
-  const isProcessing = entry.status === "processing";
+  const isProcessing =
+    entry.status === "processing" || entry.status === "flagged";
+  const isFlagged = entry.status === "flagged";
   const isAutoApproved = entry.status === "auto_approved";
   const [expanded, setExpanded] = useState(false);
 
@@ -32,6 +34,11 @@ export function EntryCard({
             <span className="relative inline-flex h-2 w-2 rounded-full bg-dim" />
           </span>
           {entry.capture.item}
+          {isFlagged && (
+            <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-600">
+              premium
+            </span>
+          )}
         </div>
       </div>
     );

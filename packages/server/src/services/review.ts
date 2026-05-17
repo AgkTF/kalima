@@ -39,7 +39,9 @@ export const ReviewService = {
   async badgeCount(prisma: PrismaClient): Promise<number> {
     return prisma.entry.count({
       where: {
-        status: { in: ["processing", "pending_review", "auto_approved"] },
+        status: {
+          in: ["processing", "flagged", "pending_review", "auto_approved"],
+        },
       },
     });
   },
@@ -85,7 +87,9 @@ export const ReviewService = {
   async getPending(prisma: PrismaClient): Promise<PendingReview> {
     const entries = await prisma.entry.findMany({
       where: {
-        status: { in: ["processing", "pending_review", "auto_approved"] },
+        status: {
+          in: ["processing", "flagged", "pending_review", "auto_approved"],
+        },
       },
       include: {
         capture: {
