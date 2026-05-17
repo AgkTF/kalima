@@ -9,6 +9,7 @@ import {
   ClipboardDocumentListIcon as ClipboardSolid,
 } from "@heroicons/react/24/solid";
 import { NavLink } from "react-router-dom";
+import { trpc } from "../trpc";
 
 interface Tab {
   to: string;
@@ -39,6 +40,16 @@ const tabs: Tab[] = [
 ];
 
 export function BottomTabBar() {
+  const pending = trpc.review.getPending.useQuery(undefined, {
+    refetchInterval: 5_000,
+  });
+
+  const badgeCount =
+    (pending.data?.sessionGroups.reduce(
+      (acc, g) => acc + g.entries.length,
+      0,
+    ) ?? 0) + (pending.data?.oneOffs.length ?? 0);
+
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-40 flex border-t border-divider bg-surface"
@@ -54,10 +65,17 @@ export function BottomTabBar() {
                   isActive ? "text-accent" : "text-dim"
                 }`}
               >
-                <Icon
-                  className={isActive ? "h-6 w-6" : "h-6 w-6"}
-                  aria-hidden="true"
-                />
+                <span className="relative">
+                  <Icon
+                    className={isActive ? "h-6 w-6" : "h-6 w-6"}
+                    aria-hidden="true"
+                  />
+                  {tab.to === "/review" && badgeCount > 0 && (
+                    <span className="absolute -top-0.5 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-white leading-none">
+                      {badgeCount}
+                    </span>
+                  )}
+                </span>
                 {tab.label}
               </span>
             );

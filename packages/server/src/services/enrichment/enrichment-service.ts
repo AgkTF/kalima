@@ -3,6 +3,63 @@ import type { LLMClient } from "../llm-client.js";
 import { EnrichmentPipeline } from "./enrichment-pipeline.js";
 
 export const EnrichmentService = {
+  /**
+   * Create placeholder entries (status "processing") for all captures in a session.
+   * Call this immediately when enrichment is triggered so the user sees cards right away.
+   */
+  async createPlaceholderEntries(
+    sessionId: number,
+    prisma: PrismaClient,
+  ): Promise<void> {
+    const captures = await prisma.capture.findMany({
+      where: { sessionId },
+      include: { entry: { select: { id: true } } },
+    });
+
+    const toCreate = captures.filter((c) => !c.entry);
+
+    if (toCreate.length === 0) return;
+
+    await prisma.entry.createMany({
+      data: toCreate.map((c) => ({
+        captureId: c.id,
+        status: "processing",
+        definition: "",
+        translationArabic: "",
+        nuance: "",
+        examples: "[]",
+        tags: "[]",
+        relatedEntries: "[]",
+      })),
+    });
+  },
+
+  /**
+   * Create a placeholder entry (status "processing") for a single one-off capture.
+   */
+  async createPlaceholderEntry(
+    captureId: number,
+    prisma: PrismaClient,
+  ): Promise<void> {
+    const existing = await prisma.entry.findUnique({
+      where: { captureId },
+    });
+    if (existing) return;
+
+    await prisma.entry.create({
+      data: {
+        captureId,
+        status: "processing",
+        definition: "",
+        translationArabic: "",
+        nuance: "",
+        examples: "[]",
+        tags: "[]",
+        relatedEntries: "[]",
+      },
+    });
+  },
+
   async enrichSessionCaptures(
     sessionId: number,
     prisma: PrismaClient,
@@ -40,19 +97,20 @@ export const EnrichmentService = {
           existingEntries: existingItemNames,
         });
 
-        await prisma.entry.create({
+        await prisma.entry.update({
+          where: { captureId: capture.id },
           data: {
-            captureId: capture.id,
             definition: result.definition,
             translationArabic: result.translationArabic,
             nuance: result.nuance,
             examples: JSON.stringify(result.examples),
             tags: JSON.stringify(result.tags),
             relatedEntries: JSON.stringify(result.relatedEntries),
+            status: "pending_review",
           },
         });
       } catch {
-        // Capture may have been deleted before enrichment completed.
+        // Entry may have been deleted or enrichment failed.
         // Skip and continue with remaining captures.
       }
     }
@@ -96,19 +154,20 @@ export const EnrichmentService = {
         existingEntries: existingItemNames,
       });
 
-      await prisma.entry.create({
+      await prisma.entry.update({
+        where: { captureId: capture.id },
         data: {
-          captureId: capture.id,
           definition: result.definition,
           translationArabic: result.translationArabic,
           nuance: result.nuance,
           examples: JSON.stringify(result.examples),
           tags: JSON.stringify(result.tags),
           relatedEntries: JSON.stringify(result.relatedEntries),
+          status: "pending_review",
         },
       });
     } catch {
-      // Capture may have been deleted before enrichment completed.
+      // Entry may have been deleted before enrichment completed.
     }
   },
 };

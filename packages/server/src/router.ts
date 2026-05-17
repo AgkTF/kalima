@@ -3,6 +3,7 @@ import { z } from "zod";
 import { AppService } from "./services/app.js";
 import { CaptureService } from "./services/capture.js";
 import { EnrichmentService } from "./services/enrichment/enrichment-service.js";
+import { ReviewService } from "./services/review.js";
 import { SessionService } from "./services/session.js";
 import { SourceService } from "./services/source.js";
 
@@ -30,7 +31,9 @@ export const appRouter = t.router({
       ),
     close: t.procedure.mutation(async ({ ctx }) => {
       const session = await SessionService.close(ctx.prisma);
-      // Fire-and-forget enrichment for all session captures
+      // Create placeholder entries immediately so the user sees them in Review
+      await EnrichmentService.createPlaceholderEntries(session.id, ctx.prisma);
+      // Fire-and-forget enrichment to fill in real data
       EnrichmentService.enrichSessionCaptures(
         session.id,
         ctx.prisma,
@@ -74,6 +77,11 @@ export const appRouter = t.router({
         );
         // Fire-and-forget enrichment for one-off captures
         if (!input.sessionId) {
+          // Create placeholder entry immediately so the user sees it in Review
+          await EnrichmentService.createPlaceholderEntry(
+            capture.id,
+            ctx.prisma,
+          );
           EnrichmentService.enrichCapture(
             capture.id,
             ctx.prisma,
@@ -111,6 +119,59 @@ export const appRouter = t.router({
           include: { capture: true },
           orderBy: { enrichedAt: "desc" },
         });
+      }),
+  }),
+  review: t.router({
+    getPending: t.procedure.query(async ({ ctx }) =>
+      ReviewService.getPending(ctx.prisma),
+    ),
+    approve: t.procedure
+      .input(z.object({ entryId: z.number() }))
+      .mutation(async ({ input, ctx }) =>
+        ReviewService.approve(input.entryId, ctx.prisma),
+      ),
+    approveAll: t.procedure
+      .input(z.object({ entryIds: z.array(z.number()) }))
+      .mutation(async ({ input, ctx }) =>
+        ReviewService.approveAll(input.entryIds, ctx.prisma),
+      ),
+    reject: t.procedure
+      .input(
+        z.object({
+          entryId: z.number(),
+          flaggedFields: z.array(z.string()),
+          note: z.string().nullable(),
+        }),
+      )
+      .mutation(async ({ input, ctx }) =>
+        ReviewService.reject(
+          input.entryId,
+          input.flaggedFields,
+          input.note,
+          ctx.prisma,
+        ),
+      ),
+    getRejected: t.procedure.query(async ({ ctx }) =>
+      ReviewService.getRejected(ctx.prisma),
+    ),
+    reEnrich: t.procedure
+      .input(z.object({ entryId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        await ReviewService.reEnrich(input.entryId, ctx.prisma);
+        // Fire-and-forget re-enrichment
+        const entry = await ctx.prisma.entry.findUnique({
+          where: { id: input.entryId },
+          include: { capture: true },
+        });
+        if (entry?.capture) {
+          EnrichmentService.enrichCapture(
+            entry.capture.id,
+            ctx.prisma,
+            ctx.llm,
+          ).catch((err: unknown) => {
+            console.error("Re-enrichment failed:", err);
+          });
+        }
       }),
   }),
 });

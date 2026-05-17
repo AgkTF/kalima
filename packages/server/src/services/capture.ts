@@ -25,7 +25,13 @@ export const CaptureService = {
 
   async list(prisma: PrismaClient) {
     return prisma.capture.findMany({
-      where: { sessionId: null },
+      where: {
+        sessionId: null,
+        OR: [{ entry: null }, { entry: { status: "processing" } }],
+      },
+      include: {
+        entry: { select: { status: true } },
+      },
       orderBy: { createdAt: "desc" },
     });
   },
@@ -33,6 +39,9 @@ export const CaptureService = {
   async listSession(sessionId: number, prisma: PrismaClient) {
     return prisma.capture.findMany({
       where: { sessionId },
+      include: {
+        entry: { select: { status: true } },
+      },
       orderBy: { createdAt: "desc" },
     });
   },

@@ -12,7 +12,9 @@ export function CaptureScreen() {
 
   // Queries
   const activeSession = trpc.session.getActive.useQuery();
-  const captures = trpc.capture.list.useQuery();
+  const captures = trpc.capture.list.useQuery(undefined, {
+    refetchInterval: 5_000,
+  });
   const sessionCaptures = trpc.capture.listSession.useQuery(
     { sessionId: activeSession.data?.id ?? 0 },
     { enabled: activeSession.data != null },
