@@ -44,6 +44,77 @@ describe("LLMClient.complete", () => {
     expect(body.model).toBeDefined();
   });
 
+  it("uses premium model when tier is 'premium'", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          choices: [{ message: { content: "premium result" } }],
+        }),
+    });
+
+    const client = new LLMClient({
+      apiKey: "test-key",
+      baseUrl: "https://api.test.com/v1",
+      cheapModel: "gpt-4o-mini",
+      premiumModel: "gpt-4o",
+    });
+
+    await client.complete("complex prompt", { tier: "premium" });
+
+    const body = JSON.parse(
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body,
+    );
+    expect(body.model).toBe("gpt-4o");
+  });
+
+  it("falls back to cheapModel when tier is not specified", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          choices: [{ message: { content: "cheap result" } }],
+        }),
+    });
+
+    const client = new LLMClient({
+      apiKey: "test-key",
+      baseUrl: "https://api.test.com/v1",
+      cheapModel: "gpt-4o-mini",
+    });
+
+    await client.complete("simple prompt");
+
+    const body = JSON.parse(
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body,
+    );
+    expect(body.model).toBe("gpt-4o-mini");
+  });
+
+  it("uses cheapModel when tier is 'cheap'", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          choices: [{ message: { content: "cheap explicit" } }],
+        }),
+    });
+
+    const client = new LLMClient({
+      apiKey: "test-key",
+      baseUrl: "https://api.test.com/v1",
+      cheapModel: "gpt-4o-mini",
+      premiumModel: "gpt-4o",
+    });
+
+    await client.complete("simple prompt", { tier: "cheap" });
+
+    const body = JSON.parse(
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body,
+    );
+    expect(body.model).toBe("gpt-4o-mini");
+  });
+
   it("sends response_format with json_schema when schema provided", async () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
