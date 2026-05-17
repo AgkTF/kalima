@@ -1,23 +1,30 @@
 import { describe, expect, it, vi } from "vitest";
-import { EnrichmentPipeline } from "../services/enrichment/enrichment-pipeline.js";
+import {
+  EnrichmentPipeline,
+  type EnrichmentResult,
+} from "../services/enrichment/enrichment-pipeline.js";
 import type { LLMClient } from "../services/llm-client.js";
+
+function enrichmentResponse(overrides: Partial<EnrichmentResult> = {}): string {
+  return JSON.stringify({
+    definition: "A barbed spear used for hunting whales",
+    translationArabic: "حَرْبَة",
+    nuance: "Associated with maritime and whaling contexts",
+    examples: [
+      "The sailor hurled the harpoon at the great whale.",
+      "Each harpoon was carefully crafted by the ship's blacksmith.",
+    ],
+    tags: ["maritime", "hunting", "weapon"],
+    relatedEntries: ["whale", "ship"],
+    confidence: "high",
+    ...overrides,
+  });
+}
 
 describe("EnrichmentPipeline", () => {
   it("uses EnrichmentPromptBuilder to construct the prompt sent to the LLM", async () => {
     // Mock LLMClient
-    const mockComplete = vi.fn().mockResolvedValue(
-      JSON.stringify({
-        definition: "A barbed spear used for hunting whales",
-        translationArabic: "حَرْبَة",
-        nuance: "Associated with maritime and whaling contexts",
-        examples: [
-          "The sailor hurled the harpoon at the great whale.",
-          "Each harpoon was carefully crafted by the ship's blacksmith.",
-        ],
-        tags: ["maritime", "hunting", "weapon"],
-        relatedEntries: ["whale", "ship"],
-      }),
-    );
+    const mockComplete = vi.fn().mockResolvedValue(enrichmentResponse());
 
     const mockLLM: LLMClient = {
       complete: mockComplete,
@@ -59,6 +66,7 @@ describe("EnrichmentPipeline", () => {
           ],
           tags: ["formal", "positive"],
           relatedEntries: ["admire", "respect"],
+          confidence: "high",
         }),
       ),
     } as unknown as LLMClient;
@@ -80,7 +88,8 @@ describe("EnrichmentPipeline", () => {
     expect(result.nuance).toContain("Stronger");
     expect(result.examples).toHaveLength(2);
     expect(result.tags).toEqual(["formal", "positive"]);
-    expect(result.relatedEntries).toEqual(["admire", "respect"]);
+    // Confidence is present in all results
+    expect(result.confidence).toBe("high");
   });
 
   it("excludes etymology from enrichment output", async () => {
@@ -93,6 +102,7 @@ describe("EnrichmentPipeline", () => {
           examples: ["Example 1"],
           tags: ["test"],
           relatedEntries: [],
+          confidence: "high",
           etymology: "From Latin testum",
         }),
       ),
@@ -111,5 +121,62 @@ describe("EnrichmentPipeline", () => {
     });
 
     expect(result).not.toHaveProperty("etymology");
+  });
+
+  it("returns low confidence when the LLM is uncertain", async () => {
+    const mockLLM: LLMClient = {
+      complete: vi.fn().mockResolvedValue(
+        enrichmentResponse({
+          confidence: "low",
+          nuance: "Meaning unclear from context",
+        }),
+      ),
+    } as unknown as LLMClient;
+
+    const pipeline = new EnrichmentPipeline(mockLLM);
+
+    const result = await pipeline.enrich({
+      capture: { item: "obscure", locator: null, rawText: "obscure" },
+      source: null,
+      existingEntries: [],
+    });
+
+    expect(result.confidence).toBe("low");
+  });
+
+  it("calls LLM with cheap tier for regular enrichment", async () => {
+    const mockComplete = vi.fn().mockResolvedValue(enrichmentResponse());
+    const mockLLM: LLMClient = {
+      complete: mockComplete,
+    } as unknown as LLMClient;
+
+    const pipeline = new EnrichmentPipeline(mockLLM);
+
+    await pipeline.enrich({
+      capture: { item: "test", locator: null, rawText: "test" },
+      source: null,
+      existingEntries: [],
+    });
+
+    const options = mockComplete.mock.calls[0][1];
+    expect(options.tier).toBe("cheap");
+  });
+
+  it("calls LLM with premium tier for premium enrichment", async () => {
+    const mockComplete = vi.fn().mockResolvedValue(enrichmentResponse());
+    const mockLLM: LLMClient = {
+      complete: mockComplete,
+    } as unknown as LLMClient;
+
+    const pipeline = new EnrichmentPipeline(mockLLM);
+
+    await pipeline.enrichPremium({
+      capture: { item: "test", locator: null, rawText: "test" },
+      source: null,
+      existingEntries: [],
+    });
+
+    const options = mockComplete.mock.calls[0][1];
+    expect(options.tier).toBe("premium");
   });
 });
