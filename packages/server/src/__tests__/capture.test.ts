@@ -6,7 +6,7 @@ import type { LLMClient } from "../services/llm-client.js";
 
 describe("capture.create mutation", () => {
   const adapter = new PrismaBetterSqlite3({
-    url: "file:./prisma/dev.db",
+    url: "file:./prisma/test.db",
   });
   const prisma = new PrismaClient({ adapter });
 
@@ -63,7 +63,7 @@ describe("capture.create mutation", () => {
 
 describe("capture.list query", () => {
   const adapter = new PrismaBetterSqlite3({
-    url: "file:./prisma/dev.db",
+    url: "file:./prisma/test.db",
   });
   const prisma = new PrismaClient({ adapter });
 

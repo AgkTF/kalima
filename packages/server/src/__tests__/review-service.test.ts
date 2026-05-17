@@ -5,7 +5,7 @@ import { ReviewService } from "../services/review.js";
 import { SourceService } from "../services/source.js";
 
 describe("ReviewService.badgeCount", () => {
-  const adapter = new PrismaBetterSqlite3({ url: "file:./prisma/dev.db" });
+  const adapter = new PrismaBetterSqlite3({ url: "file:./prisma/test.db" });
   const prisma = new PrismaClient({ adapter });
 
   afterAll(async () => {
@@ -87,7 +87,7 @@ describe("ReviewService.badgeCount", () => {
 });
 
 describe("ReviewService.approve", () => {
-  const adapter = new PrismaBetterSqlite3({ url: "file:./prisma/dev.db" });
+  const adapter = new PrismaBetterSqlite3({ url: "file:./prisma/test.db" });
   const prisma = new PrismaClient({ adapter });
 
   afterAll(async () => {
@@ -124,7 +124,7 @@ describe("ReviewService.approve", () => {
 });
 
 describe("ReviewService.approveAll", () => {
-  const adapter = new PrismaBetterSqlite3({ url: "file:./prisma/dev.db" });
+  const adapter = new PrismaBetterSqlite3({ url: "file:./prisma/test.db" });
   const prisma = new PrismaClient({ adapter });
 
   afterAll(async () => {
@@ -200,7 +200,7 @@ describe("ReviewService.approveAll", () => {
 });
 
 describe("ReviewService.reject", () => {
-  const adapter = new PrismaBetterSqlite3({ url: "file:./prisma/dev.db" });
+  const adapter = new PrismaBetterSqlite3({ url: "file:./prisma/test.db" });
   const prisma = new PrismaClient({ adapter });
 
   afterAll(async () => {
@@ -274,7 +274,7 @@ describe("ReviewService.reject", () => {
 });
 
 describe("ReviewService.getPending", () => {
-  const adapter = new PrismaBetterSqlite3({ url: "file:./prisma/dev.db" });
+  const adapter = new PrismaBetterSqlite3({ url: "file:./prisma/test.db" });
   const prisma = new PrismaClient({ adapter });
 
   afterAll(async () => {
@@ -422,7 +422,7 @@ describe("ReviewService.getPending", () => {
 });
 
 describe("ReviewService.getRejected", () => {
-  const adapter = new PrismaBetterSqlite3({ url: "file:./prisma/dev.db" });
+  const adapter = new PrismaBetterSqlite3({ url: "file:./prisma/test.db" });
   const prisma = new PrismaClient({ adapter });
 
   afterAll(async () => {
@@ -485,7 +485,7 @@ describe("ReviewService.getRejected", () => {
 });
 
 describe("ReviewService.reEnrich", () => {
-  const adapter = new PrismaBetterSqlite3({ url: "file:./prisma/dev.db" });
+  const adapter = new PrismaBetterSqlite3({ url: "file:./prisma/test.db" });
   const prisma = new PrismaClient({ adapter });
 
   afterAll(async () => {

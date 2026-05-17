@@ -8,7 +8,7 @@ import { SourceService } from "../services/source.js";
 
 describe("EnrichmentService.enrichSessionCaptures", () => {
   const adapter = new PrismaBetterSqlite3({
-    url: "file:./prisma/dev.db",
+    url: "file:./prisma/test.db",
   });
   const prisma = new PrismaClient({ adapter });
 
@@ -164,7 +164,7 @@ describe("EnrichmentService.enrichSessionCaptures", () => {
 
 describe("enrichment tRPC endpoints", () => {
   const adapter = new PrismaBetterSqlite3({
-    url: "file:./prisma/dev.db",
+    url: "file:./prisma/test.db",
   });
   const prisma = new PrismaClient({ adapter });
 

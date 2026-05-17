@@ -4,7 +4,7 @@ import { PrismaClient } from "../generated/prisma/client.js";
 
 describe("Prisma + SQLite connectivity", () => {
   const adapter = new PrismaBetterSqlite3({
-    url: "file:./prisma/dev.db",
+    url: "file:./prisma/test.db",
   });
   const prisma = new PrismaClient({ adapter });
 
