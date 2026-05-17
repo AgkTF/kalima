@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { BottomTabBar } from "./components/BottomTabBar";
 import { CaptureScreen } from "./screens/CaptureScreen/CaptureScreen";
-import { ReviewScreen } from "./screens/ReviewScreen";
+import { ReviewScreen } from "./screens/ReviewScreen/ReviewScreen";
 import { WordBankScreen } from "./screens/WordBankScreen";
 
 export function App() {
