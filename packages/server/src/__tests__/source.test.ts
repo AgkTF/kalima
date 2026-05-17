@@ -5,7 +5,7 @@ import { appRouter } from "../router.js";
 
 describe("source.create mutation", () => {
   const adapter = new PrismaBetterSqlite3({
-    url: "file:./prisma/dev.db",
+    url: "file:./prisma/test.db",
   });
   const prisma = new PrismaClient({ adapter });
 
@@ -77,7 +77,7 @@ describe("source.create mutation", () => {
 
 describe("source.list query", () => {
   const adapter = new PrismaBetterSqlite3({
-    url: "file:./prisma/dev.db",
+    url: "file:./prisma/test.db",
   });
   const prisma = new PrismaClient({ adapter });
 

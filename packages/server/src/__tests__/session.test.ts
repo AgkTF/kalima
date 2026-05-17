@@ -6,7 +6,7 @@ import type { LLMClient } from "../services/llm-client.js";
 
 describe("session.open mutation", () => {
   const adapter = new PrismaBetterSqlite3({
-    url: "file:./prisma/dev.db",
+    url: "file:./prisma/test.db",
   });
   const prisma = new PrismaClient({ adapter });
 
@@ -88,7 +88,7 @@ describe("session.open mutation", () => {
 
 describe("session.close mutation", () => {
   const adapter = new PrismaBetterSqlite3({
-    url: "file:./prisma/dev.db",
+    url: "file:./prisma/test.db",
   });
   const prisma = new PrismaClient({ adapter });
 
@@ -141,7 +141,7 @@ describe("session.close mutation", () => {
 
 describe("session.getActive query", () => {
   const adapter = new PrismaBetterSqlite3({
-    url: "file:./prisma/dev.db",
+    url: "file:./prisma/test.db",
   });
   const prisma = new PrismaClient({ adapter });
 
@@ -194,7 +194,7 @@ describe("session.getActive query", () => {
 
 describe("captures scoped to a session", () => {
   const adapter = new PrismaBetterSqlite3({
-    url: "file:./prisma/dev.db",
+    url: "file:./prisma/test.db",
   });
   const prisma = new PrismaClient({ adapter });
 
