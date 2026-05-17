@@ -30,15 +30,14 @@ export function EntryCard({
       <div className="mb-2 rounded-button border border-divider bg-surface p-3">
         <div className="flex items-center gap-2.5 font-display text-sm font-semibold text-ink/80">
           <span className="relative flex h-2 w-2 shrink-0">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-dim opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-dim" />
+            <span
+              className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${isFlagged ? "bg-amber-400" : "bg-dim"}`}
+            />
+            <span
+              className={`relative inline-flex h-2 w-2 rounded-full ${isFlagged ? "bg-amber-500" : "bg-dim"}`}
+            />
           </span>
           {entry.capture.item}
-          {isFlagged && (
-            <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-600">
-              premium
-            </span>
-          )}
         </div>
       </div>
     );
