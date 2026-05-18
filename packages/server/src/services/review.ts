@@ -40,7 +40,7 @@ export const ReviewService = {
     return prisma.entry.count({
       where: {
         status: {
-          in: ["processing", "flagged", "pending_review", "auto_approved"],
+          in: ["processing", "pending_review"],
         },
       },
     });
@@ -76,19 +76,11 @@ export const ReviewService = {
     });
   },
 
-  async approveAllAutoApproved(prisma: PrismaClient): Promise<number> {
-    const result = await prisma.entry.updateMany({
-      where: { status: "auto_approved" },
-      data: { status: "approved" },
-    });
-    return result.count;
-  },
-
   async getPending(prisma: PrismaClient): Promise<PendingReview> {
     const entries = await prisma.entry.findMany({
       where: {
         status: {
-          in: ["processing", "flagged", "pending_review", "auto_approved"],
+          in: ["processing", "pending_review"],
         },
       },
       include: {

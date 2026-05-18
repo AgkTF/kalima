@@ -10,7 +10,7 @@ Secondary pains are **Capture** friction (breaking reading momentum to record a 
 
 ## Core insight
 
-The enrichment step is perfectly suited for an LLM agent. The system should capture raw input quickly, enrich in the background, and present results for fast approval. The agent should **flag uncertainty instead of guessing** — high-confidence enrichments auto-approve; low-confidence ones surface for human review.
+The enrichment step is perfectly suited for an LLM agent. The system should capture raw input quickly, enrich in the background, and present results for fast approval. All enriched entries go through human **Review** before entering the Word Bank — the user retains final say on every entry.
 
 ## User & domain
 
@@ -59,25 +59,20 @@ For **books**: the user may paste chapter text when starting a session, or skip 
 
 **Decision: Source Context is optional, not required.** 70% quality without it is acceptable as a starting point. The re-enrichment path is a first-class feature.
 
-### 4. Enrichment pipeline: LLM-powered, tiered, confidence-flagged
+### 4. Enrichment pipeline: LLM-powered, with optional premium tier
 
 The enrichment agent receives: **Item** + **Locator** + **Source** metadata + **Source Context** (if available) + **existing Word Bank entries** (for connections).
 
 It produces: **Definition**, **Translation** (Arabic), **Nuance** note, **Example** sentences, related **Entries**, and tags.
 
-**Tiered model strategy:**
+**Model strategy:** All enrichments use a fast/cheap model by default (e.g., Claude Haiku, GPT-4o-mini). A premium tier (e.g., Claude Sonnet, GPT-4o) is available in the codebase for future use (e.g., user-triggered re-enrichment), but is not auto-triggered in the current flow.
 
-| Tier | Model class | When used | Cost |
-|---|---|---|---|
-| First pass | Fast/cheap (e.g., Claude Haiku, GPT-4o-mini) | All **Captures** | Negligible |
-| Second pass | Premium (e.g., Claude Sonnet, GPT-4o) | **Flagged** enrichments only | Modest |
-
-**Self-assessment mechanism:** The agent evaluates its own **Confidence** in each enrichment. High confidence → **Auto-approve**. Low confidence → **Flag** for human **Review** or premium-tier upgrade.
+**Decision: No auto-approve based on LLM self-assessment.** The agent's self-assessed confidence was found to add friction rather than value — the user reviews every entry anyway, and the LLM's judgment doesn't reliably predict whether the user will agree. All enriched entries enter Review as `pending_review` with full expandable detail.
 
 **Capture parsing vs. enrichment — two distinct LLM calls per Capture:**
 
 1. **Parse** (at capture time, fast/cheap model) — extracts Item, Locator, source hints from raw input. Lightweight, near-real-time. Displayed immediately in the capture list for user verification.
-2. **Enrich** (after session close, tiered models) — produces Definition, Translation, Nuance, Examples, Related Entries, Tags. Heavier, runs in background.
+2. **Enrich** (after session close) — produces Definition, Translation, Nuance, Examples, Related Entries, Tags. Heavier, runs in background.
 
 The parse call is cheap and high-value: the user sees "serendipity · p.45" instead of the raw "serendipity chapter 12 page 45", enabling scan-verification at capture time.
 
@@ -91,16 +86,15 @@ The enrichment prompt is the heart of the system. It must be **configurable/temp
 
 **Decision: Per-session override with a global default.** Most sessions use the global default template. When starting a session, the user can optionally customize the prompt for that context (e.g., technical precision for a textbook, literary register for a novel). The per-session override is pre-filled with the global default. The global default is accessible from the Capture screen.
 
-### 6. Review flow: Light for most, deep for flagged
+### 6. Review flow: Every entry gets full attention
 
 **Review is an inbox** — it only shows pending decisions. Approved entries move to the Word Bank and leave Review.
 
-Entries appear **grouped by Session** with Source headers. **One-offs** have their own group. Two-level batch approval: "Approve all auto-approved" across all sessions, and per-session approval.
+Entries appear **grouped by Session** with Source headers. **One-offs** have their own group. Per-session "Approve all" batch button available. No global auto-approve — the user decides on every entry.
 
-- **Light review**: Skim a list of newly enriched entries, quick-approve most (~5 seconds each). Auto-approved entries show Item, Definition, and Translation — enough to verify at a glance.
-- **Deeper review**: Only for **Flagged** items where the agent was uncertain or ambiguous. Flagged entries open in a detail view within Review. On rejection, each enrichment field can be individually flagged as wrong, with an optional free-form note. The rejected entry returns to pending for re-enrichment, with the flagged fields and note as additional context for the agent.
-
-The agent surfaces uncertainty rather than silently guessing wrong.
+- **Default view**: Each entry shows Item, Definition, Translation, and Tags. The user can approve at a glance (~5 seconds) if the definition and translation feel right.
+- **Expand for detail**: If the definition or translation raises doubt, the user expands the card to inspect Nuance, Examples, and Related Entries before deciding.
+- **Rejection**: On rejection, each enrichment field can be individually flagged as wrong, with an optional free-form note. The rejected entry returns to pending for re-enrichment, with the flagged fields and note as additional context for the agent.
 
 A badge on the Review tab shows the count of pending entries, so the user always knows when Review needs attention.
 
@@ -113,12 +107,12 @@ A badge on the Review tab shows the count of pending entries, so the user always
 | Database | SQLite + Prisma + FTS5 | Zero-ops deployment, Prisma for type-safe queries, FTS5 for full-text search |
 | Voice | OS-level dictation into text input | No audio pipeline needed — works everywhere, zero browser compatibility issues |
 | Capture parsing | LLM on server | Handles natural variations in how users describe items and locators |
-| Enrichment | LLM API calls (tiered) | Cheap model for first pass, premium for flagged items |
+| Enrichment | LLM API calls | Fast/cheap model for all enrichment; premium tier available for future use |
 | Hosting | Linux home server | Personal tool, always accessible |
 
 ### Key architecture principle: Transport-agnostic service layer
 
-The enrichment pipeline, voice parsing, confidence assessment, and re-enrichment logic live in a **service layer** independent of the tRPC routes. This means:
+The enrichment pipeline, voice parsing, and re-enrichment logic live in a **service layer** independent of the tRPC routes. This means:
 
 - Testable in isolation (mock LLM responses)
 - Callable from any trigger (API route, background job, CLI)
@@ -129,7 +123,7 @@ The enrichment pipeline, voice parsing, confidence assessment, and re-enrichment
 │ Transport (tRPC)      │  ← Thin wiring
 ├──────────────────────┤
 │ Service layer         │  ← enrichItem(), parseCapture(),
-│ (the brain)           │     assessConfidence(), reEnrich()
+│ (the brain)           │     reEnrich()
 ├──────────────────────┤
 │ External APIs         │  ← LLM calls
 ├──────────────────────┤
@@ -181,7 +175,7 @@ Three primary tabs: **Capture**, **Review**, **Word Bank**. No separate Settings
 
 The capture input is never gated behind session setup. **Session management** (open/close, attach Source Context) is an inline expansion on the Capture screen — never a separate page.
 
-**Review** — enriched entries awaiting approval, grouped by **Session** with Source headers. **One-offs** have their own group. Two-level batch approval: "Approve all auto-approved" (global) and per-session. A badge on the tab shows pending entry count.
+**Review** — enriched entries awaiting approval, grouped by **Session** with Source headers. **One-offs** have their own group. Per-session "Approve all" batch button. A badge on the tab shows pending entry count.
 
 **Word Bank** — search-first with recent entries shown by default. Full-text search across Items, Sources, and Tags (FTS5). No separate browse or filter screens. Entry detail is full-screen navigation with a back button.
 

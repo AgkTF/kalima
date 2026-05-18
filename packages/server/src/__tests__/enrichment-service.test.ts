@@ -71,7 +71,7 @@ describe("EnrichmentService.enrichSessionCaptures", () => {
 
     expect(entries).toHaveLength(2);
     for (const entry of entries) {
-      expect(entry.status).toBe("auto_approved");
+      expect(entry.status).toBe("pending_review");
       expect(entry.definition).toBeTruthy();
       expect(entry.translationArabic).toBeTruthy();
       expect(entry.nuance).toBeTruthy();
@@ -164,7 +164,7 @@ describe("EnrichmentService.enrichSessionCaptures", () => {
   });
 });
 
-describe("EnrichmentService confidence-based routing", () => {
+describe("EnrichmentService pending_review routing", () => {
   const adapter = new PrismaBetterSqlite3({
     url: "file:./prisma/test.db",
   });
@@ -174,7 +174,7 @@ describe("EnrichmentService confidence-based routing", () => {
     await prisma.$disconnect();
   });
 
-  it("sets auto_approved status when enrichment returns high confidence", async () => {
+  it("sets pending_review status regardless of confidence level", async () => {
     const mockLLM: LLMClient = {
       complete: vi.fn().mockResolvedValue(
         JSON.stringify({
@@ -211,7 +211,7 @@ describe("EnrichmentService confidence-based routing", () => {
     const entry = await prisma.entry.findUnique({
       where: { captureId: capture.id },
     });
-    expect(entry?.status).toBe("auto_approved");
+    expect(entry?.status).toBe("pending_review");
     expect(entry?.confidence).toBe("high");
 
     await prisma.entry.deleteMany();
@@ -222,32 +222,18 @@ describe("EnrichmentService confidence-based routing", () => {
     });
   });
 
-  it("sets flagged status when enrichment returns low confidence", async () => {
-    const mockComplete = vi
-      .fn()
-      .mockResolvedValueOnce(
-        JSON.stringify({
-          definition: "A test definition",
-          translationArabic: "اختبار",
-          nuance: "Test nuance",
-          examples: ["Example 1", "Example 2"],
-          tags: ["test"],
-          relatedEntries: [],
-          confidence: "low",
-        }),
-      )
-      // Premium pass also returns low (entry stays pending_review with low confidence)
-      .mockResolvedValueOnce(
-        JSON.stringify({
-          definition: "A test definition",
-          translationArabic: "اختبار",
-          nuance: "Test nuance",
-          examples: ["Example 1", "Example 2"],
-          tags: ["test"],
-          relatedEntries: [],
-          confidence: "low",
-        }),
-      );
+  it("sets pending_review status even when enrichment returns low confidence", async () => {
+    const mockComplete = vi.fn().mockResolvedValueOnce(
+      JSON.stringify({
+        definition: "A test definition",
+        translationArabic: "اختبار",
+        nuance: "Test nuance",
+        examples: ["Example 1", "Example 2"],
+        tags: ["test"],
+        relatedEntries: [],
+        confidence: "low",
+      }),
+    );
 
     const mockLLM: LLMClient = {
       complete: mockComplete,
@@ -286,7 +272,7 @@ describe("EnrichmentService confidence-based routing", () => {
     });
   });
 
-  it("routes mixed-confidence captures correctly within a single session", async () => {
+  it("writes all captures as pending_review regardless of confidence mix", async () => {
     // Mock that returns high for first call, low for second
     const mockComplete = vi
       .fn()
@@ -351,9 +337,9 @@ describe("EnrichmentService confidence-based routing", () => {
       where: { captureId: c2.id },
     });
 
-    expect(entry1?.status).toBe("auto_approved");
+    expect(entry1?.status).toBe("pending_review");
     expect(entry1?.confidence).toBe("high");
-    expect(entry2?.status).toBe("flagged");
+    expect(entry2?.status).toBe("pending_review");
     expect(entry2?.confidence).toBe("low");
 
     await prisma.entry.deleteMany();
@@ -361,81 +347,6 @@ describe("EnrichmentService confidence-based routing", () => {
     await prisma.session.deleteMany();
     await prisma.source.deleteMany({
       where: { name: "Mixed Confidence Book" },
-    });
-  });
-
-  it("runs premium second pass for flagged entries, upgrading to pending_review", async () => {
-    const mockComplete = vi
-      .fn()
-      // First call: cheap enrichment returns low confidence
-      .mockResolvedValueOnce(
-        JSON.stringify({
-          definition: "Uncertain cheap",
-          translationArabic: "غير واضح",
-          nuance: "Could not determine",
-          examples: ["Example"],
-          tags: ["uncertain"],
-          relatedEntries: [],
-          confidence: "low",
-        }),
-      )
-      // Second call: premium enrichment returns high confidence with better data
-      .mockResolvedValueOnce(
-        JSON.stringify({
-          definition: "Clear premium definition",
-          translationArabic: "واضح",
-          nuance: "Now determined with high confidence",
-          examples: ["Better example 1", "Better example 2"],
-          tags: ["premium", "clear"],
-          relatedEntries: [],
-          confidence: "high",
-        }),
-      );
-
-    const mockLLM: LLMClient = {
-      complete: mockComplete,
-    } as unknown as LLMClient;
-
-    const source = await SourceService.create(
-      "Premium Pass Book",
-      "book",
-      prisma,
-    );
-    const session = await prisma.session.create({
-      data: { sourceId: source.id },
-    });
-    const capture = await prisma.capture.create({
-      data: {
-        rawText: "premium-target",
-        item: "premium-target",
-        sessionId: session.id,
-      },
-    });
-
-    await EnrichmentService.createPlaceholderEntries(session.id, prisma);
-    await EnrichmentService.enrichSessionCaptures(session.id, prisma, mockLLM);
-
-    const entry = await prisma.entry.findUnique({
-      where: { captureId: capture.id },
-    });
-
-    // After premium pass, entry should be pending_review with premium-enriched data
-    expect(entry?.status).toBe("pending_review");
-    expect(entry?.definition).toBe("Clear premium definition");
-    expect(entry?.translationArabic).toBe("واضح");
-    expect(entry?.confidence).toBe("high");
-
-    // Verify both cheap and premium tiers were called
-    const calls = mockComplete.mock.calls;
-    expect(calls).toHaveLength(2);
-    expect(calls[0][1].tier).toBe("cheap");
-    expect(calls[1][1].tier).toBe("premium");
-
-    await prisma.entry.deleteMany();
-    await prisma.capture.deleteMany();
-    await prisma.session.deleteMany();
-    await prisma.source.deleteMany({
-      where: { name: "Premium Pass Book" },
     });
   });
 });

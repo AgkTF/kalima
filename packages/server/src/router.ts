@@ -173,10 +173,6 @@ export const appRouter = t.router({
           });
         }
       }),
-    approveAllAutoApproved: t.procedure.mutation(async ({ ctx }) => {
-      const count = await ReviewService.approveAllAutoApproved(ctx.prisma);
-      return { count };
-    }),
   }),
 });
 

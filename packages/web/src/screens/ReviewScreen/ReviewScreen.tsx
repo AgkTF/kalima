@@ -28,14 +28,6 @@ export function ReviewScreen() {
     },
   });
 
-  const approveAllAutoApproved = trpc.review.approveAllAutoApproved.useMutation(
-    {
-      onSuccess: () => {
-        utils.review.getPending.invalidate();
-      },
-    },
-  );
-
   const reEnrich = trpc.review.reEnrich.useMutation({
     onSuccess: () => {
       utils.review.getPending.invalidate();
@@ -47,10 +39,6 @@ export function ReviewScreen() {
     ...(pending.data?.sessionGroups ?? []).flatMap((g) => g.entries),
     ...(pending.data?.oneOffs ?? []),
   ];
-
-  const autoApprovedCount = allEntries.filter(
-    (e) => e.status === "auto_approved",
-  ).length;
 
   if (pending.isLoading) {
     return (
@@ -80,19 +68,6 @@ export function ReviewScreen() {
       </header>
 
       <div className="flex-1 overflow-y-auto px-5">
-        {/* Global "Approve all auto-approved" batch button */}
-        {autoApprovedCount > 0 && (
-          <div className="mb-4">
-            <button
-              type="button"
-              onClick={() => approveAllAutoApproved.mutate()}
-              disabled={approveAllAutoApproved.isPending}
-              className="w-full rounded-button border border-accent px-3 py-2 text-sm font-medium text-accent cursor-pointer hover:bg-accent hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Approve all auto-approved ({autoApprovedCount})
-            </button>
-          </div>
-        )}
         {/* Inline by design (2 uses). Extract at 3+ uses. See ADR 0006. */}
         {pending.data?.sessionGroups.map((group) => (
           <section key={group.sessionId} className="mb-5">
