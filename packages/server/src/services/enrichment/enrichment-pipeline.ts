@@ -48,7 +48,7 @@ const ENRICHMENT_SCHEMA = {
 
 const SYSTEM_PROMPT = `You are a word bank enrichment agent. For the given item, produce:
 - definition: a context-appropriate meaning
-- translationArabic: the Arabic equivalent
+- translationArabic: the Arabic equivalent in Arabic script only (no transliteration, no pronunciation guides)
 - nuance: a note on subtle shades of meaning
 - examples: 2-3 sentences demonstrating usage
 - tags: relevant categories
