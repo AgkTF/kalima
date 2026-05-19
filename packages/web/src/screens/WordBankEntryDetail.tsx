@@ -3,6 +3,7 @@ import { ArrowLeftIcon } from "@heroicons/react/24/solid";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { trpc } from "../trpc";
+import { parseJsonField } from "./ReviewScreen/utils";
 
 type EditableField = "definition" | "translationArabic" | "nuance" | "examples";
 
@@ -12,6 +13,26 @@ const FIELD_LABELS: Record<EditableField, string> = {
   nuance: "Nuance",
   examples: "Examples",
 };
+
+function ExamplesDisplay({ value }: { value: string }) {
+  const parsed = parseJsonField(value);
+
+  if (parsed.length === 0) {
+    return (
+      <div className="px-2 py-1.5">
+        <span className="italic text-dim text-sm">Empty</span>
+      </div>
+    );
+  }
+
+  return (
+    <ul className="list-disc list-inside px-2 py-1.5 text-sm text-ink leading-relaxed select-text text-left">
+      {parsed.map((ex: string) => (
+        <li key={ex}>{ex}</li>
+      ))}
+    </ul>
+  );
+}
 
 export function WordBankEntryDetail() {
   const { entryId } = useParams<{ entryId: string }>();
@@ -224,13 +245,19 @@ export function WordBankEntryDetail() {
                         : "hover:bg-surface"
                     }`}
                   >
-                    <p
-                      className={`px-2 py-1.5 text-sm text-ink leading-relaxed select-text ${
-                        isArabic ? "font-arabic text-end" : "text-left"
-                      }`}
-                    >
-                      {value || <span className="italic text-dim">Empty</span>}
-                    </p>
+                    {field === "examples" ? (
+                      <ExamplesDisplay value={value} />
+                    ) : (
+                      <p
+                        className={`px-2 py-1.5 text-sm text-ink leading-relaxed select-text ${
+                          isArabic ? "font-arabic text-end" : "text-left"
+                        }`}
+                      >
+                        {value || (
+                          <span className="italic text-dim">Empty</span>
+                        )}
+                      </p>
+                    )}
                   </button>
                 )}
 
