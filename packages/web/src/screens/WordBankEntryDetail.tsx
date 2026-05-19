@@ -13,55 +13,31 @@ const FIELD_LABELS: Record<EditableField, string> = {
   examples: "Examples",
 };
 
-function EditTextarea({
+function FieldTextarea({
   value,
-  onSave,
-  onCancel,
+  onChange,
   isArabic,
+  visible,
 }: {
   value: string;
-  onSave: (v: string) => void;
-  onCancel: () => void;
+  onChange: (v: string) => void;
   isArabic?: boolean;
+  visible: boolean;
 }) {
-  const [text, setText] = useState(value);
-
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      onSave(text.trim());
-    }
-    if (e.key === "Escape") onCancel();
-  }
-
   return (
-    <div className="flex flex-col gap-2">
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={handleKeyDown}
-        className={`w-full rounded-button border border-accent bg-surface px-3 py-2 text-sm text-ink outline-none resize-none ${
-          isArabic ? "font-arabic" : ""
-        }`}
-        rows={Math.min(text.split("\n").length + 1, 4)}
-      />
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => onSave(text.trim())}
-          className="rounded-button bg-accent px-3 py-1 text-xs font-medium text-white hover:opacity-90 cursor-pointer"
-        >
-          Save
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-button border border-divider px-3 py-1 text-xs text-dim hover:text-ink cursor-pointer"
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
+    <textarea
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onKeyDown={(ev) => {
+        if (ev.key === "Enter" && !ev.shiftKey) {
+          ev.preventDefault();
+        }
+      }}
+      className={`col-start-1 row-start-1 w-full rounded-button border border-accent bg-surface px-3 py-2 text-sm text-ink outline-none resize-none transition-opacity duration-150 ${
+        visible ? "opacity-100" : "opacity-0 pointer-events-none"
+      } ${isArabic ? "font-arabic" : ""}`}
+      rows={Math.min(value.split("\n").length + 1, 4)}
+    />
   );
 }
 
@@ -102,6 +78,7 @@ export function WordBankEntryDetail() {
   });
 
   const [newTag, setNewTag] = useState("");
+  const [editText, setEditText] = useState("");
 
   // Click outside deselects
   useEffect(() => {
@@ -218,6 +195,8 @@ export function WordBankEntryDetail() {
             const isSelected = selectedField === field;
             const isArabic = field === "translationArabic";
 
+            // Track textarea text separately so it updates during editing
+            // We use a keyed child to reset state when field changes
             return (
               <div key={field} className="flex flex-col gap-1">
                 {/* Label row: field name + edit button on selection */}
@@ -229,6 +208,7 @@ export function WordBankEntryDetail() {
                     type="button"
                     onClick={(ev) => {
                       ev.stopPropagation();
+                      setEditText(value);
                       setEditing(field);
                     }}
                     className={`rounded-button bg-accent px-2.5 py-0.5 text-xs font-medium text-white cursor-pointer transition-all duration-150 ${
@@ -241,45 +221,68 @@ export function WordBankEntryDetail() {
                   </button>
                 </div>
 
-                {isEditing ? (
-                  <EditTextarea
-                    value={value}
-                    isArabic={isArabic}
-                    onSave={(v) => {
-                      handleSaveField(field, v);
-                      setEditing(null);
-                      setSelectedField(null);
-                    }}
-                    onCancel={() => {
-                      setEditing(null);
-                      setSelectedField(null);
-                    }}
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => handleFieldClick(field)}
-                    onKeyDown={(ev) => {
-                      if (ev.key === "Escape") setSelectedField(null);
-                    }}
-                    className={`w-full text-left rounded-button transition-colors ${
-                      isSelected
-                        ? "bg-accent-subtle ring-1 ring-accent/20"
-                        : "hover:bg-surface"
-                    }`}
-                  >
-                    <div className="px-2 py-1.5">
-                      <p
-                        className={`text-sm text-ink leading-relaxed select-text ${
-                          isArabic ? "font-arabic text-end" : ""
-                        }`}
-                      >
-                        {value || (
-                          <span className="italic text-dim">Empty</span>
-                        )}
-                      </p>
-                    </div>
-                  </button>
+                {/* Selectable area: click to select, edit button appears */}
+                <button
+                  type="button"
+                  onClick={() => handleFieldClick(field)}
+                  onKeyDown={(ev) => {
+                    if (ev.key === "Escape") setSelectedField(null);
+                  }}
+                  disabled={isEditing}
+                  className={`w-full rounded-button transition-colors ${
+                    isEditing ? "" : "cursor-pointer"
+                  } ${
+                    isSelected
+                      ? "bg-accent-subtle ring-1 ring-accent/20"
+                      : "hover:bg-surface"
+                  }`}
+                >
+                  {/* Grid stacking: both view text and textarea occupy the same cell.
+                      The cell height = max(view text, textarea) — no layout jump. */}
+                  <div className="grid px-2 py-1.5">
+                    {/* View text — fades out when editing */}
+                    <p
+                      className={`col-start-1 row-start-1 text-sm text-ink leading-relaxed select-text transition-opacity duration-150 ${
+                        isArabic ? "font-arabic text-end" : "text-left"
+                      } ${isEditing ? "opacity-0" : "opacity-100"}`}
+                    >
+                      {value || <span className="italic text-dim">Empty</span>}
+                    </p>
+                    {/* Textarea — always in grid cell for height stability */}
+                    <FieldTextarea
+                      value={editText}
+                      onChange={setEditText}
+                      isArabic={isArabic}
+                      visible={isEditing}
+                    />
+                  </div>
+                </button>
+
+                {/* Save/Cancel buttons — only shown when editing this field */}
+                {isEditing && (
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleSaveField(field, editText);
+                        setEditing(null);
+                        setSelectedField(null);
+                      }}
+                      className="rounded-button bg-accent px-3 py-1 text-xs font-medium text-white hover:opacity-90 cursor-pointer"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditing(null);
+                        setSelectedField(null);
+                      }}
+                      className="rounded-button border border-divider px-3 py-1 text-xs text-dim hover:text-ink cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 )}
               </div>
             );
