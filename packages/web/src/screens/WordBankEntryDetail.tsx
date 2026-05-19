@@ -13,34 +13,6 @@ const FIELD_LABELS: Record<EditableField, string> = {
   examples: "Examples",
 };
 
-function FieldTextarea({
-  value,
-  onChange,
-  isArabic,
-  visible,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  isArabic?: boolean;
-  visible: boolean;
-}) {
-  return (
-    <textarea
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      onKeyDown={(ev) => {
-        if (ev.key === "Enter" && !ev.shiftKey) {
-          ev.preventDefault();
-        }
-      }}
-      className={`col-start-1 row-start-1 w-full rounded-button border border-accent bg-surface px-3 py-2 text-sm text-ink outline-none resize-none transition-opacity duration-150 ${
-        visible ? "opacity-100" : "opacity-0 pointer-events-none"
-      } ${isArabic ? "font-arabic" : ""}`}
-      rows={Math.min(value.split("\n").length + 1, 4)}
-    />
-  );
-}
-
 export function WordBankEntryDetail() {
   const { entryId } = useParams<{ entryId: string }>();
   const navigate = useNavigate();
@@ -237,25 +209,31 @@ export function WordBankEntryDetail() {
                       : "hover:bg-surface"
                   }`}
                 >
-                  {/* Grid stacking: both view text and textarea occupy the same cell.
-                      The cell height = max(view text, textarea) — no layout jump. */}
-                  <div className="grid px-2 py-1.5">
-                    {/* View text — fades out when editing */}
-                    <p
-                      className={`col-start-1 row-start-1 text-sm text-ink leading-relaxed select-text transition-opacity duration-150 ${
+                  {isEditing ? (
+                    <textarea
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      className={`w-full rounded-button border border-accent bg-surface px-2 py-1.5 text-sm text-ink leading-relaxed outline-none resize-none ${
                         isArabic ? "font-arabic text-end" : "text-left"
-                      } ${isEditing ? "opacity-0" : "opacity-100"}`}
+                      }`}
+                      rows={Math.max(
+                        2,
+                        Math.min(
+                          Math.ceil(value.length / 50) +
+                            (value.match(/\n/g) || []).length,
+                          6,
+                        ),
+                      )}
+                    />
+                  ) : (
+                    <p
+                      className={`px-2 py-1.5 text-sm text-ink leading-relaxed select-text ${
+                        isArabic ? "font-arabic text-end" : "text-left"
+                      }`}
                     >
                       {value || <span className="italic text-dim">Empty</span>}
                     </p>
-                    {/* Textarea — always in grid cell for height stability */}
-                    <FieldTextarea
-                      value={editText}
-                      onChange={setEditText}
-                      isArabic={isArabic}
-                      visible={isEditing}
-                    />
-                  </div>
+                  )}
                 </button>
 
                 {/* Save/Cancel buttons — only shown when editing this field */}
