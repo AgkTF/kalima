@@ -6,6 +6,7 @@ import { EnrichmentService } from "./services/enrichment/enrichment-service.js";
 import { ReviewService } from "./services/review.js";
 import { SessionService } from "./services/session.js";
 import { SourceService } from "./services/source.js";
+import { WordBankService } from "./services/word-bank.js";
 
 export interface AppContext {
   prisma: import("./generated/prisma/client.js").PrismaClient;
@@ -173,6 +174,50 @@ export const appRouter = t.router({
             console.error("Re-enrichment failed:", err);
           });
         }
+      }),
+  }),
+  wordBank: t.router({
+    search: t.procedure
+      .input(z.object({ query: z.string().min(1) }))
+      .query(async ({ input, ctx }) =>
+        WordBankService.search(input.query, ctx.prisma, ctx.fts),
+      ),
+    getRecent: t.procedure.query(async ({ ctx }) =>
+      WordBankService.getRecent(ctx.prisma),
+    ),
+    getEntry: t.procedure
+      .input(z.object({ entryId: z.number() }))
+      .query(async ({ input, ctx }) =>
+        WordBankService.getEntry(input.entryId, ctx.prisma),
+      ),
+    addTag: t.procedure
+      .input(z.object({ entryId: z.number(), tag: z.string().min(1) }))
+      .mutation(async ({ input, ctx }) =>
+        WordBankService.addTag(input.entryId, input.tag, ctx.prisma),
+      ),
+    removeTag: t.procedure
+      .input(z.object({ entryId: z.number(), tag: z.string().min(1) }))
+      .mutation(async ({ input, ctx }) =>
+        WordBankService.removeTag(input.entryId, input.tag, ctx.prisma),
+      ),
+    updateField: t.procedure
+      .input(
+        z.object({
+          entryId: z.number(),
+          field: z.enum([
+            "definition",
+            "translationArabic",
+            "nuance",
+            "examples",
+          ]),
+          value: z.string(),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        await ctx.prisma.entry.update({
+          where: { id: input.entryId },
+          data: { [input.field]: input.value },
+        });
       }),
   }),
 });
