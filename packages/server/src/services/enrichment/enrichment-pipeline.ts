@@ -75,17 +75,9 @@ export class EnrichmentPipeline {
     this.promptBuilder = new EnrichmentPromptBuilder();
   }
 
-  async enrich(params: EnrichParams): Promise<EnrichmentResult> {
-    return this.runEnrichment(params, "cheap");
-  }
-
-  async enrichPremium(params: EnrichParams): Promise<EnrichmentResult> {
-    return this.runEnrichment(params, "premium");
-  }
-
-  private async runEnrichment(
+  async enrich(
     params: EnrichParams,
-    tier: "cheap" | "premium",
+    tier: "cheap" | "premium" = "cheap",
   ): Promise<EnrichmentResult> {
     const prompt = this.promptBuilder.build({
       item: params.capture.item,

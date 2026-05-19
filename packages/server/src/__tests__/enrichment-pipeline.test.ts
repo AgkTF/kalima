@@ -162,7 +162,7 @@ describe("EnrichmentPipeline", () => {
     expect(options.tier).toBe("cheap");
   });
 
-  it("calls LLM with premium tier for premium enrichment", async () => {
+  it("calls LLM with premium tier when explicitly requested", async () => {
     const mockComplete = vi.fn().mockResolvedValue(enrichmentResponse());
     const mockLLM: LLMClient = {
       complete: mockComplete,
@@ -170,11 +170,14 @@ describe("EnrichmentPipeline", () => {
 
     const pipeline = new EnrichmentPipeline(mockLLM);
 
-    await pipeline.enrichPremium({
-      capture: { item: "test", locator: null, rawText: "test" },
-      source: null,
-      existingEntries: [],
-    });
+    await pipeline.enrich(
+      {
+        capture: { item: "test", locator: null, rawText: "test" },
+        source: null,
+        existingEntries: [],
+      },
+      "premium",
+    );
 
     const options = mockComplete.mock.calls[0][1];
     expect(options.tier).toBe("premium");
