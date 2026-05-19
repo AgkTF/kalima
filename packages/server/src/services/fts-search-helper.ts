@@ -35,15 +35,25 @@ export class FTSSearchHelper {
   }
 
   async search(query: string): Promise<number[]> {
-    // Sanitize: remove FTS5 special characters
-    const sanitized = query.replace(/['"()^]/g, "").trim();
+    // Sanitize: remove FTS5 special characters except * (user may provide their own wildcard).
+    // Replace hyphens and non-word chars with spaces so compound terms like
+    // "visible-word" don't confuse FTS5's column-name parser.
+    const sanitized = query
+      .replace(/['"()^]/g, "")
+      .replace(/[^\w\s*\u0600-\u06FF]/g, " ")
+      .trim();
     if (!sanitized) return [];
 
-    // Wrap each token in double quotes so FTS5 treats them as search terms,
-    // not column-name qualifiers
+    // Build column-qualified prefix terms: text : term1* text : term2* ...
+    // Column qualification avoids ambiguity with FTS5 column-name syntax.
+    // Trailing * enables prefix matching so partial words match full tokens.
+    // If the user already provided a *, don't double it.
     const terms = sanitized
       .split(/\s+/)
-      .map((t) => `"${t}"`)
+      .map((t) => {
+        const term = t.endsWith("*") ? t : `${t}*`;
+        return `text : ${term}`;
+      })
       .join(" ");
 
     const rows = (await this.prisma.$queryRawUnsafe(

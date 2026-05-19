@@ -103,6 +103,45 @@ describe("FTSSearchHelper", () => {
       expect(results).toContain(7);
       expect(results).toContain(8);
     });
+    it("matches partial words via prefix matching", async () => {
+      await fts.indexEntry({
+        entryId: 10,
+        text: "serendipity The occurrence of events by chance in a happy way مصادفة سعيدة",
+      });
+
+      const results = await fts.search("seren");
+      expect(results).toContain(10);
+    });
+
+    it("matches partial definition text via prefix", async () => {
+      await fts.indexEntry({
+        entryId: 11,
+        text: "ephemeral lasting for a very short time مؤقت transient",
+      });
+
+      const results = await fts.search("last");
+      expect(results).toContain(11);
+    });
+
+    it("matches partial tag text via prefix", async () => {
+      await fts.indexEntry({
+        entryId: 12,
+        text: "ubiquitous found everywhere common pervasive",
+      });
+
+      const results = await fts.search("perva");
+      expect(results).toContain(12);
+    });
+
+    it("does not match when prefix is wrong", async () => {
+      await fts.indexEntry({
+        entryId: 13,
+        text: "resilience ability to recover quickly bounce back",
+      });
+
+      const results = await fts.search("xyzres");
+      expect(results).not.toContain(13);
+    });
   });
 
   describe("deIndexEntry", () => {
