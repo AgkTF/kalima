@@ -1,4 +1,5 @@
 import type { PrismaClient } from "../generated/prisma/client.js";
+import type { FTSSearchHelper } from "./fts-search-helper.js";
 
 export interface EntryWithCapture {
   id: number;
@@ -46,18 +47,36 @@ export const ReviewService = {
     });
   },
 
-  async approve(entryId: number, prisma: PrismaClient): Promise<void> {
+  async approve(
+    entryId: number,
+    prisma: PrismaClient,
+    fts?: FTSSearchHelper,
+  ): Promise<void> {
     await prisma.entry.update({
       where: { id: entryId },
       data: { status: "approved" },
     });
+
+    if (fts) {
+      await indexApprovedEntry(entryId, prisma, fts);
+    }
   },
 
-  async approveAll(entryIds: number[], prisma: PrismaClient): Promise<void> {
+  async approveAll(
+    entryIds: number[],
+    prisma: PrismaClient,
+    fts?: FTSSearchHelper,
+  ): Promise<void> {
     await prisma.entry.updateMany({
       where: { id: { in: entryIds } },
       data: { status: "approved" },
     });
+
+    if (fts) {
+      for (const entryId of entryIds) {
+        await indexApprovedEntry(entryId, prisma, fts);
+      }
+    }
   },
 
   async reject(
@@ -170,3 +189,33 @@ export const ReviewService = {
     });
   },
 };
+
+async function indexApprovedEntry(
+  entryId: number,
+  prisma: PrismaClient,
+  fts: FTSSearchHelper,
+): Promise<void> {
+  const entry = await prisma.entry.findUnique({
+    where: { id: entryId },
+    include: {
+      capture: {
+        include: { session: { include: { source: true } } },
+      },
+    },
+  });
+
+  if (!entry) return;
+
+  const text = [
+    entry.capture.item,
+    entry.definition,
+    entry.translationArabic,
+    entry.nuance,
+    ...JSON.parse(entry.tags || "[]"),
+    entry.capture.session?.source.name ?? "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  await fts.indexEntry({ entryId, text });
+}

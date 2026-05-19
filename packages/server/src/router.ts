@@ -10,6 +10,7 @@ import { SourceService } from "./services/source.js";
 export interface AppContext {
   prisma: import("./generated/prisma/client.js").PrismaClient;
   llm: import("./services/llm-client.js").LLMClient;
+  fts: import("./services/fts-search-helper.js").FTSSearchHelper;
 }
 
 const t = initTRPC.context<AppContext>().create();
@@ -127,14 +128,14 @@ export const appRouter = t.router({
     ),
     approve: t.procedure
       .input(z.object({ entryId: z.number() }))
-      .mutation(async ({ input, ctx }) =>
-        ReviewService.approve(input.entryId, ctx.prisma),
-      ),
+      .mutation(async ({ input, ctx }) => {
+        await ReviewService.approve(input.entryId, ctx.prisma, ctx.fts);
+      }),
     approveAll: t.procedure
       .input(z.object({ entryIds: z.array(z.number()) }))
-      .mutation(async ({ input, ctx }) =>
-        ReviewService.approveAll(input.entryIds, ctx.prisma),
-      ),
+      .mutation(async ({ input, ctx }) => {
+        await ReviewService.approveAll(input.entryIds, ctx.prisma, ctx.fts);
+      }),
     reject: t.procedure
       .input(
         z.object({

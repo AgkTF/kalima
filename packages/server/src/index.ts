@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import * as trpcExpress from "@trpc/server/adapters/express";
 import dotenv from "dotenv";
 import express from "express";
-import { prisma } from "./prisma.js";
+import { fts, prisma } from "./prisma.js";
 import { appRouter } from "./router.js";
 import { LLMClient } from "./services/llm-client.js";
 
@@ -25,6 +25,7 @@ const createContext = ({
 }: trpcExpress.CreateExpressContextOptions) => ({
   prisma,
   llm,
+  fts,
 });
 
 const app = express();
