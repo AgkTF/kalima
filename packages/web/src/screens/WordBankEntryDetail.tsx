@@ -193,23 +193,11 @@ export function WordBankEntryDetail() {
                   </button>
                 </div>
 
-                {/* Selectable area: click to select, edit button appears */}
-                <button
-                  type="button"
-                  onClick={() => handleFieldClick(field)}
-                  onKeyDown={(ev) => {
-                    if (ev.key === "Escape") setSelectedField(null);
-                  }}
-                  disabled={isEditing}
-                  className={`w-full rounded-button transition-colors ${
-                    isEditing ? "" : "cursor-pointer"
-                  } ${
-                    isSelected
-                      ? "bg-accent-subtle ring-1 ring-accent/20"
-                      : "hover:bg-surface"
-                  }`}
-                >
-                  {isEditing ? (
+                {/* Selectable area: click to select, edit button appears.
+                    View mode uses <button> for valid a11y semantics.
+                    Edit mode uses <div> to avoid nesting <textarea> in <button>. */}
+                {isEditing ? (
+                  <div className="w-full rounded-button">
                     <textarea
                       value={editText}
                       onChange={(e) => setEditText(e.target.value)}
@@ -225,7 +213,17 @@ export function WordBankEntryDetail() {
                         ),
                       )}
                     />
-                  ) : (
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleFieldClick(field)}
+                    className={`w-full rounded-button transition-colors cursor-pointer ${
+                      isSelected
+                        ? "bg-accent-subtle ring-1 ring-accent/20"
+                        : "hover:bg-surface"
+                    }`}
+                  >
                     <p
                       className={`px-2 py-1.5 text-sm text-ink leading-relaxed select-text ${
                         isArabic ? "font-arabic text-end" : "text-left"
@@ -233,8 +231,8 @@ export function WordBankEntryDetail() {
                     >
                       {value || <span className="italic text-dim">Empty</span>}
                     </p>
-                  )}
-                </button>
+                  </button>
+                )}
 
                 {/* Save/Cancel buttons — only shown when editing this field */}
                 {isEditing && (
