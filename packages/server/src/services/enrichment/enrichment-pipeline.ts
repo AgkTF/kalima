@@ -8,6 +8,7 @@ export interface EnrichmentResult {
   examples: string[];
   tags: string[];
   relatedEntries: string[];
+  confidence: "high" | "low";
 }
 
 const ENRICHMENT_SCHEMA = {
@@ -28,6 +29,10 @@ const ENRICHMENT_SCHEMA = {
       type: "array" as const,
       items: { type: "string" as const },
     },
+    confidence: {
+      type: "string" as const,
+      enum: ["high", "low"],
+    },
   },
   required: [
     "definition",
@@ -36,17 +41,19 @@ const ENRICHMENT_SCHEMA = {
     "examples",
     "tags",
     "relatedEntries",
+    "confidence",
   ],
   additionalProperties: false,
 } as const;
 
 const SYSTEM_PROMPT = `You are a word bank enrichment agent. For the given item, produce:
 - definition: a context-appropriate meaning
-- translationArabic: the Arabic equivalent
+- translationArabic: the Arabic equivalent in Arabic script only (no transliteration, no pronunciation guides)
 - nuance: a note on subtle shades of meaning
 - examples: 2-3 sentences demonstrating usage
 - tags: relevant categories
 - relatedEntries: existing word bank entries that are connected to this item
+- confidence: "high" if the context provides clear meaning, "low" if the item is ambiguous, rare, or the context is insufficient
 Do NOT include etymology.`;
 
 export interface EnrichParams {
@@ -68,7 +75,10 @@ export class EnrichmentPipeline {
     this.promptBuilder = new EnrichmentPromptBuilder();
   }
 
-  async enrich(params: EnrichParams): Promise<EnrichmentResult> {
+  async enrich(
+    params: EnrichParams,
+    tier: "cheap" | "premium" = "cheap",
+  ): Promise<EnrichmentResult> {
     const prompt = this.promptBuilder.build({
       item: params.capture.item,
       source: params.source,
@@ -77,7 +87,7 @@ export class EnrichmentPipeline {
     });
 
     const response = await this.llm.complete(prompt, {
-      tier: "cheap",
+      tier,
       schema: ENRICHMENT_SCHEMA,
       systemPrompt: SYSTEM_PROMPT,
     });

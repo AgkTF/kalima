@@ -85,33 +85,49 @@ export const EnrichmentService = {
 
     const existingItemNames = existingEntries.map((e) => e.capture.item);
 
-    for (const capture of captures) {
-      try {
-        const result = await pipeline.enrich({
-          capture: {
-            item: capture.item,
-            locator: capture.locator,
-            rawText: capture.rawText,
-          },
-          source: session.source,
-          existingEntries: existingItemNames,
-        });
+    // Process in parallel batches of 3 to avoid rate limits while maximizing throughput.
+    const CONCURRENCY = 3;
+    for (let i = 0; i < captures.length; i += CONCURRENCY) {
+      const batch = captures.slice(i, i + CONCURRENCY);
 
-        await prisma.entry.update({
-          where: { captureId: capture.id },
-          data: {
-            definition: result.definition,
-            translationArabic: result.translationArabic,
-            nuance: result.nuance,
-            examples: JSON.stringify(result.examples),
-            tags: JSON.stringify(result.tags),
-            relatedEntries: JSON.stringify(result.relatedEntries),
-            status: "pending_review",
-          },
-        });
-      } catch {
-        // Entry may have been deleted or enrichment failed.
-        // Skip and continue with remaining captures.
+      const results = await Promise.allSettled(
+        batch.map((capture) =>
+          pipeline.enrich({
+            capture: {
+              item: capture.item,
+              locator: capture.locator,
+              rawText: capture.rawText,
+            },
+            source: session.source,
+            existingEntries: existingItemNames,
+          }),
+        ),
+      );
+
+      for (let j = 0; j < results.length; j++) {
+        const result = results[j];
+        const capture = batch[j];
+
+        if (result.status === "fulfilled") {
+          try {
+            await prisma.entry.update({
+              where: { captureId: capture.id },
+              data: {
+                definition: result.value.definition,
+                translationArabic: result.value.translationArabic,
+                nuance: result.value.nuance,
+                examples: JSON.stringify(result.value.examples),
+                tags: JSON.stringify(result.value.tags),
+                relatedEntries: JSON.stringify(result.value.relatedEntries),
+                confidence: result.value.confidence,
+                status: "pending_review",
+              },
+            });
+          } catch {
+            // DB write failed; entry stays "processing" — user can reject and re-enrich.
+          }
+        }
+        // If rejected (status === "rejected"), entry stays "processing" — user sees it and can act.
       }
     }
   },
@@ -154,6 +170,8 @@ export const EnrichmentService = {
         existingEntries: existingItemNames,
       });
 
+      // All entries enter Review as pending_review — the user decides.
+      // Confidence is stored as passive metadata for potential future use.
       await prisma.entry.update({
         where: { captureId: capture.id },
         data: {
@@ -163,6 +181,7 @@ export const EnrichmentService = {
           examples: JSON.stringify(result.examples),
           tags: JSON.stringify(result.tags),
           relatedEntries: JSON.stringify(result.relatedEntries),
+          confidence: result.confidence,
           status: "pending_review",
         },
       });

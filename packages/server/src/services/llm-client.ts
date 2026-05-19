@@ -2,6 +2,7 @@ interface LLMClientConfig {
   apiKey: string;
   baseUrl: string;
   cheapModel?: string;
+  premiumModel?: string;
 }
 
 export interface CompleteOptions {
@@ -10,17 +11,20 @@ export interface CompleteOptions {
   systemPrompt?: string;
 }
 
-const CHEAP_MODEL_DEFAULT = "gpt-4o-mini";
+const CHEAP_MODEL_DEFAULT = "google/gemma-3-12b-it";
+const PREMIUM_MODEL_DEFAULT = "google/gemma-4-31B-it";
 
 export class LLMClient {
   private apiKey: string;
   private baseUrl: string;
   private cheapModel: string;
+  private premiumModel: string;
 
   constructor(config: LLMClientConfig) {
     this.apiKey = config.apiKey;
     this.baseUrl = config.baseUrl.replace(/\/+$/, "");
     this.cheapModel = config.cheapModel ?? CHEAP_MODEL_DEFAULT;
+    this.premiumModel = config.premiumModel ?? PREMIUM_MODEL_DEFAULT;
   }
 
   async complete(prompt: string, options?: CompleteOptions): Promise<string> {
@@ -28,7 +32,7 @@ export class LLMClient {
     const schema = options?.schema;
     const systemPrompt = options?.systemPrompt;
 
-    const model = tier === "premium" ? this.cheapModel : this.cheapModel; // premium not implemented yet
+    const model = tier === "premium" ? this.premiumModel : this.cheapModel;
 
     const messages: { role: string; content: string }[] = [];
     if (systemPrompt) {

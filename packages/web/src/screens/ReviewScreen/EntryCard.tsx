@@ -2,7 +2,7 @@ import { CheckIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
 import { EnrichmentFields } from "./EnrichmentFields";
 import { RejectForm } from "./RejectForm";
-import { parseJsonField, type PendingEntry } from "./utils";
+import { type PendingEntry, parseJsonField } from "./utils";
 
 interface EntryCardProps {
   entry: PendingEntry;

@@ -10,6 +10,7 @@ export interface EntryWithCapture {
   examples: string;
   tags: string;
   relatedEntries: string;
+  confidence: string | null;
   flaggedFields: string | null;
   rejectionNote: string | null;
   enrichedAt: Date;
@@ -37,7 +38,11 @@ export interface PendingReview {
 export const ReviewService = {
   async badgeCount(prisma: PrismaClient): Promise<number> {
     return prisma.entry.count({
-      where: { status: { in: ["processing", "pending_review"] } },
+      where: {
+        status: {
+          in: ["processing", "pending_review"],
+        },
+      },
     });
   },
 
@@ -73,7 +78,11 @@ export const ReviewService = {
 
   async getPending(prisma: PrismaClient): Promise<PendingReview> {
     const entries = await prisma.entry.findMany({
-      where: { status: { in: ["processing", "pending_review"] } },
+      where: {
+        status: {
+          in: ["processing", "pending_review"],
+        },
+      },
       include: {
         capture: {
           select: {

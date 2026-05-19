@@ -26,6 +26,7 @@ describe("review.reEnrich mutation", () => {
         examples: ["Example"],
         tags: ["test"],
         relatedEntries: [],
+        confidence: "high",
       }),
     ),
   } as unknown as LLMClient;
@@ -59,5 +60,9 @@ describe("review.reEnrich mutation", () => {
     expect(updated?.status).toBe("processing");
     expect(updated?.flaggedFields).toBeNull();
     expect(updated?.rejectionNote).toBeNull();
+
+    // Clean up — the fire-and-forget enrichment may have updated the entry
+    await prisma.entry.deleteMany();
+    await prisma.capture.deleteMany();
   });
 });

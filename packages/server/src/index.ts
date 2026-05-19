@@ -16,6 +16,7 @@ const llm = new LLMClient({
   apiKey: process.env.LLM_API_KEY ?? "",
   baseUrl: process.env.LLM_BASE_URL ?? "https://api.openai.com/v1",
   cheapModel: process.env.LLM_CHEAP_MODEL,
+  premiumModel: process.env.LLM_PREMIUM_MODEL,
 });
 
 const createContext = ({

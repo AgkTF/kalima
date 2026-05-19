@@ -24,6 +24,7 @@ export interface PendingEntry {
   examples: string;
   tags: string;
   relatedEntries: string;
+  confidence: string | null;
   flaggedFields: string | null;
   rejectionNote: string | null;
   capture: { id: number; item: string };
