@@ -1,32 +1,81 @@
 import { PlusIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { ArrowLeftIcon } from "@heroicons/react/24/solid";
-import { useState } from "react";
-import {
-  Link,
-  useNavigate,
-  useParams,
-  useSearchParams,
-} from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { trpc } from "../trpc";
-import { PrototypeSwitcher } from "./WordBankEntryDetail/PrototypeSwitcher";
-import {
-  type EditableField,
-  VariantC1,
-  VariantC2,
-} from "./WordBankEntryDetail/prototype-variants";
 
-const VARIANTS = [
-  { key: "C1", label: "Absolute overlay" },
-  { key: "C2", label: "Label row" },
-];
+type EditableField = "definition" | "translationArabic" | "nuance" | "examples";
+
+const FIELD_LABELS: Record<EditableField, string> = {
+  definition: "Definition",
+  translationArabic: "Translation",
+  nuance: "Nuance",
+  examples: "Examples",
+};
+
+function EditTextarea({
+  value,
+  onSave,
+  onCancel,
+  isArabic,
+}: {
+  value: string;
+  onSave: (v: string) => void;
+  onCancel: () => void;
+  isArabic?: boolean;
+}) {
+  const [text, setText] = useState(value);
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      onSave(text.trim());
+    }
+    if (e.key === "Escape") onCancel();
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={handleKeyDown}
+        className={`w-full rounded-button border border-accent bg-surface px-3 py-2 text-sm text-ink outline-none resize-none ${
+          isArabic ? "font-arabic" : ""
+        }`}
+        rows={Math.min(text.split("\n").length + 1, 4)}
+      />
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => onSave(text.trim())}
+          className="rounded-button bg-accent px-3 py-1 text-xs font-medium text-white hover:opacity-90 cursor-pointer"
+        >
+          Save
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-button border border-divider px-3 py-1 text-xs text-dim hover:text-ink cursor-pointer"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export function WordBankEntryDetail() {
   const { entryId } = useParams<{ entryId: string }>();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const variant = searchParams.get("variant") ?? "C1";
   const id = Number(entryId);
   const utils = trpc.useUtils();
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const [selectedField, setSelectedField] = useState<EditableField | null>(
+    null,
+  );
+  const [editing, setEditing] = useState<EditableField | null>(null);
 
   const entry = trpc.wordBank.getEntry.useQuery(
     { entryId: id },
@@ -53,6 +102,25 @@ export function WordBankEntryDetail() {
   });
 
   const [newTag, setNewTag] = useState("");
+
+  // Click outside deselects
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
+        setSelectedField(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  function handleFieldClick(field: EditableField) {
+    if (editing) return;
+    setSelectedField(selectedField === field ? null : field);
+  }
 
   function handleSaveField(field: EditableField, value: string) {
     if (value.trim() !== "") {
@@ -105,13 +173,6 @@ export function WordBankEntryDetail() {
   const tags: string[] = JSON.parse(e.tags || "[]");
   const source = e.capture.session?.source;
 
-  const entryData = {
-    definition: e.definition,
-    translationArabic: e.translationArabic,
-    nuance: e.nuance,
-    examples: e.examples,
-  };
-
   return (
     <main className="flex flex-1 flex-col pb-16">
       {/* Header with back button */}
@@ -147,13 +208,83 @@ export function WordBankEntryDetail() {
           </div>
         )}
 
-        {/* Content fields — swappable by variant */}
-        {variant === "C1" && (
-          <VariantC1 entry={entryData} onSaveField={handleSaveField} />
-        )}
-        {variant === "C2" && (
-          <VariantC2 entry={entryData} onSaveField={handleSaveField} />
-        )}
+        {/* Content fields — click to select, edit button in label row */}
+        <div ref={containerRef} className="flex flex-col gap-4">
+          {(
+            ["definition", "translationArabic", "nuance", "examples"] as const
+          ).map((field) => {
+            const value = e[field as keyof typeof e] as string;
+            const isEditing = editing === field;
+            const isSelected = selectedField === field;
+            const isArabic = field === "translationArabic";
+
+            return (
+              <div key={field} className="flex flex-col gap-1">
+                {/* Label row: field name + edit button on selection */}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-dim">
+                    {FIELD_LABELS[field]}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(ev) => {
+                      ev.stopPropagation();
+                      setEditing(field);
+                    }}
+                    className={`rounded-button bg-accent px-2.5 py-0.5 text-xs font-medium text-white cursor-pointer transition-all duration-150 ${
+                      isSelected
+                        ? "opacity-100 translate-y-0"
+                        : "opacity-0 translate-y-1 pointer-events-none"
+                    }`}
+                  >
+                    Edit
+                  </button>
+                </div>
+
+                {isEditing ? (
+                  <EditTextarea
+                    value={value}
+                    isArabic={isArabic}
+                    onSave={(v) => {
+                      handleSaveField(field, v);
+                      setEditing(null);
+                      setSelectedField(null);
+                    }}
+                    onCancel={() => {
+                      setEditing(null);
+                      setSelectedField(null);
+                    }}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleFieldClick(field)}
+                    onKeyDown={(ev) => {
+                      if (ev.key === "Escape") setSelectedField(null);
+                    }}
+                    className={`w-full text-left rounded-button transition-colors ${
+                      isSelected
+                        ? "bg-accent-subtle ring-1 ring-accent/20"
+                        : "hover:bg-surface"
+                    }`}
+                  >
+                    <div className="px-2 py-1.5">
+                      <p
+                        className={`text-sm text-ink leading-relaxed select-text ${
+                          isArabic ? "font-arabic text-end" : ""
+                        }`}
+                      >
+                        {value || (
+                          <span className="italic text-dim">Empty</span>
+                        )}
+                      </p>
+                    </div>
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
 
         {/* Tags: chips with remove, add */}
         <div className="flex flex-col gap-2">
@@ -185,9 +316,9 @@ export function WordBankEntryDetail() {
               <input
                 type="text"
                 value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && newTag.trim()) {
+                onChange={(ev) => setNewTag(ev.target.value)}
+                onKeyDown={(ev) => {
+                  if (ev.key === "Enter" && newTag.trim()) {
                     addTag.mutate({ entryId: id, tag: newTag.trim() });
                   }
                 }}
@@ -210,9 +341,6 @@ export function WordBankEntryDetail() {
           </div>
         </div>
       </div>
-
-      {/* Prototype switcher — hidden in production */}
-      <PrototypeSwitcher variants={VARIANTS} />
     </main>
   );
 }

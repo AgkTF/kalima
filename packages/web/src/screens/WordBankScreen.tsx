@@ -56,7 +56,7 @@ export function WordBankScreen() {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Search entries, sources, tags\u2026"
+          placeholder="Search entries, sources, tags..."
           className="flex-1 bg-transparent text-ink text-sm outline-none placeholder:text-dim"
         />
         {input.length > 0 && (
@@ -72,7 +72,7 @@ export function WordBankScreen() {
 
       {/* Loading state */}
       {(recent.isLoading || search.isLoading) && (
-        <p className="mx-5 mt-8 text-center text-sm text-dim">Loading\u2026</p>
+        <p className="mx-5 mt-8 text-center text-sm text-dim">Loading...</p>
       )}
 
       {/* Empty state */}
