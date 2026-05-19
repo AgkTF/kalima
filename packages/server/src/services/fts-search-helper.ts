@@ -35,13 +35,20 @@ export class FTSSearchHelper {
   }
 
   async search(query: string): Promise<number[]> {
-    // Sanitize: escape FTS5 special characters except * for prefix matching
+    // Sanitize: remove FTS5 special characters
     const sanitized = query.replace(/['"()^]/g, "").trim();
     if (!sanitized) return [];
 
+    // Wrap each token in double quotes so FTS5 treats them as search terms,
+    // not column-name qualifiers
+    const terms = sanitized
+      .split(/\s+/)
+      .map((t) => `"${t}"`)
+      .join(" ");
+
     const rows = (await this.prisma.$queryRawUnsafe(
       `SELECT entry_id FROM entry_fts WHERE entry_fts MATCH ?`,
-      sanitized,
+      terms,
     )) as Array<{ entry_id: number }>;
 
     return rows.map((r) => r.entry_id);
