@@ -28,7 +28,7 @@ function ExamplesDisplay({ value }: { value: string }) {
   return (
     <ul className="list-disc list-inside px-2 py-1.5 text-sm text-ink leading-relaxed select-text text-left">
       {parsed.map((ex: string) => (
-        <li key={ex}>{ex}</li>
+        <li key={ex}>{renderEmphasis(ex)}</li>
       ))}
     </ul>
   );
@@ -267,7 +267,7 @@ export function WordBankEntryDetail() {
                           isArabic ? "font-arabic text-end" : "text-left"
                         }`}
                       >
-                        {field === "definition" && value
+                        {value
                           ? renderEmphasis(value)
                           : value || (
                               <span className="italic text-dim">Empty</span>
