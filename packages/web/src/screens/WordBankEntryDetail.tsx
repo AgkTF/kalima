@@ -1,21 +1,32 @@
 import { PlusIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { ArrowLeftIcon } from "@heroicons/react/24/solid";
 import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import {
+  Link,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 import { trpc } from "../trpc";
+import { PrototypeSwitcher } from "./WordBankEntryDetail/PrototypeSwitcher";
+import {
+  type EditableField,
+  VariantA,
+  VariantB,
+  VariantC,
+} from "./WordBankEntryDetail/prototype-variants";
 
-type EditableField = "definition" | "translationArabic" | "nuance" | "examples";
-
-const FIELD_LABELS: Record<EditableField, string> = {
-  definition: "Definition",
-  translationArabic: "Translation",
-  nuance: "Nuance",
-  examples: "Examples",
-};
+const VARIANTS = [
+  { key: "A", label: "Per-field pencil icon" },
+  { key: "B", label: "View / Edit mode toggle" },
+  { key: "C", label: "Click to select, then edit" },
+];
 
 export function WordBankEntryDetail() {
   const { entryId } = useParams<{ entryId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const variant = searchParams.get("variant") ?? "A";
   const id = Number(entryId);
   const utils = trpc.useUtils();
 
@@ -43,36 +54,12 @@ export function WordBankEntryDetail() {
     },
   });
 
-  const [editingField, setEditingField] = useState<EditableField | null>(null);
-  const [editValue, setEditValue] = useState("");
   const [newTag, setNewTag] = useState("");
 
-  function startEdit(field: EditableField, current: string) {
-    setEditingField(field);
-    setEditValue(current);
-  }
-
-  function saveEdit() {
-    if (editingField && editValue.trim() !== "") {
-      updateField.mutate({
-        entryId: id,
-        field: editingField,
-        value: editValue.trim(),
-      });
+  function handleSaveField(field: EditableField, value: string) {
+    if (value.trim() !== "") {
+      updateField.mutate({ entryId: id, field, value: value.trim() });
     }
-    setEditingField(null);
-    setEditValue("");
-  }
-
-  function cancelEdit() {
-    setEditingField(null);
-    setEditValue("");
-  }
-
-  // Handle keyboard: Enter to save, Escape to cancel
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter") saveEdit();
-    if (e.key === "Escape") cancelEdit();
   }
 
   // Loading
@@ -120,6 +107,13 @@ export function WordBankEntryDetail() {
   const tags: string[] = JSON.parse(e.tags || "[]");
   const source = e.capture.session?.source;
 
+  const entryData = {
+    definition: e.definition,
+    translationArabic: e.translationArabic,
+    nuance: e.nuance,
+    examples: e.examples,
+  };
+
   return (
     <main className="flex flex-1 flex-col pb-16">
       {/* Header with back button */}
@@ -155,61 +149,16 @@ export function WordBankEntryDetail() {
           </div>
         )}
 
-        {/* Content fields: tap to edit */}
-        {(
-          ["definition", "translationArabic", "nuance", "examples"] as const
-        ).map((field) => {
-          const value = e[field];
-          const isEditing = editingField === field;
-          const isArabic = field === "translationArabic";
-
-          return (
-            <div key={field} className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-dim">
-                {FIELD_LABELS[field]}
-              </span>
-              {isEditing ? (
-                <div className="flex flex-col gap-2">
-                  <textarea
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    className={`w-full rounded-button border border-accent bg-surface px-3 py-2 text-sm text-ink outline-none resize-none ${
-                      isArabic ? "font-arabic" : ""
-                    }`}
-                    rows={Math.min(editValue.split("\n").length + 1, 4)}
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={saveEdit}
-                      className="rounded-button bg-accent px-3 py-1 text-xs font-medium text-white hover:opacity-90 cursor-pointer"
-                    >
-                      Save
-                    </button>
-                    <button
-                      type="button"
-                      onClick={cancelEdit}
-                      className="rounded-button border border-divider px-3 py-1 text-xs text-dim hover:text-ink cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => startEdit(field, value)}
-                  className={`text-left text-sm text-ink cursor-pointer rounded-button px-1 py-0.5 hover:bg-accent-subtle transition-colors ${
-                    isArabic ? "font-arabic" : ""
-                  }`}
-                >
-                  {value || <span className="italic text-dim">Empty</span>}
-                </button>
-              )}
-            </div>
-          );
-        })}
+        {/* Content fields — swappable by variant */}
+        {variant === "A" && (
+          <VariantA entry={entryData} onSaveField={handleSaveField} />
+        )}
+        {variant === "B" && (
+          <VariantB entry={entryData} onSaveField={handleSaveField} />
+        )}
+        {variant === "C" && (
+          <VariantC entry={entryData} onSaveField={handleSaveField} />
+        )}
 
         {/* Tags: chips with remove, add */}
         <div className="flex flex-col gap-2">
@@ -266,6 +215,9 @@ export function WordBankEntryDetail() {
           </div>
         </div>
       </div>
+
+      {/* Prototype switcher — hidden in production */}
+      <PrototypeSwitcher variants={VARIANTS} />
     </main>
   );
 }
