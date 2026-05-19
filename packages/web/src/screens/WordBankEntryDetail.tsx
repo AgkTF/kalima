@@ -1,6 +1,6 @@
 import { PlusIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { ArrowLeftIcon } from "@heroicons/react/24/solid";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { trpc } from "../trpc";
 import { parseJsonField } from "./ReviewScreen/utils";
@@ -32,6 +32,20 @@ function ExamplesDisplay({ value }: { value: string }) {
       ))}
     </ul>
   );
+}
+
+/** Converts *italic* and **bold** markdown spans into <em>/<strong> elements. */
+function renderEmphasis(text: string) {
+  const parts = text.split(/(\*{1,2}[^*]+\*{1,2})/g);
+  return parts.map((part) => {
+    const bold = part.match(/^\*\*(.+)\*\*$/);
+    if (bold) return <strong key={part}>{bold[1]}</strong>;
+
+    const italic = part.match(/^\*(.+)\*$/);
+    if (italic) return <em key={part}>{italic[1]}</em>;
+
+    return <Fragment key={part}>{part}</Fragment>;
+  });
 }
 
 export function WordBankEntryDetail() {
@@ -253,9 +267,11 @@ export function WordBankEntryDetail() {
                           isArabic ? "font-arabic text-end" : "text-left"
                         }`}
                       >
-                        {value || (
-                          <span className="italic text-dim">Empty</span>
-                        )}
+                        {field === "definition" && value
+                          ? renderEmphasis(value)
+                          : value || (
+                              <span className="italic text-dim">Empty</span>
+                            )}
                       </p>
                     )}
                   </button>
