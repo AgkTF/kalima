@@ -3,7 +3,6 @@ interface LLMClientConfig {
   baseUrl: string;
   cheapModel?: string;
   premiumModel?: string;
-  forceConfidence?: "high" | "low";
 }
 
 export interface CompleteOptions {
@@ -20,15 +19,12 @@ export class LLMClient {
   private baseUrl: string;
   private cheapModel: string;
   private premiumModel: string;
-  /** Dev override: forces all enrichments to return this confidence level */
-  public readonly forceConfidence: "high" | "low" | undefined;
 
   constructor(config: LLMClientConfig) {
     this.apiKey = config.apiKey;
     this.baseUrl = config.baseUrl.replace(/\/+$/, "");
     this.cheapModel = config.cheapModel ?? CHEAP_MODEL_DEFAULT;
     this.premiumModel = config.premiumModel ?? PREMIUM_MODEL_DEFAULT;
-    this.forceConfidence = config.forceConfidence;
   }
 
   async complete(prompt: string, options?: CompleteOptions): Promise<string> {

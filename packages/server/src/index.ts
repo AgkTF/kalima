@@ -12,18 +12,11 @@ dotenv.config();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT ?? 3001);
 
-const forceConfidenceRaw = process.env.LLM_FORCE_CONFIDENCE;
-const forceConfidence =
-  forceConfidenceRaw === "high" || forceConfidenceRaw === "low"
-    ? forceConfidenceRaw
-    : undefined;
-
 const llm = new LLMClient({
   apiKey: process.env.LLM_API_KEY ?? "",
   baseUrl: process.env.LLM_BASE_URL ?? "https://api.openai.com/v1",
   cheapModel: process.env.LLM_CHEAP_MODEL,
   premiumModel: process.env.LLM_PREMIUM_MODEL,
-  forceConfidence,
 });
 
 const createContext = ({

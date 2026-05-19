@@ -107,11 +107,6 @@ export class EnrichmentPipeline {
       delete (result as Record<string, unknown>).etymology;
     }
 
-    // Dev override: force confidence for testing low-confidence path
-    if (this.llm.forceConfidence) {
-      result.confidence = this.llm.forceConfidence;
-    }
-
     return result;
   }
 }
