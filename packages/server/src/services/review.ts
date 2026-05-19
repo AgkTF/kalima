@@ -211,7 +211,9 @@ async function indexApprovedEntry(
     entry.definition,
     entry.translationArabic,
     entry.nuance,
+    entry.examples,
     ...JSON.parse(entry.tags || "[]"),
+    ...JSON.parse(entry.relatedEntries || "[]"),
     entry.capture.session?.source.name ?? "",
   ]
     .filter(Boolean)

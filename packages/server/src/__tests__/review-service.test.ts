@@ -633,4 +633,65 @@ describe("approve + FTS5 indexing integration", () => {
     expect(r1.some((e) => e.id === e1.id)).toBe(true);
     expect(r2.some((e) => e.id === e2.id)).toBe(true);
   });
+
+  it("indexes examples so they are searchable", async () => {
+    const source = await SourceService.create("Examples Book", "book", prisma);
+    const session = await prisma.session.create({
+      data: { sourceId: source.id },
+    });
+    const capture = await prisma.capture.create({
+      data: {
+        rawText: "serendipity",
+        item: "serendipity",
+        sessionId: session.id,
+      },
+    });
+    const entry = await prisma.entry.create({
+      data: {
+        captureId: capture.id,
+        definition: "Happy chance",
+        translationArabic: "مصادفة سعيدة",
+        nuance: "Literary",
+        examples: JSON.stringify([
+          "She found the bookstore by pure serendipity.",
+          "The discovery was a moment of serendipity.",
+        ]),
+        tags: "[]",
+        relatedEntries: "[]",
+      },
+    });
+
+    await ReviewService.approve(entry.id, prisma, fts);
+
+    // Searching a word from an example sentence should find the entry
+    const results = await WordBankService.search("bookstore", prisma, fts);
+    expect(results.some((e) => e.id === entry.id)).toBe(true);
+  });
+
+  it("indexes related entries so they are searchable", async () => {
+    const source = await SourceService.create("Related Book", "book", prisma);
+    const session = await prisma.session.create({
+      data: { sourceId: source.id },
+    });
+    const capture = await prisma.capture.create({
+      data: { rawText: "ephemeral", item: "ephemeral", sessionId: session.id },
+    });
+    const entry = await prisma.entry.create({
+      data: {
+        captureId: capture.id,
+        definition: "Lasting for a very short time",
+        translationArabic: "مؤقت",
+        nuance: "n",
+        examples: "[]",
+        tags: "[]",
+        relatedEntries: JSON.stringify(["transient", "fleeting"]),
+      },
+    });
+
+    await ReviewService.approve(entry.id, prisma, fts);
+
+    // Searching a related entry name should find the entry
+    const results = await WordBankService.search("transient", prisma, fts);
+    expect(results.some((e) => e.id === entry.id)).toBe(true);
+  });
 });
