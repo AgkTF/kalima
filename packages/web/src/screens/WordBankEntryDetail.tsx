@@ -11,22 +11,20 @@ import { trpc } from "../trpc";
 import { PrototypeSwitcher } from "./WordBankEntryDetail/PrototypeSwitcher";
 import {
   type EditableField,
-  VariantA,
-  VariantB,
-  VariantC,
+  VariantC1,
+  VariantC2,
 } from "./WordBankEntryDetail/prototype-variants";
 
 const VARIANTS = [
-  { key: "A", label: "Per-field pencil icon" },
-  { key: "B", label: "View / Edit mode toggle" },
-  { key: "C", label: "Click to select, then edit" },
+  { key: "C1", label: "Absolute overlay" },
+  { key: "C2", label: "Label row" },
 ];
 
 export function WordBankEntryDetail() {
   const { entryId } = useParams<{ entryId: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const variant = searchParams.get("variant") ?? "A";
+  const variant = searchParams.get("variant") ?? "C1";
   const id = Number(entryId);
   const utils = trpc.useUtils();
 
@@ -150,14 +148,11 @@ export function WordBankEntryDetail() {
         )}
 
         {/* Content fields — swappable by variant */}
-        {variant === "A" && (
-          <VariantA entry={entryData} onSaveField={handleSaveField} />
+        {variant === "C1" && (
+          <VariantC1 entry={entryData} onSaveField={handleSaveField} />
         )}
-        {variant === "B" && (
-          <VariantB entry={entryData} onSaveField={handleSaveField} />
-        )}
-        {variant === "C" && (
-          <VariantC entry={entryData} onSaveField={handleSaveField} />
+        {variant === "C2" && (
+          <VariantC2 entry={entryData} onSaveField={handleSaveField} />
         )}
 
         {/* Tags: chips with remove, add */}
