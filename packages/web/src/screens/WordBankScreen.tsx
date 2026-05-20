@@ -8,6 +8,9 @@ import {
   VariantB,
   VariantC,
   VariantD,
+  VariantE,
+  VariantF,
+  VariantG,
 } from "./WordBankScreen/prototype-variants";
 
 export function WordBankScreen() {
@@ -52,7 +55,7 @@ export function WordBankScreen() {
     function handleKey(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA") return;
-      const variants = ["A", "B", "C", "D"];
+      const variants = ["A", "B", "C", "D", "E", "F", "G"];
       const idx = variants.indexOf(variant);
       if (e.key === "ArrowLeft" && idx > 0) {
         setSearchParams((p) => {
@@ -118,6 +121,15 @@ export function WordBankScreen() {
       )}
       {variant === "D" && (
         <VariantD entries={entries} query={query} isLoading={isLoading} />
+      )}
+      {variant === "E" && (
+        <VariantE entries={entries} query={query} isLoading={isLoading} />
+      )}
+      {variant === "F" && (
+        <VariantF entries={entries} query={query} isLoading={isLoading} />
+      )}
+      {variant === "G" && (
+        <VariantG entries={entries} query={query} isLoading={isLoading} />
       )}
 
       {/* Prototype switcher */}

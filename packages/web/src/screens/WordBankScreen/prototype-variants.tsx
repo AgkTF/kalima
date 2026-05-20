@@ -31,6 +31,17 @@ function SourceDot({ name }: { name: string }) {
   return <span className={`inline-block h-2 w-2 rounded-full ${color}`} />;
 }
 
+function sourceColor(name: string): string {
+  const colors: Record<string, string> = {
+    book: "border-l-accent",
+    movie: "border-l-amber-400",
+    podcast: "border-l-sky-400",
+    article: "border-l-rose-400",
+    conversation: "border-l-emerald-400",
+  };
+  return colors[name] ?? "border-l-accent";
+}
+
 function TagChip({ tag }: { tag: string }) {
   return (
     <span className="inline-flex items-center rounded-full border border-divider px-2 py-0.5 text-[10px] text-dim">
@@ -51,12 +62,15 @@ function DefinitionSnippet({ text }: { text: string }) {
 export function PrototypeSwitcher({ current }: { current: string }) {
   if (import.meta.env.PROD) return null;
 
-  const variants = ["A", "B", "C", "D"];
+  const variants = ["A", "B", "C", "D", "E", "F", "G"];
   const names: Record<string, string> = {
     A: "Dense Feed",
     B: "Magazine Grid",
     C: "Timeline",
     D: "Dashboard",
+    E: "Elegant Minimal",
+    F: "Featured Hero",
+    G: "Masonry",
   };
 
   function go(dir: -1 | 1) {
@@ -504,6 +518,289 @@ export function VariantD({
           );
         })}
       </ul>
+    </div>
+  );
+}
+
+// ────────────────────────── Variant E — Elegant Minimal ──────────────────────────
+
+export function VariantE({
+  entries,
+  query,
+  isLoading,
+}: {
+  entries: Entry[];
+  query: string;
+  isLoading: boolean;
+}) {
+  if (isLoading)
+    return <p className="mx-5 mt-8 text-center text-sm text-dim">Loading...</p>;
+  if (entries.length === 0) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 pb-16">
+        <CalendarIcon className="h-10 w-10 text-dim/25" />
+        <p className="text-sm text-dim">
+          {query ? `Nothing found for "${query}"` : "Your word bank is empty"}
+        </p>
+      </div>
+    );
+  }
+
+  const sourceCount = new Set(entries.map((e) => e.source?.name)).size;
+
+  return (
+    <div className="flex flex-col gap-4 px-3 pb-16">
+      {/* Stats + sort row */}
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-dim/60">
+          {entries.length} entries · {sourceCount} sources
+        </span>
+        <div className="flex items-center gap-0.5">
+          {(["Recent", "A–Z", "Source"] as const).map((label, i) => (
+            <button
+              key={label}
+              type="button"
+              className={`rounded-full px-2.5 py-0.5 text-[11px] cursor-pointer transition-colors ${
+                i === 0
+                  ? "bg-accent text-white"
+                  : "text-dim/60 hover:text-dim hover:bg-accent-subtle"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Grouped entries */}
+      {Object.entries(groupByDate(entries)).map(([label, groupEntries]) => (
+        <section key={label}>
+          <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-dim/40">
+            {label}
+          </h3>
+          <ul className="flex flex-col gap-1.5">
+            {groupEntries.map((entry) => {
+              const tags: string[] = (() => {
+                try {
+                  return JSON.parse(entry.tags) as string[];
+                } catch {
+                  return [];
+                }
+              })();
+              const color = sourceColor(entry.source?.name ?? "");
+
+              return (
+                <li key={entry.id}>
+                  <Link
+                    to={`/wordbank/${entry.id}`}
+                    className={`flex items-center gap-4 rounded-card bg-surface px-4 py-3 transition-all hover:bg-accent-subtle/30 group ${color} border-l-[3px] bg-clip-padding`}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <span className="font-display text-[17px] font-semibold text-ink leading-snug">
+                        {entry.capture.item}
+                      </span>
+                      {entry.definition && (
+                        <p className="mt-0.5 text-sm text-dim/80 leading-relaxed line-clamp-1">
+                          {entry.definition}
+                        </p>
+                      )}
+                      {tags.length > 0 && (
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {tags.map((tag) => (
+                            <TagChip key={tag} tag={tag} />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+// ────────────────────────── Variant F — Featured Hero ──────────────────────────
+
+export function VariantF({
+  entries,
+  query,
+  isLoading,
+}: {
+  entries: Entry[];
+  query: string;
+  isLoading: boolean;
+}) {
+  if (isLoading)
+    return <p className="mx-5 mt-8 text-center text-sm text-dim">Loading...</p>;
+  if (entries.length === 0) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 pb-16">
+        <CalendarIcon className="h-10 w-10 text-dim/25" />
+        <p className="text-sm text-dim">
+          {query ? "No results" : "Your word bank is empty"}
+        </p>
+      </div>
+    );
+  }
+
+  const [hero] = entries;
+  const heroTags: string[] = (() => {
+    try {
+      return JSON.parse(hero.tags) as string[];
+    } catch {
+      return [];
+    }
+  })();
+  const rest = entries.slice(1);
+
+  return (
+    <div className="flex flex-col gap-4 px-3 pb-16">
+      {/* Hero card — latest entry */}
+      <div className="rounded-card border border-divider/30 bg-surface p-4 shadow-sm">
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-accent/60">
+          Latest
+        </span>
+        <Link to={`/wordbank/${hero.id}`} className="block mt-1 group">
+          <h2 className="font-display text-[24px] font-bold text-ink leading-tight group-hover:text-accent transition-colors">
+            {hero.capture.item}
+          </h2>
+          {hero.definition && (
+            <p className="mt-2 text-sm text-dim leading-relaxed">
+              {hero.definition}
+            </p>
+          )}
+          {hero.translationArabic && (
+            <p className="mt-2 text-sm text-dim font-arabic text-end">
+              {hero.translationArabic}
+            </p>
+          )}
+          {heroTags.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {heroTags.map((tag) => (
+                <TagChip key={tag} tag={tag} />
+              ))}
+            </div>
+          )}
+          {hero.source && (
+            <div className="mt-2 flex items-center gap-2">
+              <span className="inline-flex items-center rounded-full border border-divider px-2.5 py-0.5 text-[10px] text-dim">
+                {hero.source.name}
+              </span>
+            </div>
+          )}
+        </Link>
+      </div>
+
+      {/* Rest — compact dated list */}
+      {rest.length > 0 && (
+        <>
+          {Object.entries(groupByDate(rest)).map(([label, groupEntries]) => (
+            <section key={label}>
+              <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-dim/40">
+                {label}
+              </h3>
+              <ul className="flex flex-col gap-1">
+                {groupEntries.map((entry) => (
+                  <li key={entry.id}>
+                    <Link
+                      to={`/wordbank/${entry.id}`}
+                      className="flex items-center gap-3 rounded-card px-3 py-2.5 transition-colors hover:bg-surface group"
+                    >
+                      <span className="font-display text-[15px] font-semibold text-ink truncate group-hover:text-accent transition-colors">
+                        {entry.capture.item}
+                      </span>
+                      <span className="text-xs text-dim/60 truncate hidden sm:inline flex-1">
+                        {entry.definition?.slice(0, 60)}
+                        {entry.definition && entry.definition.length > 60
+                          ? "…"
+                          : ""}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ────────────────────────── Variant G — Masonry Moodboard ──────────────────────────
+
+export function VariantG({
+  entries,
+  query,
+  isLoading,
+}: {
+  entries: Entry[];
+  query: string;
+  isLoading: boolean;
+}) {
+  if (isLoading)
+    return <p className="mx-5 mt-8 text-center text-sm text-dim">Loading...</p>;
+  if (entries.length === 0) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 pb-16">
+        <CalendarIcon className="h-10 w-10 text-dim/25" />
+        <p className="text-sm text-dim">
+          {query ? "No matches" : "Your word bank is empty"}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="columns-2 gap-3 px-3 pb-16">
+      {entries.map((entry) => {
+        const tags: string[] = (() => {
+          try {
+            return JSON.parse(entry.tags) as string[];
+          } catch {
+            return [];
+          }
+        })();
+        const borderColor = sourceColor(entry.source?.name ?? "").split(" ")[0]; // "border-l-accent"
+
+        return (
+          <Link
+            key={entry.id}
+            to={`/wordbank/${entry.id}`}
+            className={`block mb-3 break-inside-avoid rounded-card border border-divider/20 bg-surface p-3.5 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 ${borderColor.replace("border-l-", "border-t-")} border-t-[3px]`}
+          >
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className="text-[10px] font-medium uppercase tracking-wider text-dim/50">
+                {entry.source?.name ?? ""}
+              </span>
+            </div>
+            <span className="font-display text-[18px] font-bold text-ink leading-snug">
+              {entry.capture.item}
+            </span>
+            {entry.definition && (
+              <p className="mt-1.5 text-[13px] text-dim/80 leading-relaxed">
+                {entry.definition}
+              </p>
+            )}
+            {tags.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {tags.slice(0, 3).map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center rounded-full bg-accent-subtle/60 px-2 py-0.5 text-[10px] text-dim/70"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+          </Link>
+        );
+      })}
     </div>
   );
 }
