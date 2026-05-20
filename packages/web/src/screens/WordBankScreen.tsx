@@ -4,13 +4,9 @@ import { useSearchParams } from "react-router-dom";
 import { trpc } from "../trpc";
 import {
   PrototypeSwitcher,
-  VariantA,
-  VariantB,
-  VariantC,
-  VariantD,
-  VariantE,
-  VariantF,
-  VariantG,
+  VariantH,
+  VariantI,
+  VariantJ,
 } from "./WordBankScreen/prototype-variants";
 
 export function WordBankScreen() {
@@ -48,14 +44,14 @@ export function WordBankScreen() {
   const entries = query.length > 0 ? (search.data ?? []) : (recent.data ?? []);
 
   // Prototype: read variant from URL
-  const variant = (searchParams.get("variant") ?? "A").toUpperCase();
+  const variant = (searchParams.get("variant") ?? "H").toUpperCase();
 
   // Keyboard arrows to cycle prototypes
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA") return;
-      const variants = ["A", "B", "C", "D", "E", "F", "G"];
+      const variants = ["H", "I", "J"];
       const idx = variants.indexOf(variant);
       if (e.key === "ArrowLeft" && idx > 0) {
         setSearchParams((p) => {
@@ -110,26 +106,14 @@ export function WordBankScreen() {
       </div>
 
       {/* Variant rendering */}
-      {variant === "A" && (
-        <VariantA entries={entries} query={query} isLoading={isLoading} />
+      {variant === "H" && (
+        <VariantH entries={entries} query={query} isLoading={isLoading} />
       )}
-      {variant === "B" && (
-        <VariantB entries={entries} query={query} isLoading={isLoading} />
+      {variant === "I" && (
+        <VariantI entries={entries} query={query} isLoading={isLoading} />
       )}
-      {variant === "C" && (
-        <VariantC entries={entries} query={query} isLoading={isLoading} />
-      )}
-      {variant === "D" && (
-        <VariantD entries={entries} query={query} isLoading={isLoading} />
-      )}
-      {variant === "E" && (
-        <VariantE entries={entries} query={query} isLoading={isLoading} />
-      )}
-      {variant === "F" && (
-        <VariantF entries={entries} query={query} isLoading={isLoading} />
-      )}
-      {variant === "G" && (
-        <VariantG entries={entries} query={query} isLoading={isLoading} />
+      {variant === "J" && (
+        <VariantJ entries={entries} query={query} isLoading={isLoading} />
       )}
 
       {/* Prototype switcher */}
