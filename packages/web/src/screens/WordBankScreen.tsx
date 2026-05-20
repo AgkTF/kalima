@@ -134,7 +134,7 @@ export function WordBankScreen() {
           {Object.entries(groupByDate(entries)).map(([label, group]) => (
             <section key={label}>
               {/* Date header */}
-              <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-dim/35">
+              <h3 className="mb-2 text-center text-[10px] font-semibold uppercase tracking-[0.15em] text-dim/35">
                 {label}
               </h3>
 
