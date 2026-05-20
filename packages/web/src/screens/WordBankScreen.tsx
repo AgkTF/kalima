@@ -1,7 +1,14 @@
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { trpc } from "../trpc";
+import {
+  PrototypeSwitcher,
+  VariantA,
+  VariantB,
+  VariantC,
+  VariantD,
+} from "./WordBankScreen/prototype-variants";
 
 export function WordBankScreen() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -37,6 +44,35 @@ export function WordBankScreen() {
 
   const entries = query.length > 0 ? (search.data ?? []) : (recent.data ?? []);
 
+  // Prototype: read variant from URL
+  const variant = (searchParams.get("variant") ?? "A").toUpperCase();
+
+  // Keyboard arrows to cycle prototypes
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      const variants = ["A", "B", "C", "D"];
+      const idx = variants.indexOf(variant);
+      if (e.key === "ArrowLeft" && idx > 0) {
+        setSearchParams((p) => {
+          p.set("variant", variants[idx - 1]);
+          return p;
+        });
+      }
+      if (e.key === "ArrowRight" && idx < variants.length - 1) {
+        setSearchParams((p) => {
+          p.set("variant", variants[idx + 1]);
+          return p;
+        });
+      }
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [variant, setSearchParams]);
+
+  const isLoading = recent.isLoading || search.isLoading;
+
   return (
     <main className="flex flex-1 flex-col pb-16">
       {/* Header */}
@@ -70,51 +106,22 @@ export function WordBankScreen() {
         )}
       </div>
 
-      {/* Loading state */}
-      {(recent.isLoading || search.isLoading) && (
-        <p className="mx-5 mt-8 text-center text-sm text-dim">Loading...</p>
+      {/* Variant rendering */}
+      {variant === "A" && (
+        <VariantA entries={entries} query={query} isLoading={isLoading} />
+      )}
+      {variant === "B" && (
+        <VariantB entries={entries} query={query} isLoading={isLoading} />
+      )}
+      {variant === "C" && (
+        <VariantC entries={entries} query={query} isLoading={isLoading} />
+      )}
+      {variant === "D" && (
+        <VariantD entries={entries} query={query} isLoading={isLoading} />
       )}
 
-      {/* Empty state */}
-      {!recent.isLoading &&
-        !search.isLoading &&
-        entries.length === 0 &&
-        query.length === 0 && (
-          <div className="flex flex-1 items-center justify-center pb-16">
-            <p className="font-ui text-dim">Your word bank is empty</p>
-          </div>
-        )}
-
-      {/* No results */}
-      {!search.isLoading && query.length > 0 && entries.length === 0 && (
-        <p className="mx-5 mt-8 text-center text-sm text-dim">
-          No entries found for &ldquo;{query}&rdquo;
-        </p>
-      )}
-
-      {/* Entries list */}
-      <ul className="flex flex-col gap-1 px-3">
-        {entries.map((entry) => (
-          <li key={entry.id}>
-            <Link
-              to={`/wordbank/${entry.id}`}
-              className="flex flex-col rounded-card px-3 py-3 transition-colors hover:bg-surface"
-            >
-              <span className="font-display text-base font-semibold text-ink">
-                {entry.capture.item}
-              </span>
-              {entry.capture.locator && (
-                <span className="mt-0.5 text-xs text-dim">
-                  {entry.capture.locator}
-                </span>
-              )}
-              <span className="mt-1 line-clamp-1 text-sm text-dim font-arabic">
-                {entry.translationArabic}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+      {/* Prototype switcher */}
+      <PrototypeSwitcher current={variant} />
     </main>
   );
 }
