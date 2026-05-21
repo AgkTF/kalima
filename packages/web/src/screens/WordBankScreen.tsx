@@ -31,23 +31,86 @@ function groupByDate<T extends { enrichedAt: string }>(
   return groups;
 }
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
-
 function parseTags(raw: string): string[] {
   try {
     return JSON.parse(raw) as string[];
   } catch {
     return [];
   }
+}
+
+function groupByLetter<T extends { capture: { item: string } }>(
+  entries: T[],
+): Record<string, T[]> {
+  const groups: Record<string, T[]> = {};
+  for (const e of entries) {
+    const letter = e.capture.item.charAt(0).toUpperCase();
+    if (!groups[letter]) groups[letter] = [];
+    groups[letter].push(e);
+  }
+  return groups;
+}
+
+const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+function SectionHeader({ label }: { label: string }) {
+  return (
+    <div className="mb-2 flex items-center gap-3">
+      <span className="h-px flex-1 bg-divider/30" />
+      <h3 className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.15em] text-dim/35">
+        {label}
+      </h3>
+      <span className="h-px flex-1 bg-divider/30" />
+    </div>
+  );
+}
+
+// ── components ──
+
+function EntryGroup({
+  entries,
+}: {
+  entries: Array<{
+    id: number;
+    capture: { item: string };
+    translationArabic: string;
+    tags: string;
+  }>;
+}) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      {entries.map((entry) => {
+        const tags = parseTags(entry.tags);
+
+        return (
+          <Link
+            key={entry.id}
+            to={`/wordbank/${entry.id}`}
+            className="group block rounded-card px-3 py-2.5 -mx-3 transition-colors hover:bg-surface/80"
+          >
+            {/* Word + Arabic — bilingual typographic pair */}
+            <h2 className="flex items-baseline justify-between gap-3">
+              <span className="font-display text-[17px] font-semibold text-ink leading-snug group-hover:text-accent transition-colors">
+                {entry.capture.item}
+              </span>
+              {entry.translationArabic && (
+                <span className="shrink-0 max-w-[45%] truncate font-arabic text-[15px] text-dim/75 text-end leading-snug">
+                  {entry.translationArabic}
+                </span>
+              )}
+            </h2>
+
+            {/* Tags */}
+            {tags.length > 0 && (
+              <div className="mt-1 flex items-center gap-2 text-[11px] text-dim/50 flex-wrap">
+                {tags.slice(0, 3).join(", ")}
+              </div>
+            )}
+          </Link>
+        );
+      })}
+    </div>
+  );
 }
 
 // ── screen ──
@@ -69,6 +132,11 @@ export function WordBankScreen() {
     return () => clearTimeout(timer);
   }, [input, query, setSearchParams]);
 
+  // When URL is cleared externally (e.g. tab navigation), reset the input
+  useEffect(() => {
+    if (query === "") setInput("");
+  }, [query]);
+
   const recent = trpc.wordBank.getRecent.useQuery(undefined, {
     enabled: query.length === 0,
     refetchOnMount: true,
@@ -80,6 +148,26 @@ export function WordBankScreen() {
 
   const entries = query.length > 0 ? (search.data ?? []) : (recent.data ?? []);
   const isLoading = recent.isLoading || search.isLoading;
+  const [sort, setSort] = useState<"recent" | "alpha" | "shuffle">("recent");
+
+  const sorted = (() => {
+    const copy = [...entries];
+    switch (sort) {
+      case "alpha":
+        return copy.sort((a, b) =>
+          a.capture.item.localeCompare(b.capture.item),
+        );
+      case "shuffle":
+        // Deterministic-ish shuffle using a simple hash so it stays stable during the session
+        for (let i = copy.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        return copy;
+      default:
+        return copy; // "recent" — already sorted by enrichedAt desc from server
+    }
+  })();
 
   return (
     <main className="flex flex-1 flex-col pb-16">
@@ -114,6 +202,27 @@ export function WordBankScreen() {
         )}
       </div>
 
+      {/* Sort controls */}
+      {!isLoading && sorted.length > 0 && (
+        <div className="mx-5 mb-3 flex items-center gap-1">
+          <span className="text-[10px] text-dim/40 mr-1">Sort</span>
+          {(["recent", "alpha", "shuffle"] as const).map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setSort(s)}
+              className={`rounded-full px-2.5 py-0.5 text-[11px] cursor-pointer transition-colors ${
+                sort === s
+                  ? "bg-accent text-white"
+                  : "text-dim/50 hover:text-dim hover:bg-accent-subtle"
+              }`}
+            >
+              {s === "recent" ? "Recent" : s === "alpha" ? "A–Z" : "Shuffle ✦"}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Loading */}
       {isLoading && (
         <p className="mx-5 mt-8 text-center text-sm text-dim">Loading…</p>
@@ -128,52 +237,59 @@ export function WordBankScreen() {
         </div>
       )}
 
-      {/* Entries — typographic journal */}
-      {!isLoading && entries.length > 0 && (
-        <div className="flex flex-col gap-5 px-5">
-          {Object.entries(groupByDate(entries)).map(([label, group]) => (
-            <section key={label}>
-              {/* Date header */}
-              <h3 className="mb-2 text-center text-[10px] font-semibold uppercase tracking-[0.15em] text-dim/35">
-                {label}
-              </h3>
+      {/* Entries */}
+      {!isLoading && sorted.length > 0 && (
+        <div className="relative flex flex-1">
+          {/* Entry list */}
+          <div
+            className={`flex flex-col gap-5 flex-1 min-w-0 px-5 ${sort === "alpha" ? "pr-10" : ""}`}
+          >
+            {sort === "recent" &&
+              Object.entries(groupByDate(sorted)).map(([label, group]) => (
+                <section key={label}>
+                  <SectionHeader label={label} />
+                  <EntryGroup entries={group} />
+                </section>
+              ))}
 
-              <div className="flex flex-col gap-0.5">
-                {group.map((entry) => {
-                  const tags = parseTags(entry.tags);
+            {sort === "alpha" &&
+              Object.entries(groupByLetter(sorted)).map(([letter, group]) => (
+                <section key={letter} id={`section-${letter}`}>
+                  <SectionHeader label={letter} />
+                  <EntryGroup entries={group} />
+                </section>
+              ))}
 
-                  return (
-                    <Link
-                      key={entry.id}
-                      to={`/wordbank/${entry.id}`}
-                      className="group block rounded-card px-3 py-2.5 -mx-3 transition-colors hover:bg-surface/80"
-                    >
-                      {/* Word — the typographic anchor */}
-                      <h2 className="font-display text-[17px] font-semibold text-ink leading-snug group-hover:text-accent transition-colors">
-                        {entry.capture.item}
-                      </h2>
+            {sort === "shuffle" && <EntryGroup entries={sorted} />}
+          </div>
 
-                      {/* Definition */}
-                      {entry.definition && (
-                        <p className="mt-0.5 text-[13px] text-dim/70 leading-relaxed line-clamp-2">
-                          {entry.definition}
-                        </p>
-                      )}
-
-                      {/* Meta row: tags · time */}
-                      <div className="mt-1.5 flex items-center gap-2 text-[10px] text-dim/45 flex-wrap">
-                        {tags.length > 0 && (
-                          <span>{tags.slice(0, 3).join(", ")}</span>
-                        )}
-                        {tags.length > 0 && <span aria-hidden="true">·</span>}
-                        <span>{timeAgo(entry.enrichedAt)}</span>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
+          {/* Alphabetical scrubber — right edge, A–Z mode only */}
+          {sort === "alpha" && (
+            <nav className="fixed right-1 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-px py-2">
+              {ALPHABET.map((letter) => {
+                const exists = sorted.some(
+                  (e) => e.capture.item.charAt(0).toUpperCase() === letter,
+                );
+                return (
+                  <button
+                    key={letter}
+                    type="button"
+                    onClick={() => {
+                      const el = document.getElementById(`section-${letter}`);
+                      el?.scrollIntoView({ behavior: "smooth" });
+                    }}
+                    className={`text-[10px] font-medium px-1 py-0.5 rounded-sm cursor-pointer transition-colors ${
+                      exists
+                        ? "text-dim/60 hover:text-accent"
+                        : "text-dim/20 pointer-events-none"
+                    }`}
+                  >
+                    {letter}
+                  </button>
+                );
+              })}
+            </nav>
+          )}
         </div>
       )}
     </main>
