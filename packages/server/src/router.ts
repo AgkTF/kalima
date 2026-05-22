@@ -203,7 +203,7 @@ export const appRouter = t.router({
     removeSource: t.procedure
       .input(z.object({ entryId: z.number() }))
       .mutation(async ({ input, ctx }) =>
-        WordBankService.removeSource(input.entryId, ctx.prisma),
+        WordBankService.removeSource(input.entryId, ctx.prisma, ctx.fts),
       ),
     updateField: t.procedure
       .input(

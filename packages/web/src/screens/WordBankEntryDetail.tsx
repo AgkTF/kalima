@@ -225,10 +225,10 @@ export function WordBankEntryDetail() {
                   <button
                     type="button"
                     onClick={() => removeSource.mutate({ entryId: id })}
-                    className="ml-1 text-dim/30 hover:text-dim active:scale-[0.96] transition-all cursor-pointer"
+                    className="ml-1 text-dim/25 hover:text-dim active:scale-[0.96] transition-all cursor-pointer"
                     aria-label="Remove source"
                   >
-                    <XMarkIcon className="h-3 w-3" />
+                    <XMarkIcon className="h-2.5 w-2.5" />
                   </button>
                 </>
               )}

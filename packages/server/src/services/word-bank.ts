@@ -138,7 +138,11 @@ export const WordBankService = {
     });
   },
 
-  async removeSource(entryId: number, prisma: PrismaClient): Promise<void> {
+  async removeSource(
+    entryId: number,
+    prisma: PrismaClient,
+    fts: FTSSearchHelper,
+  ): Promise<void> {
     const entry = await prisma.entry.findUnique({
       where: { id: entryId },
       select: { captureId: true },
@@ -149,5 +153,30 @@ export const WordBankService = {
       where: { id: entry.captureId },
       data: { sessionId: null },
     });
+
+    // Re-index to drop the source name from FTS5
+    const updated = await prisma.entry.findUnique({
+      where: { id: entryId },
+      include: {
+        capture: {
+          include: { session: { include: { source: true } } },
+        },
+      },
+    });
+    if (updated) {
+      const text = [
+        updated.capture.item,
+        updated.definition,
+        updated.translationArabic,
+        updated.nuance,
+        updated.examples,
+        ...JSON.parse(updated.tags || "[]"),
+        ...JSON.parse(updated.relatedEntries || "[]"),
+        updated.capture.session?.source.name ?? "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+      await fts.indexEntry({ entryId: updated.id, text });
+    }
   },
 };

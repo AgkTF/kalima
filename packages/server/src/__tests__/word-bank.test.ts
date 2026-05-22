@@ -278,7 +278,7 @@ describe("WordBankService", () => {
       const { entry, session } =
         await createApprovedEntry("remove-source-word");
 
-      await wordBank.removeSource(entry.id, prisma);
+      await wordBank.removeSource(entry.id, prisma, fts);
 
       const updated = await prisma.capture.findUnique({
         where: { id: entry.captureId },
