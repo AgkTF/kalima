@@ -137,4 +137,17 @@ export const WordBankService = {
       data: { tags: JSON.stringify(filtered) },
     });
   },
+
+  async removeSource(entryId: number, prisma: PrismaClient): Promise<void> {
+    const entry = await prisma.entry.findUnique({
+      where: { id: entryId },
+      select: { captureId: true },
+    });
+    if (!entry) return;
+
+    await prisma.capture.update({
+      where: { id: entry.captureId },
+      data: { sessionId: null },
+    });
+  },
 };

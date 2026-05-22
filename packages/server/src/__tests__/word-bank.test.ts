@@ -272,4 +272,18 @@ describe("WordBankService", () => {
       expect(updated?.tags).toContain("only-tag");
     });
   });
+
+  describe("removeSource", () => {
+    it("sets the capture's sessionId to null, detaching the source", async () => {
+      const { entry, session } =
+        await createApprovedEntry("remove-source-word");
+
+      await wordBank.removeSource(entry.id, prisma);
+
+      const updated = await prisma.capture.findUnique({
+        where: { id: entry.captureId },
+      });
+      expect(updated?.sessionId).toBeNull();
+    });
+  });
 });

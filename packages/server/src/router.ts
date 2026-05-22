@@ -200,6 +200,11 @@ export const appRouter = t.router({
       .mutation(async ({ input, ctx }) =>
         WordBankService.removeTag(input.entryId, input.tag, ctx.prisma),
       ),
+    removeSource: t.procedure
+      .input(z.object({ entryId: z.number() }))
+      .mutation(async ({ input, ctx }) =>
+        WordBankService.removeSource(input.entryId, ctx.prisma),
+      ),
     updateField: t.procedure
       .input(
         z.object({

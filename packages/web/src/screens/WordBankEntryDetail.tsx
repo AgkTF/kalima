@@ -83,6 +83,12 @@ export function WordBankEntryDetail() {
     },
   });
 
+  const removeSource = trpc.wordBank.removeSource.useMutation({
+    onSuccess: () => {
+      utils.wordBank.getEntry.invalidate({ entryId: id });
+    },
+  });
+
   const [editText, setEditText] = useState("");
 
   // Click outside deselects
@@ -216,6 +222,14 @@ export function WordBankEntryDetail() {
                   >
                     {source.name}
                   </Link>
+                  <button
+                    type="button"
+                    onClick={() => removeSource.mutate({ entryId: id })}
+                    className="ml-1 text-dim/30 hover:text-dim active:scale-[0.96] transition-all cursor-pointer"
+                    aria-label="Remove source"
+                  >
+                    <XMarkIcon className="h-3 w-3" />
+                  </button>
                 </>
               )}
               {source && e.capture.locator && (
