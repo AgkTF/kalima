@@ -210,33 +210,31 @@ export function WordBankEntryDetail() {
             onRemove={(tag: string) => removeTag.mutate({ entryId: id, tag })}
           />
 
-          {/* Source + locator byline */}
+          {/* Source + locator */}
           {(source || e.capture.locator) && (
-            <p className="text-xs text-dim/70 mt-0.5">
+            <div className="flex items-center gap-1.5">
               {source && (
-                <>
-                  from{" "}
+                <span className="inline-flex items-center gap-1 rounded-button border border-divider px-2 py-0.5 text-[10px] font-medium text-dim">
                   <Link
                     to={`/wordbank?q=${encodeURIComponent(source.name)}`}
-                    className="font-medium text-dim hover:text-accent decoration-dotted underline decoration-dim/25 hover:decoration-accent/50 underline-offset-2 transition-colors"
+                    className="hover:text-ink transition-colors"
                   >
                     {source.name}
                   </Link>
                   <button
                     type="button"
                     onClick={() => removeSource.mutate({ entryId: id })}
-                    className="ml-1 text-dim/25 hover:text-dim active:scale-[0.96] transition-all cursor-pointer"
+                    className="text-dim/25 hover:text-dim active:scale-[0.96] transition-all cursor-pointer"
                     aria-label="Remove source"
                   >
                     <XMarkIcon className="h-2.5 w-2.5" />
                   </button>
-                </>
+                </span>
               )}
-              {source && e.capture.locator && (
-                <span className="mx-1.5 text-dim/30">·</span>
+              {e.capture.locator && (
+                <span className="text-xs text-dim/70">{e.capture.locator}</span>
               )}
-              {e.capture.locator && <span>{e.capture.locator}</span>}
-            </p>
+            </div>
           )}
         </div>
 
