@@ -218,7 +218,7 @@ describe("WordBankService", () => {
         tags: '["existing-tag"]',
       });
 
-      await wordBank.addTag(entry.id, "new-tag", prisma);
+      await wordBank.addTag(entry.id, "new-tag", prisma, fts);
 
       const updated = await prisma.entry.findUnique({
         where: { id: entry.id },
@@ -232,7 +232,7 @@ describe("WordBankService", () => {
         tags: '["only-tag"]',
       });
 
-      await wordBank.addTag(entry.id, "only-tag", prisma);
+      await wordBank.addTag(entry.id, "only-tag", prisma, fts);
 
       const updated = await prisma.entry.findUnique({
         where: { id: entry.id },
@@ -249,7 +249,7 @@ describe("WordBankService", () => {
         tags: '["keep-me","remove-me","also-keep"]',
       });
 
-      await wordBank.removeTag(entry.id, "remove-me", prisma);
+      await wordBank.removeTag(entry.id, "remove-me", prisma, fts);
 
       const updated = await prisma.entry.findUnique({
         where: { id: entry.id },
@@ -264,7 +264,7 @@ describe("WordBankService", () => {
         tags: '["only-tag"]',
       });
 
-      await wordBank.removeTag(entry.id, "never-added", prisma);
+      await wordBank.removeTag(entry.id, "never-added", prisma, fts);
 
       const updated = await prisma.entry.findUnique({
         where: { id: entry.id },

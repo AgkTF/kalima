@@ -193,12 +193,17 @@ export const appRouter = t.router({
     addTag: t.procedure
       .input(z.object({ entryId: z.number(), tag: z.string().min(1) }))
       .mutation(async ({ input, ctx }) =>
-        WordBankService.addTag(input.entryId, input.tag, ctx.prisma),
+        WordBankService.addTag(input.entryId, input.tag, ctx.prisma, ctx.fts),
       ),
     removeTag: t.procedure
       .input(z.object({ entryId: z.number(), tag: z.string().min(1) }))
       .mutation(async ({ input, ctx }) =>
-        WordBankService.removeTag(input.entryId, input.tag, ctx.prisma),
+        WordBankService.removeTag(
+          input.entryId,
+          input.tag,
+          ctx.prisma,
+          ctx.fts,
+        ),
       ),
     removeSource: t.procedure
       .input(z.object({ entryId: z.number() }))

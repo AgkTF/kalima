@@ -100,6 +100,7 @@ export const WordBankService = {
     entryId: number,
     tag: string,
     prisma: PrismaClient,
+    fts: FTSSearchHelper,
   ): Promise<void> {
     const entry = await prisma.entry.findUnique({
       where: { id: entryId },
@@ -116,12 +117,27 @@ export const WordBankService = {
       where: { id: entryId },
       data: { tags: JSON.stringify(tags) },
     });
+
+    // Re-index to include the new tag in FTS5
+    const updated = await prisma.entry.findUnique({
+      where: { id: entryId },
+      include: {
+        capture: {
+          include: { session: { include: { source: true } } },
+        },
+      },
+    });
+    if (updated) {
+      const text = FTSSearchHelper.buildText(updated);
+      await fts.indexEntry({ entryId: updated.id, text });
+    }
   },
 
   async removeTag(
     entryId: number,
     tag: string,
     prisma: PrismaClient,
+    fts: FTSSearchHelper,
   ): Promise<void> {
     const entry = await prisma.entry.findUnique({
       where: { id: entryId },
@@ -136,6 +152,20 @@ export const WordBankService = {
       where: { id: entryId },
       data: { tags: JSON.stringify(filtered) },
     });
+
+    // Re-index to drop the removed tag from FTS5
+    const updated = await prisma.entry.findUnique({
+      where: { id: entryId },
+      include: {
+        capture: {
+          include: { session: { include: { source: true } } },
+        },
+      },
+    });
+    if (updated) {
+      const text = FTSSearchHelper.buildText(updated);
+      await fts.indexEntry({ entryId: updated.id, text });
+    }
   },
 
   async removeSource(
