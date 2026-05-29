@@ -91,6 +91,12 @@ describe("ReviewService.badgeCount", () => {
 describe("ReviewService.approve", () => {
   const adapter = new PrismaBetterSqlite3({ url: "file:./prisma/test.db" });
   const prisma = new PrismaClient({ adapter });
+  let fts: FTSSearchHelper;
+
+  beforeAll(async () => {
+    fts = new FTSSearchHelper(prisma);
+    await fts.initialize();
+  });
 
   afterAll(async () => {
     await prisma.$disconnect();
@@ -118,7 +124,7 @@ describe("ReviewService.approve", () => {
 
     expect(entry.status).toBe("pending_review");
 
-    await ReviewService.approve(entry.id, prisma);
+    await ReviewService.approve(entry.id, prisma, fts);
 
     const updated = await prisma.entry.findUnique({ where: { id: entry.id } });
     expect(updated?.status).toBe("approved");
@@ -128,6 +134,12 @@ describe("ReviewService.approve", () => {
 describe("ReviewService.approveAll", () => {
   const adapter = new PrismaBetterSqlite3({ url: "file:./prisma/test.db" });
   const prisma = new PrismaClient({ adapter });
+  let fts: FTSSearchHelper;
+
+  beforeAll(async () => {
+    fts = new FTSSearchHelper(prisma);
+    await fts.initialize();
+  });
 
   afterAll(async () => {
     await prisma.$disconnect();
@@ -190,7 +202,7 @@ describe("ReviewService.approveAll", () => {
     });
     const ids = entries.map((e) => e.id);
 
-    await ReviewService.approveAll(ids, prisma);
+    await ReviewService.approveAll(ids, prisma, fts);
 
     const after = await prisma.entry.findMany({
       where: { id: { in: ids } },

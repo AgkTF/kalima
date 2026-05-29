@@ -5,6 +5,16 @@ export interface IndexEntryInput {
   text: string;
 }
 
+export interface FTSBuildTextInput {
+  capture: { item: string; session?: { source?: { name: string } } | null };
+  definition: string;
+  translationArabic: string;
+  nuance: string;
+  examples: string;
+  tags: string;
+  relatedEntries: string;
+}
+
 export class FTSSearchHelper {
   private prisma: PrismaClient;
 
@@ -62,6 +72,21 @@ export class FTSSearchHelper {
     )) as Array<{ entry_id: number }>;
 
     return rows.map((r) => r.entry_id);
+  }
+
+  static buildText(entry: FTSBuildTextInput): string {
+    return [
+      entry.capture.item,
+      entry.definition,
+      entry.translationArabic,
+      entry.nuance,
+      entry.examples,
+      ...JSON.parse(entry.tags || "[]"),
+      ...JSON.parse(entry.relatedEntries || "[]"),
+      entry.capture.session?.source?.name ?? "",
+    ]
+      .filter(Boolean)
+      .join(" ");
   }
 
   async deIndexEntry(entryId: number): Promise<void> {

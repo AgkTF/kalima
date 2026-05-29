@@ -1,5 +1,5 @@
 import type { PrismaClient } from "../generated/prisma/client.js";
-import type { FTSSearchHelper } from "./fts-search-helper.js";
+import { FTSSearchHelper } from "./fts-search-helper.js";
 
 export interface EntryWithCapture {
   id: number;
@@ -50,32 +50,28 @@ export const ReviewService = {
   async approve(
     entryId: number,
     prisma: PrismaClient,
-    fts?: FTSSearchHelper,
+    fts: FTSSearchHelper,
   ): Promise<void> {
     await prisma.entry.update({
       where: { id: entryId },
       data: { status: "approved" },
     });
 
-    if (fts) {
-      await indexApprovedEntry(entryId, prisma, fts);
-    }
+    await indexApprovedEntry(entryId, prisma, fts);
   },
 
   async approveAll(
     entryIds: number[],
     prisma: PrismaClient,
-    fts?: FTSSearchHelper,
+    fts: FTSSearchHelper,
   ): Promise<void> {
     await prisma.entry.updateMany({
       where: { id: { in: entryIds } },
       data: { status: "approved" },
     });
 
-    if (fts) {
-      for (const entryId of entryIds) {
-        await indexApprovedEntry(entryId, prisma, fts);
-      }
+    for (const entryId of entryIds) {
+      await indexApprovedEntry(entryId, prisma, fts);
     }
   },
 
@@ -206,18 +202,6 @@ async function indexApprovedEntry(
 
   if (!entry) return;
 
-  const text = [
-    entry.capture.item,
-    entry.definition,
-    entry.translationArabic,
-    entry.nuance,
-    entry.examples,
-    ...JSON.parse(entry.tags || "[]"),
-    ...JSON.parse(entry.relatedEntries || "[]"),
-    entry.capture.session?.source.name ?? "",
-  ]
-    .filter(Boolean)
-    .join(" ");
-
+  const text = FTSSearchHelper.buildText(entry);
   await fts.indexEntry({ entryId, text });
 }

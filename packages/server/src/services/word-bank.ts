@@ -1,5 +1,5 @@
 import type { PrismaClient } from "../generated/prisma/client.js";
-import type { FTSSearchHelper } from "./fts-search-helper.js";
+import { FTSSearchHelper } from "./fts-search-helper.js";
 
 export interface WordBankEntry {
   id: number;
@@ -164,18 +164,7 @@ export const WordBankService = {
       },
     });
     if (updated) {
-      const text = [
-        updated.capture.item,
-        updated.definition,
-        updated.translationArabic,
-        updated.nuance,
-        updated.examples,
-        ...JSON.parse(updated.tags || "[]"),
-        ...JSON.parse(updated.relatedEntries || "[]"),
-        updated.capture.session?.source.name ?? "",
-      ]
-        .filter(Boolean)
-        .join(" ");
+      const text = FTSSearchHelper.buildText(updated);
       await fts.indexEntry({ entryId: updated.id, text });
     }
   },
