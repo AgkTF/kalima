@@ -1,119 +1,14 @@
+// ADR 0006: This file is a thin orchestrator.
+// Sub-components → sibling files in this directory.
+// Utilities → utils.ts
+
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { trpc } from "../trpc";
-
-// ── helpers ──
-
-function groupByDate<T extends { enrichedAt: string }>(
-  entries: T[],
-): Record<string, T[]> {
-  const now = new Date();
-  const today = now.toDateString();
-  const yesterday = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate() - 1,
-  ).toDateString();
-
-  const groups: Record<string, T[]> = {};
-  for (const e of entries) {
-    const d = new Date(e.enrichedAt);
-    const key =
-      d.toDateString() === today
-        ? "Today"
-        : d.toDateString() === yesterday
-          ? "Yesterday"
-          : d.toLocaleDateString("en-US", { month: "long", day: "numeric" });
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(e);
-  }
-  return groups;
-}
-
-function parseTags(raw: string): string[] {
-  try {
-    return JSON.parse(raw) as string[];
-  } catch {
-    return [];
-  }
-}
-
-function groupByLetter<T extends { capture: { item: string } }>(
-  entries: T[],
-): Record<string, T[]> {
-  const groups: Record<string, T[]> = {};
-  for (const e of entries) {
-    const letter = e.capture.item.charAt(0).toUpperCase();
-    if (!groups[letter]) groups[letter] = [];
-    groups[letter].push(e);
-  }
-  return groups;
-}
-
-const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-
-function SectionHeader({ label }: { label: string }) {
-  return (
-    <div className="mb-2 flex items-center gap-3">
-      <span className="h-px flex-1 bg-divider/30" />
-      <h3 className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.15em] text-dim/35">
-        {label}
-      </h3>
-      <span className="h-px flex-1 bg-divider/30" />
-    </div>
-  );
-}
-
-// ── components ──
-
-function EntryGroup({
-  entries,
-}: {
-  entries: Array<{
-    id: number;
-    capture: { item: string };
-    translationArabic: string;
-    tags: string;
-  }>;
-}) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      {entries.map((entry) => {
-        const tags = parseTags(entry.tags);
-
-        return (
-          <Link
-            key={entry.id}
-            to={`/wordbank/${entry.id}`}
-            className="group block rounded-card px-3 py-2.5 -mx-3 transition-colors hover:bg-surface/80"
-          >
-            {/* Word + Arabic — bilingual typographic pair */}
-            <h2 className="flex items-baseline justify-between gap-3">
-              <span className="font-display text-[17px] font-semibold text-ink leading-snug group-hover:text-accent transition-colors">
-                {entry.capture.item}
-              </span>
-              {entry.translationArabic && (
-                <span className="shrink-0 max-w-[45%] truncate font-arabic text-[15px] text-dim/75 text-end leading-snug">
-                  {entry.translationArabic}
-                </span>
-              )}
-            </h2>
-
-            {/* Tags */}
-            {tags.length > 0 && (
-              <div className="mt-1 flex items-center gap-2 text-[11px] text-dim/50 flex-wrap">
-                {tags.slice(0, 3).join(", ")}
-              </div>
-            )}
-          </Link>
-        );
-      })}
-    </div>
-  );
-}
-
-// ── screen ──
+import { useSearchParams } from "react-router-dom";
+import { trpc } from "../../trpc";
+import { EntryGroup } from "./EntryGroup";
+import { SectionHeader } from "./SectionHeader";
+import { ALPHABET, groupByDate, groupByLetter } from "./utils";
 
 export function WordBankScreen() {
   const [searchParams, setSearchParams] = useSearchParams();
