@@ -3,7 +3,7 @@
 // Utilities → utils.ts
 
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { trpc } from "../../trpc";
 import { EntryGroup } from "./EntryGroup";
@@ -45,7 +45,7 @@ export function WordBankScreen() {
   const isLoading = recent.isLoading || search.isLoading;
   const [sort, setSort] = useState<"recent" | "alpha" | "shuffle">("recent");
 
-  const sorted = (() => {
+  const sorted = useMemo(() => {
     const copy = [...entries];
     switch (sort) {
       case "alpha":
@@ -62,7 +62,7 @@ export function WordBankScreen() {
       default:
         return copy; // "recent" — already sorted by enrichedAt desc from server
     }
-  })();
+  }, [entries, sort]);
 
   return (
     <main className="flex flex-1 flex-col pb-16">
