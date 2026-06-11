@@ -99,6 +99,29 @@ export function WordBankEntryDetail() {
     );
   }
 
+  // Error
+  if (entry.isError) {
+    return (
+      <main className="flex flex-1 flex-col pb-16">
+        <header className="flex items-center gap-3 px-5 pt-4 pb-2">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="rounded-button p-1 text-dim hover:text-ink cursor-pointer"
+          >
+            <ArrowLeftIcon className="h-5 w-5" />
+          </button>
+          <h1 className="font-display text-lg font-bold text-ink">Error</h1>
+        </header>
+        <div className="flex flex-1 items-center justify-center">
+          <p className="text-dim">
+            {entry.error?.message ?? "Something went wrong"}
+          </p>
+        </div>
+      </main>
+    );
+  }
+
   // Not found
   if (!entry.data) {
     return (
