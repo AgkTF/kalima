@@ -70,8 +70,28 @@ export const ReviewService = {
       data: { status: "approved" },
     });
 
-    for (const entryId of entryIds) {
-      await indexApprovedEntry(entryId, prisma, fts);
+    const results = await Promise.allSettled(
+      entryIds.map((entryId) => indexApprovedEntry(entryId, prisma, fts)),
+    );
+
+    const failures = results
+      .map((r, i) =>
+        r.status === "rejected"
+          ? { entryId: entryIds[i], reason: r.reason }
+          : null,
+      )
+      .filter((f): f is NonNullable<typeof f> => f !== null);
+
+    if (failures.length > 0) {
+      for (const f of failures) {
+        console.error(
+          `[ReviewService.approveAll] Failed to index entry ${f.entryId}:`,
+          f.reason,
+        );
+      }
+      throw new Error(
+        `Failed to index ${failures.length} of ${entryIds.length} approved entries`,
+      );
     }
   },
 
