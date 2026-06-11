@@ -60,6 +60,7 @@ export class FTSSearchHelper {
     // If the user already provided a *, don't double it.
     const terms = sanitized
       .split(/\s+/)
+      .filter((t) => /[^*]/.test(t))
       .map((t) => {
         const term = t.endsWith("*") ? t : `${t}*`;
         return `text : ${term}`;
