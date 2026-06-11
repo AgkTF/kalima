@@ -82,12 +82,20 @@ export class FTSSearchHelper {
       entry.translationArabic,
       entry.nuance,
       entry.examples,
-      ...JSON.parse(entry.tags || "[]"),
-      ...JSON.parse(entry.relatedEntries || "[]"),
+      ...FTSSearchHelper.parseJsonArray(entry.tags),
+      ...FTSSearchHelper.parseJsonArray(entry.relatedEntries),
       entry.capture.session?.source?.name ?? "",
     ]
       .filter(Boolean)
       .join(" ");
+  }
+
+  private static parseJsonArray(raw: string | undefined): string[] {
+    try {
+      return JSON.parse(raw || "[]");
+    } catch {
+      return [];
+    }
   }
 
   async deIndexEntry(entryId: number): Promise<void> {
