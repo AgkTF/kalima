@@ -45,6 +45,7 @@ export function TagsRow({
           onKeyDown={(ev) => {
             if (ev.key === "Enter" && newTag.trim()) {
               onAdd(newTag.trim());
+              setNewTag("");
             }
           }}
           placeholder="Add"
