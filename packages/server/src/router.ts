@@ -1,4 +1,4 @@
-import { initTRPC } from "@trpc/server";
+import { initTRPC, TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { AppService } from "./services/app.js";
 import { CaptureService } from "./services/capture.js";
@@ -224,6 +224,16 @@ export const appRouter = t.router({
         }),
       )
       .mutation(async ({ input, ctx }) => {
+        const exists = await ctx.prisma.entry.findUnique({
+          where: { id: input.entryId },
+          select: { id: true },
+        });
+        if (!exists) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: `Entry ${input.entryId} not found`,
+          });
+        }
         await ctx.prisma.entry.update({
           where: { id: input.entryId },
           data: { [input.field]: input.value },
