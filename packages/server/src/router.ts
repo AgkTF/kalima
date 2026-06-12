@@ -1,4 +1,4 @@
-import { initTRPC } from "@trpc/server";
+import { initTRPC, TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { AppService } from "./services/app.js";
 import { CaptureService } from "./services/capture.js";
@@ -6,10 +6,12 @@ import { EnrichmentService } from "./services/enrichment/enrichment-service.js";
 import { ReviewService } from "./services/review.js";
 import { SessionService } from "./services/session.js";
 import { SourceService } from "./services/source.js";
+import { WordBankService } from "./services/word-bank.js";
 
 export interface AppContext {
   prisma: import("./generated/prisma/client.js").PrismaClient;
   llm: import("./services/llm-client.js").LLMClient;
+  fts: import("./services/fts-search-helper.js").FTSSearchHelper;
 }
 
 const t = initTRPC.context<AppContext>().create();
@@ -127,14 +129,14 @@ export const appRouter = t.router({
     ),
     approve: t.procedure
       .input(z.object({ entryId: z.number() }))
-      .mutation(async ({ input, ctx }) =>
-        ReviewService.approve(input.entryId, ctx.prisma),
-      ),
+      .mutation(async ({ input, ctx }) => {
+        await ReviewService.approve(input.entryId, ctx.prisma, ctx.fts);
+      }),
     approveAll: t.procedure
       .input(z.object({ entryIds: z.array(z.number()) }))
-      .mutation(async ({ input, ctx }) =>
-        ReviewService.approveAll(input.entryIds, ctx.prisma),
-      ),
+      .mutation(async ({ input, ctx }) => {
+        await ReviewService.approveAll(input.entryIds, ctx.prisma, ctx.fts);
+      }),
     reject: t.procedure
       .input(
         z.object({
@@ -172,6 +174,70 @@ export const appRouter = t.router({
             console.error("Re-enrichment failed:", err);
           });
         }
+      }),
+  }),
+  wordBank: t.router({
+    search: t.procedure
+      .input(z.object({ query: z.string().min(1) }))
+      .query(async ({ input, ctx }) =>
+        WordBankService.search(input.query, ctx.prisma, ctx.fts),
+      ),
+    getRecent: t.procedure.query(async ({ ctx }) =>
+      WordBankService.getRecent(ctx.prisma),
+    ),
+    getEntry: t.procedure
+      .input(z.object({ entryId: z.number() }))
+      .query(async ({ input, ctx }) =>
+        WordBankService.getEntry(input.entryId, ctx.prisma),
+      ),
+    addTag: t.procedure
+      .input(z.object({ entryId: z.number(), tag: z.string().min(1) }))
+      .mutation(async ({ input, ctx }) =>
+        WordBankService.addTag(input.entryId, input.tag, ctx.prisma, ctx.fts),
+      ),
+    removeTag: t.procedure
+      .input(z.object({ entryId: z.number(), tag: z.string().min(1) }))
+      .mutation(async ({ input, ctx }) =>
+        WordBankService.removeTag(
+          input.entryId,
+          input.tag,
+          ctx.prisma,
+          ctx.fts,
+        ),
+      ),
+    removeSource: t.procedure
+      .input(z.object({ entryId: z.number() }))
+      .mutation(async ({ input, ctx }) =>
+        WordBankService.removeSource(input.entryId, ctx.prisma, ctx.fts),
+      ),
+    updateField: t.procedure
+      .input(
+        z.object({
+          entryId: z.number(),
+          field: z.enum([
+            "definition",
+            "translationArabic",
+            "nuance",
+            "examples",
+          ]),
+          value: z.string(),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        const exists = await ctx.prisma.entry.findUnique({
+          where: { id: input.entryId },
+          select: { id: true },
+        });
+        if (!exists) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: `Entry ${input.entryId} not found`,
+          });
+        }
+        await ctx.prisma.entry.update({
+          where: { id: input.entryId },
+          data: { [input.field]: input.value },
+        });
       }),
   }),
 });

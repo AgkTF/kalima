@@ -56,7 +56,7 @@ export function BottomTabBar() {
       aria-label="Main navigation"
     >
       {tabs.map((tab) => (
-        <NavLink key={tab.to} to={tab.to} className="flex flex-1">
+        <NavLink key={tab.to} to={tab.to} end className="flex flex-1">
           {({ isActive }) => {
             const Icon = isActive ? tab.solidIcon : tab.outlineIcon;
             return (

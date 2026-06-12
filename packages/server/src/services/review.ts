@@ -1,4 +1,5 @@
 import type { PrismaClient } from "../generated/prisma/client.js";
+import { FTSSearchHelper } from "./fts-search-helper.js";
 
 export interface EntryWithCapture {
   id: number;
@@ -46,18 +47,52 @@ export const ReviewService = {
     });
   },
 
-  async approve(entryId: number, prisma: PrismaClient): Promise<void> {
+  async approve(
+    entryId: number,
+    prisma: PrismaClient,
+    fts: FTSSearchHelper,
+  ): Promise<void> {
     await prisma.entry.update({
       where: { id: entryId },
       data: { status: "approved" },
     });
+
+    await indexApprovedEntry(entryId, prisma, fts);
   },
 
-  async approveAll(entryIds: number[], prisma: PrismaClient): Promise<void> {
+  async approveAll(
+    entryIds: number[],
+    prisma: PrismaClient,
+    fts: FTSSearchHelper,
+  ): Promise<void> {
     await prisma.entry.updateMany({
       where: { id: { in: entryIds } },
       data: { status: "approved" },
     });
+
+    const results = await Promise.allSettled(
+      entryIds.map((entryId) => indexApprovedEntry(entryId, prisma, fts)),
+    );
+
+    const failures = results
+      .map((r, i) =>
+        r.status === "rejected"
+          ? { entryId: entryIds[i], reason: r.reason }
+          : null,
+      )
+      .filter((f): f is NonNullable<typeof f> => f !== null);
+
+    if (failures.length > 0) {
+      for (const f of failures) {
+        console.error(
+          `[ReviewService.approveAll] Failed to index entry ${f.entryId}:`,
+          f.reason,
+        );
+      }
+      throw new Error(
+        `Failed to index ${failures.length} of ${entryIds.length} approved entries`,
+      );
+    }
   },
 
   async reject(
@@ -170,3 +205,23 @@ export const ReviewService = {
     });
   },
 };
+
+async function indexApprovedEntry(
+  entryId: number,
+  prisma: PrismaClient,
+  fts: FTSSearchHelper,
+): Promise<void> {
+  const entry = await prisma.entry.findUnique({
+    where: { id: entryId },
+    include: {
+      capture: {
+        include: { session: { include: { source: true } } },
+      },
+    },
+  });
+
+  if (!entry) return;
+
+  const text = FTSSearchHelper.buildText(entry);
+  await fts.indexEntry({ entryId, text });
+}

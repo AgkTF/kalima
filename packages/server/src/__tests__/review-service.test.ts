@@ -1,8 +1,10 @@
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PrismaClient } from "../generated/prisma/client.js";
+import { FTSSearchHelper } from "../services/fts-search-helper.js";
 import { ReviewService } from "../services/review.js";
 import { SourceService } from "../services/source.js";
+import { WordBankService } from "../services/word-bank.js";
 
 describe("ReviewService.badgeCount", () => {
   const adapter = new PrismaBetterSqlite3({ url: "file:./prisma/test.db" });
@@ -89,6 +91,12 @@ describe("ReviewService.badgeCount", () => {
 describe("ReviewService.approve", () => {
   const adapter = new PrismaBetterSqlite3({ url: "file:./prisma/test.db" });
   const prisma = new PrismaClient({ adapter });
+  let fts: FTSSearchHelper;
+
+  beforeAll(async () => {
+    fts = new FTSSearchHelper(prisma);
+    await fts.initialize();
+  });
 
   afterAll(async () => {
     await prisma.$disconnect();
@@ -116,7 +124,7 @@ describe("ReviewService.approve", () => {
 
     expect(entry.status).toBe("pending_review");
 
-    await ReviewService.approve(entry.id, prisma);
+    await ReviewService.approve(entry.id, prisma, fts);
 
     const updated = await prisma.entry.findUnique({ where: { id: entry.id } });
     expect(updated?.status).toBe("approved");
@@ -126,6 +134,12 @@ describe("ReviewService.approve", () => {
 describe("ReviewService.approveAll", () => {
   const adapter = new PrismaBetterSqlite3({ url: "file:./prisma/test.db" });
   const prisma = new PrismaClient({ adapter });
+  let fts: FTSSearchHelper;
+
+  beforeAll(async () => {
+    fts = new FTSSearchHelper(prisma);
+    await fts.initialize();
+  });
 
   afterAll(async () => {
     await prisma.$disconnect();
@@ -188,7 +202,7 @@ describe("ReviewService.approveAll", () => {
     });
     const ids = entries.map((e) => e.id);
 
-    await ReviewService.approveAll(ids, prisma);
+    await ReviewService.approveAll(ids, prisma, fts);
 
     const after = await prisma.entry.findMany({
       where: { id: { in: ids } },
@@ -521,5 +535,175 @@ describe("ReviewService.reEnrich", () => {
     expect(updated?.rejectionNote).toBeNull();
     // Existing data preserved (enrichment service will overwrite)
     expect(updated?.definition).toBe("Bad");
+  });
+});
+
+describe("approve + FTS5 indexing integration", () => {
+  const adapter = new PrismaBetterSqlite3({ url: "file:./prisma/test.db" });
+  const prisma = new PrismaClient({ adapter });
+  let fts: FTSSearchHelper;
+
+  beforeAll(async () => {
+    fts = new FTSSearchHelper(prisma);
+    await fts.initialize();
+  });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
+  it("indexes an entry into FTS5 when approved", async () => {
+    const source = await SourceService.create("FTS Index Book", "book", prisma);
+    const session = await prisma.session.create({
+      data: { sourceId: source.id },
+    });
+    const capture = await prisma.capture.create({
+      data: {
+        rawText: "sagacious",
+        item: "sagacious",
+        sessionId: session.id,
+      },
+    });
+    const entry = await prisma.entry.create({
+      data: {
+        captureId: capture.id,
+        definition: "Having keen mental discernment and good judgment",
+        translationArabic: "ثاقب الفهم",
+        nuance: "Formal, implies wisdom beyond intelligence",
+        examples: "[]",
+        tags: '["literary","wisdom"]',
+        relatedEntries: "[]",
+      },
+    });
+
+    // Approve with FTS5 indexing
+    await ReviewService.approve(entry.id, prisma, fts);
+
+    // The entry should now appear in Word Bank search
+    const results = await WordBankService.search("sagacious", prisma, fts);
+    expect(results.some((e) => e.id === entry.id)).toBe(true);
+
+    // Should also match on definition text
+    const results2 = await WordBankService.search("discernment", prisma, fts);
+    expect(results2.some((e) => e.id === entry.id)).toBe(true);
+
+    // Should also match on tags
+    const results3 = await WordBankService.search("literary", prisma, fts);
+    expect(results3.some((e) => e.id === entry.id)).toBe(true);
+
+    // Should also match on source name
+    const results4 = await WordBankService.search("FTS Index", prisma, fts);
+    expect(results4.some((e) => e.id === entry.id)).toBe(true);
+  });
+
+  it("indexes entries when batch-approved", async () => {
+    const source = await SourceService.create("Batch FTS Book", "book", prisma);
+    const session = await prisma.session.create({
+      data: { sourceId: source.id },
+    });
+    const c1 = await prisma.capture.create({
+      data: {
+        rawText: "perspicacious",
+        item: "perspicacious",
+        sessionId: session.id,
+      },
+    });
+    const c2 = await prisma.capture.create({
+      data: { rawText: "eloquent", item: "eloquent", sessionId: session.id },
+    });
+
+    const [e1, e2] = await Promise.all([
+      prisma.entry.create({
+        data: {
+          captureId: c1.id,
+          definition: "Having a ready insight into things",
+          translationArabic: "ثاقب البصيرة",
+          nuance: "n",
+          examples: "[]",
+          tags: "[]",
+          relatedEntries: "[]",
+        },
+      }),
+      prisma.entry.create({
+        data: {
+          captureId: c2.id,
+          definition: "Fluent or persuasive in speaking or writing",
+          translationArabic: "فصيح",
+          nuance: "n",
+          examples: "[]",
+          tags: "[]",
+          relatedEntries: "[]",
+        },
+      }),
+    ]);
+
+    await ReviewService.approveAll([e1.id, e2.id], prisma, fts);
+
+    const r1 = await WordBankService.search("perspicacious", prisma, fts);
+    const r2 = await WordBankService.search("eloquent", prisma, fts);
+
+    expect(r1.some((e) => e.id === e1.id)).toBe(true);
+    expect(r2.some((e) => e.id === e2.id)).toBe(true);
+  });
+
+  it("indexes examples so they are searchable", async () => {
+    const source = await SourceService.create("Examples Book", "book", prisma);
+    const session = await prisma.session.create({
+      data: { sourceId: source.id },
+    });
+    const capture = await prisma.capture.create({
+      data: {
+        rawText: "serendipity",
+        item: "serendipity",
+        sessionId: session.id,
+      },
+    });
+    const entry = await prisma.entry.create({
+      data: {
+        captureId: capture.id,
+        definition: "Happy chance",
+        translationArabic: "مصادفة سعيدة",
+        nuance: "Literary",
+        examples: JSON.stringify([
+          "She found the bookstore by pure serendipity.",
+          "The discovery was a moment of serendipity.",
+        ]),
+        tags: "[]",
+        relatedEntries: "[]",
+      },
+    });
+
+    await ReviewService.approve(entry.id, prisma, fts);
+
+    // Searching a word from an example sentence should find the entry
+    const results = await WordBankService.search("bookstore", prisma, fts);
+    expect(results.some((e) => e.id === entry.id)).toBe(true);
+  });
+
+  it("indexes related entries so they are searchable", async () => {
+    const source = await SourceService.create("Related Book", "book", prisma);
+    const session = await prisma.session.create({
+      data: { sourceId: source.id },
+    });
+    const capture = await prisma.capture.create({
+      data: { rawText: "ephemeral", item: "ephemeral", sessionId: session.id },
+    });
+    const entry = await prisma.entry.create({
+      data: {
+        captureId: capture.id,
+        definition: "Lasting for a very short time",
+        translationArabic: "مؤقت",
+        nuance: "n",
+        examples: "[]",
+        tags: "[]",
+        relatedEntries: JSON.stringify(["transient", "fleeting"]),
+      },
+    });
+
+    await ReviewService.approve(entry.id, prisma, fts);
+
+    // Searching a related entry name should find the entry
+    const results = await WordBankService.search("transient", prisma, fts);
+    expect(results.some((e) => e.id === entry.id)).toBe(true);
   });
 });

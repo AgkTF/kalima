@@ -32,3 +32,5 @@ Default canonical labels: `needs-triage`, `needs-info`, `ready-for-agent`, `read
 ### Domain docs
 
 Single-context: `CONTEXT.md` at repo root + `docs/adr/`. See `docs/agents/domain.md`.
+
+When working on screen files (`packages/web/src/screens/`), always read `docs/adr/0006-screen-files-as-thin-orchestrators.md` first. Screen files are thin orchestrators; sub-components, utilities, and types live in sibling files.
