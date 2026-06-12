@@ -30,6 +30,85 @@ export function InlineEdit({
     setEditing(true);
   }
 
+  function renderContent() {
+    // Editing: Arabic
+    if (editing && isArabic) {
+      return (
+        <input
+          // biome-ignore lint/a11y/noAutofocus: intentional for edit UX
+          autoFocus
+          type="text"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          className="w-full font-arabic text-xl text-dim/75 text-end leading-snug px-2 py-1.5 bg-transparent rounded-button outline-none ring-1 ring-accent"
+        />
+      );
+    }
+
+    // Editing: text
+    if (editing) {
+      return (
+        <div className="w-full rounded-button">
+          <textarea
+            // biome-ignore lint/a11y/noAutofocus: intentional for edit UX
+            autoFocus
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            className="w-full rounded-button border border-accent bg-surface px-2 py-1.5 text-sm text-ink leading-relaxed outline-none resize-none text-left"
+            rows={Math.max(
+              2,
+              Math.min(
+                Math.ceil(value.length / 50) +
+                  (value.match(/\n/g) || []).length,
+                6,
+              ),
+            )}
+          />
+        </div>
+      );
+    }
+
+    const buttonClass = `w-full text-left rounded-button transition-colors cursor-pointer ${
+      selected ? "bg-accent-subtle ring-1 ring-accent/20" : "hover:bg-surface"
+    }`;
+
+    // Display: Arabic
+    if (isArabic) {
+      return (
+        <button
+          type="button"
+          onClick={handleFieldClick}
+          className={buttonClass}
+        >
+          {value ? (
+            <p className="px-2 py-1.5 font-arabic text-xl text-dim/75 text-end leading-snug select-text">
+              {value}
+            </p>
+          ) : (
+            <p className="px-2 py-1.5">
+              <span className="text-sm text-dim italic">
+                {placeholder ?? "Empty"}
+              </span>
+            </p>
+          )}
+        </button>
+      );
+    }
+
+    // Display: text
+    return (
+      <button type="button" onClick={handleFieldClick} className={buttonClass}>
+        <p className="px-2 py-1.5 text-sm text-ink leading-relaxed select-text text-left">
+          {value ? (
+            renderEmphasis(value)
+          ) : (
+            <span className="italic text-dim">{placeholder ?? "Empty"}</span>
+          )}
+        </p>
+      </button>
+    );
+  }
+
   return (
     <div className="relative flex flex-col gap-1">
       {/* Label row — absolutely positioned above the field, out of document flow */}
@@ -48,70 +127,7 @@ export function InlineEdit({
         </button>
       </div>
 
-      {editing ? (
-        isArabic ? (
-          <input
-            // biome-ignore lint/a11y/noAutofocus: intentional for edit UX
-            autoFocus
-            type="text"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            className="w-full font-arabic text-xl text-dim/75 text-end leading-snug px-2 py-1.5 bg-transparent rounded-button outline-none ring-1 ring-accent"
-          />
-        ) : (
-          <div className="w-full rounded-button">
-            <textarea
-              // biome-ignore lint/a11y/noAutofocus: intentional for edit UX
-              autoFocus
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              className="w-full rounded-button border border-accent bg-surface px-2 py-1.5 text-sm text-ink leading-relaxed outline-none resize-none text-left"
-              rows={Math.max(
-                2,
-                Math.min(
-                  Math.ceil(value.length / 50) +
-                    (value.match(/\n/g) || []).length,
-                  6,
-                ),
-              )}
-            />
-          </div>
-        )
-      ) : (
-        <button
-          type="button"
-          onClick={handleFieldClick}
-          className={`w-full text-left rounded-button transition-colors cursor-pointer ${
-            selected
-              ? "bg-accent-subtle ring-1 ring-accent/20"
-              : "hover:bg-surface"
-          }`}
-        >
-          {isArabic ? (
-            value ? (
-              <p className="px-2 py-1.5 font-arabic text-xl text-dim/75 text-end leading-snug select-text">
-                {value}
-              </p>
-            ) : (
-              <p className="px-2 py-1.5">
-                <span className="text-sm text-dim italic">
-                  {placeholder ?? "Empty"}
-                </span>
-              </p>
-            )
-          ) : (
-            <p className="px-2 py-1.5 text-sm text-ink leading-relaxed select-text text-left">
-              {value ? (
-                renderEmphasis(value)
-              ) : (
-                <span className="italic text-dim">
-                  {placeholder ?? "Empty"}
-                </span>
-              )}
-            </p>
-          )}
-        </button>
-      )}
+      {renderContent()}
 
       {/* Save/Cancel — only when editing */}
       {editing && (
