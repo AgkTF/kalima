@@ -37,10 +37,16 @@ export const appRouter = t.router({
         z.object({
           name: z.string().min(1),
           type: z.enum(["book", "video", "article"]),
+          enrichmentPromptTemplate: z.string().optional(),
         }),
       )
       .mutation(async ({ input, ctx }) =>
-        SessionService.open(input.name, input.type, ctx.prisma),
+        SessionService.open(
+          input.name,
+          input.type,
+          input.enrichmentPromptTemplate,
+          ctx.prisma,
+        ),
       ),
     close: t.procedure.mutation(async ({ ctx }) => {
       const session = await SessionService.close(ctx.prisma);

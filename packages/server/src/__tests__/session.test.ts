@@ -41,6 +41,7 @@ describe("session.open mutation", () => {
     expect(result).toMatchObject({
       source: { name: "Moby Dick", type: "book" },
       closedAt: null,
+      enrichmentPromptTemplate: null,
     });
     expect(result.sourceId).toBeTypeOf("number");
 
@@ -52,6 +53,7 @@ describe("session.open mutation", () => {
     expect(found).toMatchObject({
       source: { name: "Moby Dick", type: "book" },
       closedAt: null,
+      enrichmentPromptTemplate: null,
     });
 
     // Verify a Source record was created
@@ -64,6 +66,30 @@ describe("session.open mutation", () => {
     // Cleanup
     await prisma.session.delete({ where: { id: result.id } });
     await prisma.source.deleteMany({ where: { name: "Moby Dick" } });
+  });
+
+  it("stores a per-session enrichment prompt template when provided", async () => {
+    const caller = appRouter.createCaller({ prisma, llm: mockLLM });
+
+    const template = "Session-specific template for {{item}}";
+    const result = await caller.session.open({
+      name: "Session Template Book",
+      type: "book",
+      enrichmentPromptTemplate: template,
+    });
+
+    expect(result.enrichmentPromptTemplate).toBe(template);
+
+    const found = await prisma.session.findUnique({
+      where: { id: result.id },
+    });
+    expect(found?.enrichmentPromptTemplate).toBe(template);
+
+    // Cleanup
+    await prisma.session.delete({ where: { id: result.id } });
+    await prisma.source.deleteMany({
+      where: { name: "Session Template Book" },
+    });
   });
 
   it("throws when another session is already active", async () => {
