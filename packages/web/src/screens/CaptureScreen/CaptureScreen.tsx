@@ -2,11 +2,13 @@ import { useState } from "react";
 import { trpc } from "../../trpc";
 import { CaptureInput } from "./CaptureInput";
 import { CaptureList } from "./CaptureList";
+import { PromptTemplateEditor } from "./PromptTemplateEditor";
 import { SessionForm } from "./SessionForm";
 
 export function CaptureScreen() {
   const [lastParsed, setLastParsed] = useState<string | null>(null);
   const [showSessionForm, setShowSessionForm] = useState(false);
+  const [showTemplateEditor, setShowTemplateEditor] = useState(false);
 
   const utils = trpc.useUtils();
 
@@ -20,6 +22,9 @@ export function CaptureScreen() {
     { enabled: activeSession.data != null },
   );
   const allSources = trpc.source.list.useQuery(undefined, {
+    staleTime: Infinity,
+  });
+  const defaultTemplate = trpc.promptTemplate.getDefault.useQuery(undefined, {
     staleTime: Infinity,
   });
 
@@ -45,6 +50,12 @@ export function CaptureScreen() {
       utils.session.getActive.invalidate();
       utils.source.list.invalidate();
       setShowSessionForm(false);
+    },
+  });
+
+  const setDefaultTemplate = trpc.promptTemplate.setDefault.useMutation({
+    onSuccess: () => {
+      utils.promptTemplate.getDefault.invalidate();
     },
   });
 
@@ -95,7 +106,7 @@ export function CaptureScreen() {
 
       {/* Start session prompt (no session state) */}
       {!hasSession && (
-        <div className="mx-5 mb-2">
+        <div className="mx-5 mb-2 space-y-2">
           {!showSessionForm ? (
             <button
               type="button"
@@ -107,15 +118,39 @@ export function CaptureScreen() {
           ) : (
             <SessionForm
               sources={allSources.data ?? []}
+              defaultTemplate={defaultTemplate.data}
               isPending={openSession.isPending}
-              onStart={(name, type) =>
+              onStart={(name, type, enrichmentPromptTemplate) =>
                 openSession.mutate({
                   name,
                   type: type as "book" | "video" | "article",
+                  enrichmentPromptTemplate,
                 })
               }
               onCancel={() => setShowSessionForm(false)}
             />
+          )}
+
+          {!showSessionForm && (
+            <>
+              <button
+                type="button"
+                onClick={() => setShowTemplateEditor((s) => !s)}
+                className="w-full rounded-button border border-divider px-3 py-2 text-center text-xs text-dim transition-colors hover:border-accent hover:text-accent cursor-pointer"
+              >
+                {showTemplateEditor
+                  ? "Hide prompt template"
+                  : "Edit enrichment prompt template"}
+              </button>
+              {showTemplateEditor && (
+                <PromptTemplateEditor
+                  defaultTemplate={defaultTemplate.data}
+                  isLoading={defaultTemplate.isLoading}
+                  isPending={setDefaultTemplate.isPending}
+                  onSave={(template) => setDefaultTemplate.mutate({ template })}
+                />
+              )}
+            </>
           )}
         </div>
       )}

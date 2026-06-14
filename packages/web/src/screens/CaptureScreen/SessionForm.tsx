@@ -1,5 +1,6 @@
 import { useCombobox } from "downshift";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { TemplateTextarea } from "./TemplateTextarea";
 
 const SOURCE_TYPES = [
   { value: "book", label: "Book" },
@@ -15,19 +16,32 @@ interface SourceSuggestion {
 
 export function SessionForm({
   sources,
+  defaultTemplate,
   isPending,
   onStart,
   onCancel,
 }: {
   sources: SourceSuggestion[];
+  defaultTemplate?: string;
   isPending: boolean;
-  onStart: (name: string, type: string) => void;
+  onStart: (
+    name: string,
+    type: string,
+    enrichmentPromptTemplate: string,
+  ) => void;
   onCancel: () => void;
 }) {
   const [type, setType] =
     useState<(typeof SOURCE_TYPES)[number]["value"]>("book");
   const [typeLocked, setTypeLocked] = useState(false);
   const [inputItems, setInputItems] = useState<SourceSuggestion[]>([]);
+  const [template, setTemplate] = useState(defaultTemplate ?? "");
+
+  useEffect(() => {
+    if (defaultTemplate != null) {
+      setTemplate(defaultTemplate);
+    }
+  }, [defaultTemplate]);
 
   const {
     isOpen,
@@ -64,7 +78,7 @@ export function SessionForm({
     const name = (selectedItem?.name ?? inputValue ?? "").trim();
     if (!name || isPending) return;
     const resolvedType = selectedItem?.type ?? type;
-    onStart(name, resolvedType);
+    onStart(name, resolvedType, template);
   }
 
   return (
@@ -114,6 +128,14 @@ export function SessionForm({
             ))}
         </ul>
       </div>
+
+      <TemplateTextarea
+        label="Enrichment prompt template (pre-filled from global default)"
+        value={template}
+        onChange={setTemplate}
+        disabled={isPending}
+        placeholder="Loading default template..."
+      />
 
       <div className="flex gap-2">
         <select
