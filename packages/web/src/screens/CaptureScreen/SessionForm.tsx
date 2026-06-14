@@ -155,7 +155,9 @@ export function SessionForm({
         <button
           type="submit"
           disabled={
-            isPending || !(selectedItem?.name ?? inputValue ?? "").trim()
+            isPending ||
+            defaultTemplate == null ||
+            !(selectedItem?.name ?? inputValue ?? "").trim()
           }
           className="flex-1 rounded-button bg-accent px-4 py-2 font-ui text-sm font-medium text-page transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
         >
