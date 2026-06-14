@@ -78,13 +78,17 @@ export class EnrichmentPipeline {
   async enrich(
     params: EnrichParams,
     tier: "cheap" | "premium" = "cheap",
+    template?: string,
   ): Promise<EnrichmentResult> {
-    const prompt = this.promptBuilder.build({
-      item: params.capture.item,
-      source: params.source,
-      locator: params.capture.locator,
-      existingEntries: params.existingEntries,
-    });
+    const prompt = this.promptBuilder.build(
+      {
+        item: params.capture.item,
+        source: params.source,
+        locator: params.capture.locator,
+        existingEntries: params.existingEntries,
+      },
+      template,
+    );
 
     const response = await this.llm.complete(prompt, {
       tier,

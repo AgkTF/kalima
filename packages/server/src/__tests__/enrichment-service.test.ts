@@ -479,3 +479,64 @@ describe("enrichment tRPC endpoints", () => {
     });
   });
 });
+
+describe("EnrichmentService template resolution", () => {
+  const adapter = new PrismaBetterSqlite3({
+    url: "file:./prisma/test.db",
+  });
+  const prisma = new PrismaClient({ adapter });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
+  it("uses session enrichmentTemplate when present", async () => {
+    const mockComplete = vi.fn().mockResolvedValue(
+      JSON.stringify({
+        definition: "Test definition",
+        translationArabic: "اختبار",
+        nuance: "Test nuance",
+        examples: ["Example 1"],
+        tags: ["test"],
+        relatedEntries: [],
+        confidence: "high",
+      }),
+    );
+
+    const mockLLM: LLMClient = {
+      complete: mockComplete,
+    } as unknown as LLMClient;
+
+    const source = await SourceService.create(
+      "Template Session Book",
+      "book",
+      prisma,
+    );
+    const session = await prisma.session.create({
+      data: {
+        sourceId: source.id,
+        enrichmentTemplate: "Custom prompt for {{item}} from {{sourceName}}",
+      },
+    });
+    await prisma.capture.create({
+      data: {
+        rawText: "testword",
+        item: "testword",
+        sessionId: session.id,
+      },
+    });
+
+    await EnrichmentService.createPlaceholderEntries(session.id, prisma);
+    await EnrichmentService.enrichSessionCaptures(session.id, prisma, mockLLM);
+
+    const promptArg = mockComplete.mock.calls[0][0] as string;
+    expect(promptArg).toContain("Custom prompt for testword from Template Session Book");
+
+    await prisma.entry.deleteMany();
+    await prisma.capture.deleteMany();
+    await prisma.session.deleteMany();
+    await prisma.source.deleteMany({
+      where: { name: "Template Session Book" },
+    });
+  });
+});

@@ -92,15 +92,19 @@ export const EnrichmentService = {
 
       const results = await Promise.allSettled(
         batch.map((capture) =>
-          pipeline.enrich({
-            capture: {
-              item: capture.item,
-              locator: capture.locator,
-              rawText: capture.rawText,
+          pipeline.enrich(
+            {
+              capture: {
+                item: capture.item,
+                locator: capture.locator,
+                rawText: capture.rawText,
+              },
+              source: session.source,
+              existingEntries: existingItemNames,
             },
-            source: session.source,
-            existingEntries: existingItemNames,
-          }),
+            "cheap",
+            session.enrichmentTemplate ?? undefined,
+          ),
         ),
       );
 

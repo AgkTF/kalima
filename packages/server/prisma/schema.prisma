@@ -37,10 +37,13 @@ model Source {
 }
 
 model Session {
-  id        Int       @id @default(autoincrement())
-  sourceId  Int
-  createdAt DateTime  @default(now())
-  closedAt  DateTime?
+  id                  Int       @id @default(autoincrement())
+  sourceId            Int
+  createdAt           DateTime  @default(now())
+  closedAt            DateTime?
+  /// Per-session enrichment prompt template override.
+  /// When set, used instead of the global default. Pre-filled from global default at session creation.
+  enrichmentTemplate  String?
 
   source   Source    @relation(fields: [sourceId], references: [id])
   captures Capture[]
