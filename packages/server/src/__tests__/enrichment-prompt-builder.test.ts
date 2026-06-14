@@ -65,4 +65,62 @@ describe("EnrichmentPromptBuilder (template mode)", () => {
 
     expect(prompt).toBe("Enrich: serendipity");
   });
+
+  it("renders all placeholders: {{sourceName}}, {{sourceType}}, {{locator}}, {{existingEntries}}", () => {
+    const prompt = builder.build(
+      {
+        item: "harpoon",
+        source: { name: "Moby Dick", type: "book" },
+        locator: "chapter 3, page 15",
+        existingEntries: ["whale", "ship"],
+      },
+      "Item: {{item}} | Source: {{sourceName}} ({{sourceType}}) | Loc: {{locator}} | Related: {{existingEntries}}",
+    );
+
+    expect(prompt).toBe(
+      "Item: harpoon | Source: Moby Dick (book) | Loc: chapter 3, page 15 | Related: whale, ship",
+    );
+  });
+
+  it("replaces missing source/locator/entries with empty strings in template mode", () => {
+    const prompt = builder.build(
+      {
+        item: "ephemeral",
+        source: null,
+        locator: null,
+        existingEntries: [],
+      },
+      "{{item}} | {{sourceName}} | {{locator}} | {{existingEntries}}",
+    );
+
+    expect(prompt).toBe("ephemeral |  |  | ");
+  });
+
+  it("falls back to legacy hardcoded prompt when template is undefined", () => {
+    const prompt = builder.build({
+      item: "serendipity",
+      source: { name: "Moby Dick", type: "book" },
+      locator: "chapter 12, page 45",
+      existingEntries: [],
+    });
+
+    expect(prompt).toContain('Enrich the following item: "serendipity"');
+    expect(prompt).toContain('Source: "Moby Dick" (book)');
+    expect(prompt).toContain("Locator: chapter 12, page 45");
+  });
+
+  it("falls back to legacy hardcoded prompt when template is null", () => {
+    const prompt = builder.build(
+      {
+        item: "serendipity",
+        source: null,
+        locator: null,
+        existingEntries: [],
+      },
+      null as unknown as string | undefined,
+    );
+
+    expect(prompt).toContain('Enrich the following item: "serendipity"');
+    expect(prompt).not.toContain("Source:");
+  });
 });
