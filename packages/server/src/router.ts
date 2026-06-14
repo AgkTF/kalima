@@ -3,6 +3,7 @@ import { z } from "zod";
 import { AppService } from "./services/app.js";
 import { CaptureService } from "./services/capture.js";
 import { EnrichmentService } from "./services/enrichment/enrichment-service.js";
+import { PromptTemplateService } from "./services/prompt-template.js";
 import { ReviewService } from "./services/review.js";
 import { SessionService } from "./services/session.js";
 import { SourceService } from "./services/source.js";
@@ -19,6 +20,16 @@ const t = initTRPC.context<AppContext>().create();
 export const appRouter = t.router({
   app: t.router({
     status: t.procedure.query(() => AppService.status()),
+  }),
+  promptTemplate: t.router({
+    getDefault: t.procedure.query(async ({ ctx }) =>
+      PromptTemplateService.getDefault(ctx.prisma),
+    ),
+    setDefault: t.procedure
+      .input(z.object({ template: z.string() }))
+      .mutation(async ({ input, ctx }) =>
+        PromptTemplateService.setDefault(input.template, ctx.prisma),
+      ),
   }),
   session: t.router({
     open: t.procedure
