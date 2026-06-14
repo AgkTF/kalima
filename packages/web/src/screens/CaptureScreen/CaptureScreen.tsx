@@ -3,6 +3,7 @@ import { trpc } from "../../trpc";
 import { CaptureInput } from "./CaptureInput";
 import { CaptureList } from "./CaptureList";
 import { SessionForm } from "./SessionForm";
+import { TemplateEditor } from "./TemplateEditor";
 
 export function CaptureScreen() {
   const [lastParsed, setLastParsed] = useState<string | null>(null);
@@ -22,6 +23,7 @@ export function CaptureScreen() {
   const allSources = trpc.source.list.useQuery(undefined, {
     staleTime: Infinity,
   });
+  const globalTemplate = trpc.app.getEnrichmentTemplate.useQuery();
 
   // Mutations
   const createCapture = trpc.capture.create.useMutation({
@@ -95,29 +97,36 @@ export function CaptureScreen() {
 
       {/* Start session prompt (no session state) */}
       {!hasSession && (
-        <div className="mx-5 mb-2">
+        <>
+          {/* Inline by design (1 use). Extract at 3+ uses. See ADR 0006. */}
+          {!showSessionForm && <TemplateEditor />}
+
           {!showSessionForm ? (
-            <button
-              type="button"
-              onClick={() => setShowSessionForm(true)}
-              className="w-full rounded-button border border-dashed border-divider px-3 py-2.5 text-center text-sm text-dim transition-colors hover:border-accent hover:text-accent cursor-pointer"
-            >
-              Start a Session
-            </button>
+            <div className="mx-5 mb-2">
+              <button
+                type="button"
+                onClick={() => setShowSessionForm(true)}
+                className="w-full rounded-button border border-dashed border-divider px-3 py-2.5 text-center text-sm text-dim transition-colors hover:border-accent hover:text-accent cursor-pointer"
+              >
+                Start a Session
+              </button>
+            </div>
           ) : (
             <SessionForm
               sources={allSources.data ?? []}
               isPending={openSession.isPending}
-              onStart={(name, type) =>
+              defaultTemplate={globalTemplate.data?.template ?? null}
+              onStart={(name, type, enrichmentTemplate) =>
                 openSession.mutate({
                   name,
                   type: type as "book" | "video" | "article",
+                  enrichmentTemplate,
                 })
               }
               onCancel={() => setShowSessionForm(false)}
             />
           )}
-        </div>
+        </>
       )}
 
       {/* Capture list */}

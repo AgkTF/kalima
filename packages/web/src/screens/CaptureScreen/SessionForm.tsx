@@ -16,18 +16,22 @@ interface SourceSuggestion {
 export function SessionForm({
   sources,
   isPending,
+  defaultTemplate,
   onStart,
   onCancel,
 }: {
   sources: SourceSuggestion[];
   isPending: boolean;
-  onStart: (name: string, type: string) => void;
+  defaultTemplate: string | null;
+  onStart: (name: string, type: string, enrichmentTemplate?: string) => void;
   onCancel: () => void;
 }) {
   const [type, setType] =
     useState<(typeof SOURCE_TYPES)[number]["value"]>("book");
   const [typeLocked, setTypeLocked] = useState(false);
   const [inputItems, setInputItems] = useState<SourceSuggestion[]>([]);
+  const [showTemplate, setShowTemplate] = useState(false);
+  const [templateDraft, setTemplateDraft] = useState(defaultTemplate ?? "");
 
   const {
     isOpen,
@@ -64,89 +68,118 @@ export function SessionForm({
     const name = (selectedItem?.name ?? inputValue ?? "").trim();
     if (!name || isPending) return;
     const resolvedType = selectedItem?.type ?? type;
-    onStart(name, resolvedType);
+    const template = showTemplate
+      ? templateDraft.trim()
+      : defaultTemplate?.trim();
+    onStart(name, resolvedType, template || undefined);
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="space-y-2 rounded-button border border-accent bg-surface p-3"
-    >
-      <div className="relative">
-        <input
-          {...getInputProps({
-            placeholder: "Source title (e.g. Moby Dick)",
-            disabled: isPending,
-            className:
-              "w-full rounded-button border border-divider bg-surface px-3 py-2 font-ui text-sm text-ink placeholder:text-dim focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50",
-          })}
-          // biome-ignore lint/a11y/noAutofocus: session start is the primary action when shown
-          autoFocus
-        />
-        <ul
-          {...getMenuProps({
-            className: `absolute z-10 mt-1 w-full rounded-button border border-divider bg-surface shadow-lg ${
-              !(isOpen && inputItems.length > 0) ? "hidden" : ""
-            }`,
-          })}
-        >
-          {isOpen &&
-            inputItems.map((source, index) => (
-              <li
-                key={source.id}
-                {...getItemProps({
-                  item: source,
-                  index,
-                })}
-                className={`flex w-full items-center justify-between px-3 py-2 text-sm transition-colors cursor-pointer ${
-                  highlightedIndex === index
-                    ? "bg-accent-subtle"
-                    : "hover:bg-accent-subtle"
-                }`}
-              >
-                <span className="font-display font-medium text-ink">
-                  {source.name}
-                </span>
-                <span className="ml-2 shrink-0 text-xs text-dim">
-                  {source.type}
-                </span>
-              </li>
-            ))}
-        </ul>
-      </div>
-
-      <div className="flex gap-2">
-        <select
-          value={type}
-          onChange={(e) =>
-            setType(e.target.value as (typeof SOURCE_TYPES)[number]["value"])
-          }
-          disabled={isPending || typeLocked}
-          className="rounded-button border border-divider bg-surface px-3 py-2 font-ui text-sm text-ink focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-        >
-          {SOURCE_TYPES.map((t) => (
-            <option key={t.value} value={t.value}>
-              {t.label}
-            </option>
-          ))}
-        </select>
-        <button
-          type="submit"
-          disabled={
-            isPending || !(selectedItem?.name ?? inputValue ?? "").trim()
-          }
-          className="flex-1 rounded-button bg-accent px-4 py-2 font-ui text-sm font-medium text-page transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-        >
-          {isPending ? "\u2026" : "Open Session"}
-        </button>
-      </div>
-      <button
-        type="button"
-        onClick={onCancel}
-        className="w-full text-center text-xs text-dim hover:text-ink transition-colors cursor-pointer"
+    <div className="mx-5 mb-2">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-2 rounded-button border border-accent bg-surface p-3"
       >
-        Cancel
-      </button>
-    </form>
+        <div className="relative">
+          <input
+            {...getInputProps({
+              placeholder: "Source title (e.g. Moby Dick)",
+              disabled: isPending,
+              className:
+                "w-full rounded-button border border-divider bg-surface px-3 py-2 font-ui text-sm text-ink placeholder:text-dim focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50",
+            })}
+            // biome-ignore lint/a11y/noAutofocus: session start is the primary action when shown
+            autoFocus
+          />
+          <ul
+            {...getMenuProps({
+              className: `absolute z-10 mt-1 w-full rounded-button border border-divider bg-surface shadow-lg ${
+                !(isOpen && inputItems.length > 0) ? "hidden" : ""
+              }`,
+            })}
+          >
+            {isOpen &&
+              inputItems.map((source, index) => (
+                <li
+                  key={source.id}
+                  {...getItemProps({
+                    item: source,
+                    index,
+                  })}
+                  className={`flex w-full items-center justify-between px-3 py-2 text-sm transition-colors cursor-pointer ${
+                    highlightedIndex === index
+                      ? "bg-accent-subtle"
+                      : "hover:bg-accent-subtle"
+                  }`}
+                >
+                  <span className="font-display font-medium text-ink">
+                    {source.name}
+                  </span>
+                  <span className="ml-2 shrink-0 text-xs text-dim">
+                    {source.type}
+                  </span>
+                </li>
+              ))}
+          </ul>
+        </div>
+
+        <div className="flex gap-2">
+          <select
+            value={type}
+            onChange={(e) =>
+              setType(e.target.value as (typeof SOURCE_TYPES)[number]["value"])
+            }
+            disabled={isPending || typeLocked}
+            className="rounded-button border border-divider bg-surface px-3 py-2 font-ui text-sm text-ink focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+          >
+            {SOURCE_TYPES.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="submit"
+            disabled={
+              isPending || !(selectedItem?.name ?? inputValue ?? "").trim()
+            }
+            className="flex-1 rounded-button bg-accent px-4 py-2 font-ui text-sm font-medium text-page transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+          >
+            {isPending ? "\u2026" : "Open Session"}
+          </button>
+        </div>
+
+        {/* Enrichment template toggle */}
+        {!showTemplate ? (
+          <button
+            type="button"
+            onClick={() => setShowTemplate(true)}
+            className="w-full rounded-button border border-dashed border-divider px-3 py-1.5 text-center text-xs text-dim transition-colors hover:border-accent hover:text-accent cursor-pointer"
+          >
+            Customize Enrichment Template
+          </button>
+        ) : (
+          <div className="space-y-1.5">
+            <textarea
+              value={templateDraft}
+              onChange={(e) => setTemplateDraft(e.target.value)}
+              rows={4}
+              placeholder="Enrich {{item}} from {{sourceName}}..."
+              className="w-full rounded-button border border-divider bg-surface px-3 py-2 font-ui text-sm text-ink placeholder:text-dim resize-y focus:outline-none focus:ring-2 focus:ring-accent"
+            />
+            <p className="text-xs text-dim">
+              Pre-filled from global default. Change it for this session only.
+            </p>
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={onCancel}
+          className="w-full text-center text-xs text-dim hover:text-ink transition-colors cursor-pointer"
+        >
+          Cancel
+        </button>
+      </form>
+    </div>
   );
 }
