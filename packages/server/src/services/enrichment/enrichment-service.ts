@@ -1,5 +1,6 @@
 import type { PrismaClient } from "../../generated/prisma/client.js";
 import type { LLMClient } from "../llm-client.js";
+import { PromptTemplateService } from "../prompt-template.js";
 import { EnrichmentPipeline } from "./enrichment-pipeline.js";
 
 export const EnrichmentService = {
@@ -74,6 +75,10 @@ export const EnrichmentService = {
 
     if (!session) return;
 
+    const template =
+      session.enrichmentPromptTemplate ??
+      (await PromptTemplateService.getDefault(prisma));
+
     const captures = await prisma.capture.findMany({
       where: { sessionId },
     });
@@ -100,6 +105,7 @@ export const EnrichmentService = {
             },
             source: session.source,
             existingEntries: existingItemNames,
+            template,
           }),
         ),
       );
@@ -150,6 +156,9 @@ export const EnrichmentService = {
       if (!capture) return;
 
       const source = capture.session?.source ?? null;
+      const template =
+        capture.session?.enrichmentPromptTemplate ??
+        (await PromptTemplateService.getDefault(prisma));
 
       let existingItemNames: string[] = [];
       if (source) {
@@ -168,6 +177,7 @@ export const EnrichmentService = {
         },
         source,
         existingEntries: existingItemNames,
+        template,
       });
 
       // All entries enter Review as pending_review — the user decides.

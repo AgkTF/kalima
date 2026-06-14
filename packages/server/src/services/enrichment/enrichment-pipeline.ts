@@ -64,6 +64,7 @@ export interface EnrichParams {
   };
   source?: { name: string; type: string } | null;
   existingEntries: string[];
+  template?: string | null;
 }
 
 export class EnrichmentPipeline {
@@ -84,6 +85,7 @@ export class EnrichmentPipeline {
       source: params.source,
       locator: params.capture.locator,
       existingEntries: params.existingEntries,
+      template: params.template,
     });
 
     const response = await this.llm.complete(prompt, {

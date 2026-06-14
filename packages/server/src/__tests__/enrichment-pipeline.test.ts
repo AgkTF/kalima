@@ -182,4 +182,27 @@ describe("EnrichmentPipeline", () => {
     const options = mockComplete.mock.calls[0][1];
     expect(options.tier).toBe("premium");
   });
+
+  it("uses the provided prompt template when constructing the prompt", async () => {
+    const mockComplete = vi.fn().mockResolvedValue(enrichmentResponse());
+    const mockLLM: LLMClient = {
+      complete: mockComplete,
+    } as unknown as LLMClient;
+
+    const pipeline = new EnrichmentPipeline(mockLLM);
+
+    await pipeline.enrich({
+      capture: {
+        item: "revere",
+        locator: null,
+        rawText: "revere",
+      },
+      source: null,
+      existingEntries: [],
+      template: "Custom template for {{item}}",
+    });
+
+    const promptArg = mockComplete.mock.calls[0][0] as string;
+    expect(promptArg).toBe("Custom template for revere");
+  });
 });
