@@ -539,4 +539,115 @@ describe("EnrichmentService template resolution", () => {
       where: { name: "Template Session Book" },
     });
   });
+
+  it("falls back to global default from AppMeta when session has no template", async () => {
+    const mockComplete = vi.fn().mockResolvedValue(
+      JSON.stringify({
+        definition: "Test definition",
+        translationArabic: "اختبار",
+        nuance: "Test nuance",
+        examples: ["Example 1"],
+        tags: ["test"],
+        relatedEntries: [],
+        confidence: "high",
+      }),
+    );
+
+    const mockLLM: LLMClient = {
+      complete: mockComplete,
+    } as unknown as LLMClient;
+
+    // Set global default template
+    await prisma.appMeta.upsert({
+      where: { key: "enrichment_prompt_template" },
+      create: {
+        key: "enrichment_prompt_template",
+        value: "Global: {{item}} from {{sourceName}}",
+      },
+      update: { value: "Global: {{item}} from {{sourceName}}" },
+    });
+
+    const source = await SourceService.create(
+      "Global Default Book",
+      "book",
+      prisma,
+    );
+    // Session without enrichmentTemplate
+    const session = await prisma.session.create({
+      data: { sourceId: source.id },
+    });
+    await prisma.capture.create({
+      data: {
+        rawText: "globword",
+        item: "globword",
+        sessionId: session.id,
+      },
+    });
+
+    await EnrichmentService.createPlaceholderEntries(session.id, prisma);
+    await EnrichmentService.enrichSessionCaptures(session.id, prisma, mockLLM);
+
+    const promptArg = mockComplete.mock.calls[0][0] as string;
+    expect(promptArg).toContain("Global: globword from Global Default Book");
+
+    // Cleanup
+    await prisma.appMeta.deleteMany({ where: { key: "enrichment_prompt_template" } });
+    await prisma.entry.deleteMany();
+    await prisma.capture.deleteMany();
+    await prisma.session.deleteMany();
+    await prisma.source.deleteMany({
+      where: { name: "Global Default Book" },
+    });
+  });
+
+  it("falls back to legacy hardcoded prompt when neither session nor global template exist", async () => {
+    const mockComplete = vi.fn().mockResolvedValue(
+      JSON.stringify({
+        definition: "Test definition",
+        translationArabic: "اختبار",
+        nuance: "Test nuance",
+        examples: ["Example 1"],
+        tags: ["test"],
+        relatedEntries: [],
+        confidence: "high",
+      }),
+    );
+
+    const mockLLM: LLMClient = {
+      complete: mockComplete,
+    } as unknown as LLMClient;
+
+    // Ensure no global template exists
+    await prisma.appMeta.deleteMany({ where: { key: "enrichment_prompt_template" } });
+
+    const source = await SourceService.create(
+      "No Template Book",
+      "book",
+      prisma,
+    );
+    const session = await prisma.session.create({
+      data: { sourceId: source.id },
+    });
+    await prisma.capture.create({
+      data: {
+        rawText: "word",
+        item: "word",
+        sessionId: session.id,
+      },
+    });
+
+    await EnrichmentService.createPlaceholderEntries(session.id, prisma);
+    await EnrichmentService.enrichSessionCaptures(session.id, prisma, mockLLM);
+
+    const promptArg = mockComplete.mock.calls[0][0] as string;
+    expect(promptArg).toContain('Enrich the following item: "word"');
+
+    // Cleanup
+    await prisma.entry.deleteMany();
+    await prisma.capture.deleteMany();
+    await prisma.session.deleteMany();
+    await prisma.source.deleteMany({
+      where: { name: "No Template Book" },
+    });
+  });
 });

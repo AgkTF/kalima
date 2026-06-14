@@ -2,6 +2,13 @@ import type { PrismaClient } from "../../generated/prisma/client.js";
 import type { LLMClient } from "../llm-client.js";
 import { EnrichmentPipeline } from "./enrichment-pipeline.js";
 
+async function resolveGlobalTemplate(prisma: PrismaClient): Promise<string | null> {
+  const row = await prisma.appMeta.findUnique({
+    where: { key: "enrichment_prompt_template" },
+  });
+  return row?.value ?? null;
+}
+
 export const EnrichmentService = {
   /**
    * Create placeholder entries (status "processing") for all captures in a session.
@@ -85,6 +92,11 @@ export const EnrichmentService = {
 
     const existingItemNames = existingEntries.map((e) => e.capture.item);
 
+    // Resolve the template: session override → global default → null (legacy fallback)
+    const template =
+      session.enrichmentTemplate ??
+      (await resolveGlobalTemplate(prisma));
+
     // Process in parallel batches of 3 to avoid rate limits while maximizing throughput.
     const CONCURRENCY = 3;
     for (let i = 0; i < captures.length; i += CONCURRENCY) {
@@ -103,7 +115,7 @@ export const EnrichmentService = {
               existingEntries: existingItemNames,
             },
             "cheap",
-            session.enrichmentTemplate ?? undefined,
+            template ?? undefined,
           ),
         ),
       );
@@ -164,15 +176,19 @@ export const EnrichmentService = {
         existingItemNames = existingEntries.map((e) => e.capture.item);
       }
 
-      const result = await pipeline.enrich({
-        capture: {
-          item: capture.item,
-          locator: capture.locator,
-          rawText: capture.rawText,
+      const result = await pipeline.enrich(
+        {
+          capture: {
+            item: capture.item,
+            locator: capture.locator,
+            rawText: capture.rawText,
+          },
+          source,
+          existingEntries: existingItemNames,
         },
-        source,
-        existingEntries: existingItemNames,
-      });
+        "cheap",
+        (capture.session?.enrichmentTemplate ?? await resolveGlobalTemplate(prisma)) ?? undefined,
+      );
 
       // All entries enter Review as pending_review — the user decides.
       // Confidence is stored as passive metadata for potential future use.
