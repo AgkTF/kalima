@@ -92,6 +92,31 @@ describe("session.open mutation", () => {
     });
   });
 
+  it("keeps the per-session template unchanged when the global default changes", async () => {
+    const caller = appRouter.createCaller({ prisma, llm: mockLLM });
+
+    await caller.promptTemplate.setDefault({ template: "Original global" });
+    const session = await caller.session.open({
+      name: "Immutable Session",
+      type: "book",
+      enrichmentPromptTemplate: "Original global",
+    });
+
+    await caller.promptTemplate.setDefault({ template: "New global" });
+
+    const found = await prisma.session.findUnique({
+      where: { id: session.id },
+    });
+    expect(found?.enrichmentPromptTemplate).toBe("Original global");
+
+    // Cleanup
+    await prisma.session.delete({ where: { id: session.id } });
+    await prisma.source.deleteMany({ where: { name: "Immutable Session" } });
+    await prisma.appMeta.deleteMany({
+      where: { key: "default_enrichment_prompt_template" },
+    });
+  });
+
   it("throws when another session is already active", async () => {
     const caller = appRouter.createCaller({ prisma, llm: mockLLM });
 
