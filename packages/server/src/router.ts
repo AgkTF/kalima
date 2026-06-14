@@ -19,6 +19,21 @@ const t = initTRPC.context<AppContext>().create();
 export const appRouter = t.router({
   app: t.router({
     status: t.procedure.query(() => AppService.status()),
+    getEnrichmentTemplate: t.procedure.query(async ({ ctx }) => {
+      const row = await ctx.prisma.appMeta.findUnique({
+        where: { key: "enrichment_prompt_template" },
+      });
+      return { template: row?.value ?? null };
+    }),
+    setEnrichmentTemplate: t.procedure
+      .input(z.object({ template: z.string().min(1) }))
+      .mutation(async ({ input, ctx }) => {
+        await ctx.prisma.appMeta.upsert({
+          where: { key: "enrichment_prompt_template" },
+          create: { key: "enrichment_prompt_template", value: input.template },
+          update: { value: input.template },
+        });
+      }),
   }),
   session: t.router({
     open: t.procedure
@@ -26,10 +41,16 @@ export const appRouter = t.router({
         z.object({
           name: z.string().min(1),
           type: z.enum(["book", "video", "article"]),
+          enrichmentTemplate: z.string().optional(),
         }),
       )
       .mutation(async ({ input, ctx }) =>
-        SessionService.open(input.name, input.type, ctx.prisma),
+        SessionService.open(
+          input.name,
+          input.type,
+          ctx.prisma,
+          input.enrichmentTemplate,
+        ),
       ),
     close: t.procedure.mutation(async ({ ctx }) => {
       const session = await SessionService.close(ctx.prisma);

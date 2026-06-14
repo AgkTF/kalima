@@ -480,6 +480,167 @@ describe("enrichment tRPC endpoints", () => {
   });
 });
 
+describe("template tRPC endpoints", () => {
+  const adapter = new PrismaBetterSqlite3({
+    url: "file:./prisma/test.db",
+  });
+  const prisma = new PrismaClient({ adapter });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
+  const mockLLM: LLMClient = {
+    complete: vi
+      .fn()
+      .mockResolvedValue(
+        JSON.stringify({ item: "test", locator: null, sourceHint: null }),
+      ),
+  } as unknown as LLMClient;
+
+  async function closeAnyActiveSession() {
+    const active = await prisma.session.findFirst({
+      where: { closedAt: null },
+    });
+    if (active) {
+      await prisma.session.update({
+        where: { id: active.id },
+        data: { closedAt: new Date() },
+      });
+    }
+  }
+
+  it("setEnrichmentTemplate stores the global default template in AppMeta", async () => {
+    const caller = appRouter.createCaller({ prisma, llm: mockLLM });
+
+    await closeAnyActiveSession();
+
+    await caller.app.setEnrichmentTemplate({
+      template: "Enrich {{item}} from {{sourceName}}",
+    });
+
+    const row = await prisma.appMeta.findUnique({
+      where: { key: "enrichment_prompt_template" },
+    });
+    expect(row?.value).toBe("Enrich {{item}} from {{sourceName}}");
+
+    // Cleanup
+    await prisma.appMeta.deleteMany({
+      where: { key: "enrichment_prompt_template" },
+    });
+  });
+
+  it("getEnrichmentTemplate returns the stored global default template", async () => {
+    const caller = appRouter.createCaller({ prisma, llm: mockLLM });
+
+    await closeAnyActiveSession();
+
+    // First set the template
+    await caller.app.setEnrichmentTemplate({ template: "Custom: {{item}}" });
+
+    const result = await caller.app.getEnrichmentTemplate();
+    expect(result.template).toBe("Custom: {{item}}");
+
+    // Cleanup
+    await prisma.appMeta.deleteMany({
+      where: { key: "enrichment_prompt_template" },
+    });
+  });
+
+  it("getEnrichmentTemplate returns null when no template is configured", async () => {
+    const caller = appRouter.createCaller({ prisma, llm: mockLLM });
+
+    await closeAnyActiveSession();
+
+    // Ensure no template exists
+    await prisma.appMeta.deleteMany({
+      where: { key: "enrichment_prompt_template" },
+    });
+
+    const result = await caller.app.getEnrichmentTemplate();
+    expect(result.template).toBeNull();
+  });
+
+  it("session.open stores the per-session enrichmentTemplate", async () => {
+    const caller = appRouter.createCaller({ prisma, llm: mockLLM });
+
+    await closeAnyActiveSession();
+
+    await caller.session.open({
+      name: "Template Source",
+      type: "book",
+      enrichmentTemplate: "Per-session: {{item}}",
+    });
+
+    const session = await prisma.session.findFirst({
+      where: { source: { name: "Template Source" } },
+    });
+    expect(session?.enrichmentTemplate).toBe("Per-session: {{item}}");
+
+    // Cleanup
+    await prisma.session.deleteMany();
+    await prisma.source.deleteMany({
+      where: { name: "Template Source" },
+    });
+  });
+
+  it("session.open without enrichmentTemplate leaves it null", async () => {
+    const caller = appRouter.createCaller({ prisma, llm: mockLLM });
+
+    await closeAnyActiveSession();
+
+    await caller.session.open({
+      name: "No Template Source",
+      type: "book",
+    });
+
+    const session = await prisma.session.findFirst({
+      where: { source: { name: "No Template Source" } },
+    });
+    expect(session?.enrichmentTemplate).toBeNull();
+
+    // Cleanup
+    await prisma.session.deleteMany();
+    await prisma.source.deleteMany({
+      where: { name: "No Template Source" },
+    });
+  });
+
+  it("changing global default does not affect sessions with existing overrides", async () => {
+    const caller = appRouter.createCaller({ prisma, llm: mockLLM });
+
+    await closeAnyActiveSession();
+
+    // Create a session with a specific override
+    await caller.session.open({
+      name: "Override Source",
+      type: "book",
+      enrichmentTemplate: "Original override: {{item}}",
+    });
+
+    const session = await prisma.session.findFirst({
+      where: { source: { name: "Override Source" } },
+    });
+
+    // Now change the global default
+    await caller.app.setEnrichmentTemplate({
+      template: "New global: {{item}}",
+    });
+
+    // The session should still have its original override
+    expect(session?.enrichmentTemplate).toBe("Original override: {{item}}");
+
+    // Cleanup
+    await prisma.appMeta.deleteMany({
+      where: { key: "enrichment_prompt_template" },
+    });
+    await prisma.session.deleteMany();
+    await prisma.source.deleteMany({
+      where: { name: "Override Source" },
+    });
+  });
+});
+
 describe("EnrichmentService template resolution", () => {
   const adapter = new PrismaBetterSqlite3({
     url: "file:./prisma/test.db",
