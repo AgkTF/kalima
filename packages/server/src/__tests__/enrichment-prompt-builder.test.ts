@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { EnrichmentPromptBuilder } from "../services/enrichment/enrichment-prompt-builder.js";
 
-describe("EnrichmentPromptBuilder", () => {
+describe("EnrichmentPromptBuilder (no template — legacy hardcoded)", () => {
   const builder = new EnrichmentPromptBuilder();
 
   it("includes item, source metadata, and locator in the prompt", () => {
@@ -46,5 +46,23 @@ describe("EnrichmentPromptBuilder", () => {
     // Should not crash or include source/locator sections
     expect(prompt).not.toContain("Source:");
     expect(prompt).not.toContain("Locator:");
+  });
+});
+
+describe("EnrichmentPromptBuilder (template mode)", () => {
+  const builder = new EnrichmentPromptBuilder();
+
+  it("renders a provided template with {{item}} placeholder", () => {
+    const prompt = builder.build(
+      {
+        item: "serendipity",
+        source: null,
+        locator: null,
+        existingEntries: [],
+      },
+      "Enrich: {{item}}",
+    );
+
+    expect(prompt).toBe("Enrich: serendipity");
   });
 });

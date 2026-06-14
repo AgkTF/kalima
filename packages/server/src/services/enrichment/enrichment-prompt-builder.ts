@@ -6,8 +6,29 @@ export interface EnrichmentPromptParams {
 }
 
 export class EnrichmentPromptBuilder {
-  build(params: EnrichmentPromptParams): string {
+  /**
+   * Build an enrichment prompt.
+   *
+   * When `template` is provided, placeholder substitution is used:
+   *   {{item}} → the item name
+   *   {{sourceName}} → source name (or empty string)
+   *   {{sourceType}} → source type (or empty string)
+   *   {{locator}} → locator text (or empty string)
+   *   {{existingEntries}} → comma-separated existing entry names (or empty string)
+   *
+   * When `template` is null/undefined, falls back to the existing hardcoded prompt.
+   */
+  build(params: EnrichmentPromptParams, template?: string): string {
     const { item, source, locator, existingEntries } = params;
+
+    if (template != null) {
+      return template
+        .replaceAll("{{item}}", item)
+        .replaceAll("{{sourceName}}", source?.name ?? "")
+        .replaceAll("{{sourceType}}", source?.type ?? "")
+        .replaceAll("{{locator}}", locator ?? "")
+        .replaceAll("{{existingEntries}}", existingEntries.join(", "));
+    }
 
     let prompt = `Enrich the following item: "${item}"\n\n`;
 
