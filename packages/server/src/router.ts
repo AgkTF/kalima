@@ -2,6 +2,10 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { AppService } from "./services/app.js";
 import { CaptureService } from "./services/capture.js";
+import {
+  getGlobalTemplate,
+  setGlobalTemplate,
+} from "./services/enrichment/enrichment-prompt-template.js";
 import { EnrichmentService } from "./services/enrichment/enrichment-service.js";
 import { ReviewService } from "./services/review.js";
 import { SessionService } from "./services/session.js";
@@ -109,6 +113,14 @@ export const appRouter = t.router({
   }),
 
   enrichment: t.router({
+    getGlobalTemplate: t.procedure.query(async ({ ctx }) =>
+      getGlobalTemplate(ctx.prisma),
+    ),
+    setGlobalTemplate: t.procedure
+      .input(z.object({ template: z.string().min(1) }))
+      .mutation(async ({ input, ctx }) => {
+        await setGlobalTemplate(ctx.prisma, input.template);
+      }),
     listPending: t.procedure.query(async ({ ctx }) => {
       return ctx.prisma.entry.findMany({
         where: { status: "pending_review" },
