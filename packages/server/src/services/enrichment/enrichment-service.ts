@@ -1,6 +1,7 @@
 import type { PrismaClient } from "../../generated/prisma/client.js";
 import type { LLMClient } from "../llm-client.js";
 import { EnrichmentPipeline } from "./enrichment-pipeline.js";
+import { getGlobalTemplate } from "./enrichment-prompt-template.js";
 
 export const EnrichmentService = {
   /**
@@ -74,6 +75,10 @@ export const EnrichmentService = {
 
     if (!session) return;
 
+    // Resolve template: session override → global default → null (hardcoded fallback)
+    const template =
+      session.enrichmentPromptTemplate ?? (await getGlobalTemplate(prisma));
+
     const captures = await prisma.capture.findMany({
       where: { sessionId },
     });
@@ -100,6 +105,7 @@ export const EnrichmentService = {
             },
             source: session.source,
             existingEntries: existingItemNames,
+            template,
           }),
         ),
       );
@@ -168,6 +174,7 @@ export const EnrichmentService = {
         },
         source,
         existingEntries: existingItemNames,
+        template: await getGlobalTemplate(prisma),
       });
 
       // All entries enter Review as pending_review — the user decides.

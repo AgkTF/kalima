@@ -182,4 +182,53 @@ describe("EnrichmentPipeline", () => {
     const options = mockComplete.mock.calls[0][1];
     expect(options.tier).toBe("premium");
   });
+
+  describe("with template", () => {
+    it("uses the provided template to construct the prompt", async () => {
+      const mockComplete = vi.fn().mockResolvedValue(enrichmentResponse());
+      const mockLLM: LLMClient = {
+        complete: mockComplete,
+      } as unknown as LLMClient;
+
+      const pipeline = new EnrichmentPipeline(mockLLM);
+
+      const template = "Define {item} from {source} at {locator}.";
+
+      await pipeline.enrich({
+        capture: {
+          item: "harpoon",
+          locator: "chapter 3, page 15",
+          rawText: "harpoon p.15",
+        },
+        source: { name: "Moby Dick", type: "book" },
+        existingEntries: [],
+        template,
+      });
+
+      const promptArg = mockComplete.mock.calls[0][0] as string;
+      expect(promptArg).toContain("Define harpoon");
+      expect(promptArg).toContain('from "Moby Dick" (book)');
+      expect(promptArg).toContain("at chapter 3, page 15");
+      // Should not contain hardcoded format
+      expect(promptArg).not.toContain("Enrich the following item:");
+    });
+
+    it("falls back to hardcoded format when no template is provided", async () => {
+      const mockComplete = vi.fn().mockResolvedValue(enrichmentResponse());
+      const mockLLM: LLMClient = {
+        complete: mockComplete,
+      } as unknown as LLMClient;
+
+      const pipeline = new EnrichmentPipeline(mockLLM);
+
+      await pipeline.enrich({
+        capture: { item: "test", locator: null, rawText: "test" },
+        source: null,
+        existingEntries: [],
+      });
+
+      const promptArg = mockComplete.mock.calls[0][0] as string;
+      expect(promptArg).toContain("Enrich the following item:");
+    });
+  });
 });

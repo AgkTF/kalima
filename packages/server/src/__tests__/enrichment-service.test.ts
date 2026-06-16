@@ -1,5 +1,5 @@
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-import { afterAll, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { PrismaClient } from "../generated/prisma/client.js";
 import { appRouter } from "../router.js";
 import { EnrichmentService } from "../services/enrichment/enrichment-service.js";
@@ -477,5 +477,193 @@ describe("enrichment tRPC endpoints", () => {
     await prisma.source.deleteMany({
       where: { name: "Session Filter Book" },
     });
+  });
+});
+
+describe("EnrichmentService template resolution", () => {
+  const adapter = new PrismaBetterSqlite3({
+    url: "file:./prisma/test.db",
+  });
+  const prisma = new PrismaClient({ adapter });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
+  beforeEach(async () => {
+    await prisma.entry.deleteMany();
+    await prisma.capture.deleteMany();
+    await prisma.session.deleteMany();
+    await prisma.source.deleteMany();
+    await prisma.appMeta.deleteMany();
+  });
+
+  it("uses session template when session has an override", async () => {
+    const mockComplete = vi.fn().mockResolvedValue(
+      JSON.stringify({
+        definition: "Test",
+        translationArabic: "اختبار",
+        nuance: "Test",
+        examples: ["Example"],
+        tags: ["test"],
+        relatedEntries: [],
+        confidence: "high",
+      }),
+    );
+    const mockLLM: LLMClient = {
+      complete: mockComplete,
+    } as unknown as LLMClient;
+
+    const source = await SourceService.create("Template Book", "book", prisma);
+    const session = await prisma.session.create({
+      data: {
+        sourceId: source.id,
+        enrichmentPromptTemplate: "Session template: {item}",
+      },
+    });
+    await prisma.capture.create({
+      data: {
+        rawText: "test",
+        item: "test",
+        sessionId: session.id,
+      },
+    });
+
+    await EnrichmentService.createPlaceholderEntries(session.id, prisma);
+    await EnrichmentService.enrichSessionCaptures(session.id, prisma, mockLLM);
+
+    const promptArg = mockComplete.mock.calls[0][0] as string;
+    expect(promptArg).toContain("Session template: test");
+    expect(promptArg).not.toContain("Enrich the following item:");
+  });
+
+  it("falls back to global default when session has no template", async () => {
+    const mockComplete = vi.fn().mockResolvedValue(
+      JSON.stringify({
+        definition: "Test",
+        translationArabic: "اختبار",
+        nuance: "Test",
+        examples: ["Example"],
+        tags: ["test"],
+        relatedEntries: [],
+        confidence: "high",
+      }),
+    );
+    const mockLLM: LLMClient = {
+      complete: mockComplete,
+    } as unknown as LLMClient;
+
+    // Set global default
+    await prisma.appMeta.create({
+      data: {
+        key: "enrichment_prompt_template",
+        value: "Global template: {item}",
+      },
+    });
+
+    const source = await SourceService.create("Global Book", "book", prisma);
+    const session = await prisma.session.create({
+      data: { sourceId: source.id },
+    });
+    await prisma.capture.create({
+      data: {
+        rawText: "test",
+        item: "test",
+        sessionId: session.id,
+      },
+    });
+
+    await EnrichmentService.createPlaceholderEntries(session.id, prisma);
+    await EnrichmentService.enrichSessionCaptures(session.id, prisma, mockLLM);
+
+    const promptArg = mockComplete.mock.calls[0][0] as string;
+    expect(promptArg).toContain("Global template: test");
+    expect(promptArg).not.toContain("Enrich the following item:");
+  });
+
+  it("uses hardcoded default when neither session nor global template exists", async () => {
+    const mockComplete = vi.fn().mockResolvedValue(
+      JSON.stringify({
+        definition: "Test",
+        translationArabic: "اختبار",
+        nuance: "Test",
+        examples: ["Example"],
+        tags: ["test"],
+        relatedEntries: [],
+        confidence: "high",
+      }),
+    );
+    const mockLLM: LLMClient = {
+      complete: mockComplete,
+    } as unknown as LLMClient;
+
+    const source = await SourceService.create(
+      "No Template Book",
+      "book",
+      prisma,
+    );
+    const session = await prisma.session.create({
+      data: { sourceId: source.id },
+    });
+    await prisma.capture.create({
+      data: {
+        rawText: "test",
+        item: "test",
+        sessionId: session.id,
+      },
+    });
+
+    await EnrichmentService.createPlaceholderEntries(session.id, prisma);
+    await EnrichmentService.enrichSessionCaptures(session.id, prisma, mockLLM);
+
+    const promptArg = mockComplete.mock.calls[0][0] as string;
+    expect(promptArg).toContain("Enrich the following item:");
+  });
+
+  it("session template takes priority over global default", async () => {
+    const mockComplete = vi.fn().mockResolvedValue(
+      JSON.stringify({
+        definition: "Test",
+        translationArabic: "اختبار",
+        nuance: "Test",
+        examples: ["Example"],
+        tags: ["test"],
+        relatedEntries: [],
+        confidence: "high",
+      }),
+    );
+    const mockLLM: LLMClient = {
+      complete: mockComplete,
+    } as unknown as LLMClient;
+
+    // Set global default
+    await prisma.appMeta.create({
+      data: {
+        key: "enrichment_prompt_template",
+        value: "Global: {item}",
+      },
+    });
+
+    const source = await SourceService.create("Priority Book", "book", prisma);
+    const session = await prisma.session.create({
+      data: {
+        sourceId: source.id,
+        enrichmentPromptTemplate: "Session: {item}",
+      },
+    });
+    await prisma.capture.create({
+      data: {
+        rawText: "test",
+        item: "test",
+        sessionId: session.id,
+      },
+    });
+
+    await EnrichmentService.createPlaceholderEntries(session.id, prisma);
+    await EnrichmentService.enrichSessionCaptures(session.id, prisma, mockLLM);
+
+    const promptArg = mockComplete.mock.calls[0][0] as string;
+    expect(promptArg).toContain("Session: test");
+    expect(promptArg).not.toContain("Global:");
   });
 });
