@@ -1,5 +1,6 @@
 import { useCombobox } from "downshift";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { trpc } from "../../trpc";
 
 const SOURCE_TYPES = [
   { value: "book", label: "Book" },
@@ -21,13 +22,26 @@ export function SessionForm({
 }: {
   sources: SourceSuggestion[];
   isPending: boolean;
-  onStart: (name: string, type: string) => void;
+  onStart: (name: string, type: string, template?: string | null) => void;
   onCancel: () => void;
 }) {
   const [type, setType] =
     useState<(typeof SOURCE_TYPES)[number]["value"]>("book");
   const [typeLocked, setTypeLocked] = useState(false);
   const [inputItems, setInputItems] = useState<SourceSuggestion[]>([]);
+  const [template, setTemplate] = useState("");
+  const [templatePrefilled, setTemplatePrefilled] = useState(false);
+
+  // Fetch global default template to pre-fill
+  const globalTemplate = trpc.enrichment.getGlobalTemplate.useQuery();
+
+  // Pre-fill template with global default once it loads
+  useEffect(() => {
+    if (!templatePrefilled && globalTemplate.data != null) {
+      setTemplate(globalTemplate.data);
+      setTemplatePrefilled(true);
+    }
+  }, [globalTemplate.data, templatePrefilled]);
 
   const {
     isOpen,
@@ -64,7 +78,8 @@ export function SessionForm({
     const name = (selectedItem?.name ?? inputValue ?? "").trim();
     if (!name || isPending) return;
     const resolvedType = selectedItem?.type ?? type;
-    onStart(name, resolvedType);
+    const resolvedTemplate = template.trim() || null;
+    onStart(name, resolvedType, resolvedTemplate);
   }
 
   return (
@@ -113,6 +128,34 @@ export function SessionForm({
               </li>
             ))}
         </ul>
+      </div>
+
+      {/* Inline by design (1 use). Extract at 3+ uses. See ADR 0006. */}
+      <div>
+        <label
+          htmlFor="session-template"
+          className="block font-ui text-xs font-medium text-dim"
+        >
+          Enrichment Prompt Template (optional)
+        </label>
+        <p className="mt-0.5 text-xs text-dim">
+          Pre-filled with global default. Override for this session only.
+        </p>
+        <textarea
+          id="session-template"
+          value={template}
+          onChange={(e) => setTemplate(e.target.value)}
+          disabled={isPending}
+          rows={4}
+          className="mt-1 w-full rounded-button border border-divider bg-surface px-3 py-2 font-ui text-sm text-ink placeholder:text-dim focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50 resize-y"
+          placeholder={`Enrich the following item: "{item}"
+
+Source: "{source}"
+Locator: {locator}
+
+Existing word bank entries for context:
+{existingEntries}`}
+        />
       </div>
 
       <div className="flex gap-2">

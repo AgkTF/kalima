@@ -2,6 +2,7 @@ import { useState } from "react";
 import { trpc } from "../../trpc";
 import { CaptureInput } from "./CaptureInput";
 import { CaptureList } from "./CaptureList";
+import { GlobalTemplateEditor } from "./GlobalTemplateEditor";
 import { SessionForm } from "./SessionForm";
 
 export function CaptureScreen() {
@@ -47,6 +48,18 @@ export function CaptureScreen() {
       setShowSessionForm(false);
     },
   });
+
+  function handleStartSession(
+    name: string,
+    type: string,
+    template?: string | null,
+  ) {
+    openSession.mutate({
+      name,
+      type: type as "book" | "video" | "article",
+      enrichmentPromptTemplate: template ?? null,
+    });
+  }
 
   const closeSession = trpc.session.close.useMutation({
     onSuccess: () => {
@@ -97,23 +110,22 @@ export function CaptureScreen() {
       {!hasSession && (
         <div className="mx-5 mb-2">
           {!showSessionForm ? (
-            <button
-              type="button"
-              onClick={() => setShowSessionForm(true)}
-              className="w-full rounded-button border border-dashed border-divider px-3 py-2.5 text-center text-sm text-dim transition-colors hover:border-accent hover:text-accent cursor-pointer"
-            >
-              Start a Session
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => setShowSessionForm(true)}
+                className="w-full rounded-button border border-dashed border-divider px-3 py-2.5 text-center text-sm text-dim transition-colors hover:border-accent hover:text-accent cursor-pointer"
+              >
+                Start a Session
+              </button>
+              {/* Inline by design (1 use). Extract at 3+ uses. See ADR 0006. */}
+              <GlobalTemplateEditor />
+            </>
           ) : (
             <SessionForm
               sources={allSources.data ?? []}
               isPending={openSession.isPending}
-              onStart={(name, type) =>
-                openSession.mutate({
-                  name,
-                  type: type as "book" | "video" | "article",
-                })
-              }
+              onStart={handleStartSession}
               onCancel={() => setShowSessionForm(false)}
             />
           )}
