@@ -3,7 +3,12 @@ import type { PrismaClient } from "../generated/prisma/client.js";
 import { SourceService } from "./source.js";
 
 export const SessionService = {
-  async open(name: string, type: string, prisma: PrismaClient) {
+  async open(
+    name: string,
+    type: string,
+    prisma: PrismaClient,
+    enrichmentPromptTemplate?: string | null,
+  ) {
     const active = await prisma.session.findFirst({
       where: { closedAt: null },
     });
@@ -18,7 +23,10 @@ export const SessionService = {
     const source = await SourceService.create(name, type, prisma);
 
     return prisma.session.create({
-      data: { sourceId: source.id },
+      data: {
+        sourceId: source.id,
+        enrichmentPromptTemplate: enrichmentPromptTemplate ?? null,
+      },
       include: { source: true },
     });
   },
