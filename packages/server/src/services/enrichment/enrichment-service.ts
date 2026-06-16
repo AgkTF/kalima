@@ -75,8 +75,8 @@ export const EnrichmentService = {
 
     if (!session) return;
 
-    // Resolve template: session override → global default → null (hardcoded fallback)
-    const template =
+    // Resolve context: session override → global default → null (hardcoded fallback)
+    const systemPromptContext =
       session.enrichmentPromptTemplate ?? (await getGlobalTemplate(prisma));
 
     const captures = await prisma.capture.findMany({
@@ -105,7 +105,7 @@ export const EnrichmentService = {
             },
             source: session.source,
             existingEntries: existingItemNames,
-            template,
+            systemPromptContext,
           }),
         ),
       );
@@ -174,7 +174,7 @@ export const EnrichmentService = {
         },
         source,
         existingEntries: existingItemNames,
-        template: await getGlobalTemplate(prisma),
+        systemPromptContext: await getGlobalTemplate(prisma),
       });
 
       // All entries enter Review as pending_review — the user decides.

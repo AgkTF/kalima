@@ -183,8 +183,8 @@ describe("EnrichmentPipeline", () => {
     expect(options.tier).toBe("premium");
   });
 
-  describe("with template", () => {
-    it("uses the provided template to construct the prompt", async () => {
+  describe("with systemPromptContext", () => {
+    it("appends systemPromptContext to the system prompt sent to the LLM", async () => {
       const mockComplete = vi.fn().mockResolvedValue(enrichmentResponse());
       const mockLLM: LLMClient = {
         complete: mockComplete,
@@ -192,7 +192,8 @@ describe("EnrichmentPipeline", () => {
 
       const pipeline = new EnrichmentPipeline(mockLLM);
 
-      const template = "Define {item} from {source} at {locator}.";
+      const context =
+        "This is from Dune, a sci-fi novel. Focus on technical terminology.";
 
       await pipeline.enrich({
         capture: {
@@ -202,18 +203,16 @@ describe("EnrichmentPipeline", () => {
         },
         source: { name: "Moby Dick", type: "book" },
         existingEntries: [],
-        template,
+        systemPromptContext: context,
       });
 
-      const promptArg = mockComplete.mock.calls[0][0] as string;
-      expect(promptArg).toContain("Define harpoon");
-      expect(promptArg).toContain('from "Moby Dick" (book)');
-      expect(promptArg).toContain("at chapter 3, page 15");
-      // Should not contain hardcoded format
-      expect(promptArg).not.toContain("Enrich the following item:");
+      // The system prompt passed to the LLM should include the context
+      const options = mockComplete.mock.calls[0][1];
+      expect(options.systemPrompt).toContain(context);
+      expect(options.systemPrompt).toContain("word bank enrichment agent");
     });
 
-    it("falls back to hardcoded format when no template is provided", async () => {
+    it("uses only the hardcoded system prompt when no context is provided", async () => {
       const mockComplete = vi.fn().mockResolvedValue(enrichmentResponse());
       const mockLLM: LLMClient = {
         complete: mockComplete,
@@ -227,8 +226,35 @@ describe("EnrichmentPipeline", () => {
         existingEntries: [],
       });
 
-      const promptArg = mockComplete.mock.calls[0][0] as string;
-      expect(promptArg).toContain("Enrich the following item:");
+      const options = mockComplete.mock.calls[0][1];
+      expect(options.systemPrompt).toContain("word bank enrichment agent");
+      expect(options.systemPrompt).not.toContain("Additional context");
+    });
+
+    it("does not affect the user prompt format", async () => {
+      const mockComplete = vi.fn().mockResolvedValue(enrichmentResponse());
+      const mockLLM: LLMClient = {
+        complete: mockComplete,
+      } as unknown as LLMClient;
+
+      const pipeline = new EnrichmentPipeline(mockLLM);
+
+      await pipeline.enrich({
+        capture: {
+          item: "harpoon",
+          locator: "chapter 3, page 15",
+          rawText: "harpoon p.15",
+        },
+        source: { name: "Moby Dick", type: "book" },
+        existingEntries: ["whale"],
+        systemPromptContext: "Focus on maritime terminology.",
+      });
+
+      // User prompt should still use the standard hardcoded format
+      const userPrompt = mockComplete.mock.calls[0][0] as string;
+      expect(userPrompt).toContain("Enrich the following item:");
+      expect(userPrompt).toContain("harpoon");
+      expect(userPrompt).toContain("Moby Dick");
     });
   });
 });

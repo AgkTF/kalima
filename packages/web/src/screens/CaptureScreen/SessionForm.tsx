@@ -136,10 +136,11 @@ export function SessionForm({
           htmlFor="session-template"
           className="block font-ui text-xs font-medium text-dim"
         >
-          Enrichment Prompt Template (optional)
+          Enrichment Context (optional)
         </label>
         <p className="mt-0.5 text-xs text-dim">
-          Pre-filled with global default. Override for this session only.
+          Additional instructions for the LLM. Pre-filled with global default.
+          Override for this session only.
         </p>
         <textarea
           id="session-template"
@@ -148,13 +149,18 @@ export function SessionForm({
           disabled={isPending}
           rows={4}
           className="mt-1 w-full rounded-button border border-divider bg-surface px-3 py-2 font-ui text-sm text-ink placeholder:text-dim focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50 resize-y"
-          placeholder={`Enrich the following item: "{item}"
+          placeholder={`You are a word bank enrichment agent. For the given item, produce:
+- definition: a context-appropriate meaning
+- translationArabic: the Arabic equivalent
+- nuance: a note on subtle shades of meaning
+- examples: 2-3 sentences demonstrating usage
+- tags: relevant categories
+- relatedEntries: existing word bank entries that are connected
+- confidence: "high" or "low"
+Do NOT include etymology.
 
-Source: "{source}"
-Locator: {locator}
-
-Existing word bank entries for context:
-{existingEntries}`}
+Additional context:
+This is from Dune, a sci-fi novel. Focus on technical terminology.`}
         />
       </div>
 

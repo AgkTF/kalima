@@ -64,7 +64,7 @@ export interface EnrichParams {
   };
   source?: { name: string; type: string } | null;
   existingEntries: string[];
-  template?: string | null;
+  systemPromptContext?: string | null;
 }
 
 export class EnrichmentPipeline {
@@ -85,13 +85,19 @@ export class EnrichmentPipeline {
       source: params.source,
       locator: params.capture.locator,
       existingEntries: params.existingEntries,
-      template: params.template,
     });
+
+    const systemPrompt = params.systemPromptContext
+      ? `${SYSTEM_PROMPT}
+
+Additional context:
+${params.systemPromptContext}`
+      : SYSTEM_PROMPT;
 
     const response = await this.llm.complete(prompt, {
       tier,
       schema: ENRICHMENT_SCHEMA,
-      systemPrompt: SYSTEM_PROMPT,
+      systemPrompt,
     });
 
     const result = JSON.parse(response) as EnrichmentResult;

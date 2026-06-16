@@ -480,7 +480,7 @@ describe("enrichment tRPC endpoints", () => {
   });
 });
 
-describe("EnrichmentService template resolution", () => {
+describe("EnrichmentService systemPromptContext resolution", () => {
   const adapter = new PrismaBetterSqlite3({
     url: "file:./prisma/test.db",
   });
@@ -498,7 +498,7 @@ describe("EnrichmentService template resolution", () => {
     await prisma.appMeta.deleteMany();
   });
 
-  it("uses session template when session has an override", async () => {
+  it("appends session context to system prompt when session has an override", async () => {
     const mockComplete = vi.fn().mockResolvedValue(
       JSON.stringify({
         definition: "Test",
@@ -514,11 +514,12 @@ describe("EnrichmentService template resolution", () => {
       complete: mockComplete,
     } as unknown as LLMClient;
 
-    const source = await SourceService.create("Template Book", "book", prisma);
+    const source = await SourceService.create("Context Book", "book", prisma);
     const session = await prisma.session.create({
       data: {
         sourceId: source.id,
-        enrichmentPromptTemplate: "Session template: {item}",
+        enrichmentPromptTemplate:
+          "Focus on maritime terminology and 19th-century English.",
       },
     });
     await prisma.capture.create({
@@ -532,12 +533,14 @@ describe("EnrichmentService template resolution", () => {
     await EnrichmentService.createPlaceholderEntries(session.id, prisma);
     await EnrichmentService.enrichSessionCaptures(session.id, prisma, mockLLM);
 
-    const promptArg = mockComplete.mock.calls[0][0] as string;
-    expect(promptArg).toContain("Session template: test");
-    expect(promptArg).not.toContain("Enrich the following item:");
+    const options = mockComplete.mock.calls[0][1];
+    expect(options.systemPrompt).toContain(
+      "Focus on maritime terminology and 19th-century English.",
+    );
+    expect(options.systemPrompt).toContain("Additional context");
   });
 
-  it("falls back to global default when session has no template", async () => {
+  it("appends global default to system prompt when session has no override", async () => {
     const mockComplete = vi.fn().mockResolvedValue(
       JSON.stringify({
         definition: "Test",
@@ -557,7 +560,7 @@ describe("EnrichmentService template resolution", () => {
     await prisma.appMeta.create({
       data: {
         key: "enrichment_prompt_template",
-        value: "Global template: {item}",
+        value: "Global context: prefer formal register.",
       },
     });
 
@@ -576,12 +579,14 @@ describe("EnrichmentService template resolution", () => {
     await EnrichmentService.createPlaceholderEntries(session.id, prisma);
     await EnrichmentService.enrichSessionCaptures(session.id, prisma, mockLLM);
 
-    const promptArg = mockComplete.mock.calls[0][0] as string;
-    expect(promptArg).toContain("Global template: test");
-    expect(promptArg).not.toContain("Enrich the following item:");
+    const options = mockComplete.mock.calls[0][1];
+    expect(options.systemPrompt).toContain(
+      "Global context: prefer formal register.",
+    );
+    expect(options.systemPrompt).toContain("Additional context");
   });
 
-  it("uses hardcoded default when neither session nor global template exists", async () => {
+  it("uses only hardcoded system prompt when neither session nor global context exists", async () => {
     const mockComplete = vi.fn().mockResolvedValue(
       JSON.stringify({
         definition: "Test",
@@ -598,7 +603,7 @@ describe("EnrichmentService template resolution", () => {
     } as unknown as LLMClient;
 
     const source = await SourceService.create(
-      "No Template Book",
+      "No Context Book",
       "book",
       prisma,
     );
@@ -616,11 +621,12 @@ describe("EnrichmentService template resolution", () => {
     await EnrichmentService.createPlaceholderEntries(session.id, prisma);
     await EnrichmentService.enrichSessionCaptures(session.id, prisma, mockLLM);
 
-    const promptArg = mockComplete.mock.calls[0][0] as string;
-    expect(promptArg).toContain("Enrich the following item:");
+    const options = mockComplete.mock.calls[0][1];
+    expect(options.systemPrompt).toContain("word bank enrichment agent");
+    expect(options.systemPrompt).not.toContain("Additional context");
   });
 
-  it("session template takes priority over global default", async () => {
+  it("session context takes priority over global default", async () => {
     const mockComplete = vi.fn().mockResolvedValue(
       JSON.stringify({
         definition: "Test",
@@ -640,7 +646,7 @@ describe("EnrichmentService template resolution", () => {
     await prisma.appMeta.create({
       data: {
         key: "enrichment_prompt_template",
-        value: "Global: {item}",
+        value: "Global: prefer casual register.",
       },
     });
 
@@ -648,7 +654,7 @@ describe("EnrichmentService template resolution", () => {
     const session = await prisma.session.create({
       data: {
         sourceId: source.id,
-        enrichmentPromptTemplate: "Session: {item}",
+        enrichmentPromptTemplate: "Session: prefer technical register.",
       },
     });
     await prisma.capture.create({
@@ -662,8 +668,10 @@ describe("EnrichmentService template resolution", () => {
     await EnrichmentService.createPlaceholderEntries(session.id, prisma);
     await EnrichmentService.enrichSessionCaptures(session.id, prisma, mockLLM);
 
-    const promptArg = mockComplete.mock.calls[0][0] as string;
-    expect(promptArg).toContain("Session: test");
-    expect(promptArg).not.toContain("Global:");
+    const options = mockComplete.mock.calls[0][1];
+    expect(options.systemPrompt).toContain(
+      "Session: prefer technical register.",
+    );
+    expect(options.systemPrompt).not.toContain("Global:");
   });
 });
