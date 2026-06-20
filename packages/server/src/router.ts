@@ -68,10 +68,16 @@ export const appRouter = t.router({
         z.object({
           name: z.string().min(1),
           type: z.enum(["book", "video", "article"]),
+          enrichmentContext: z.string().nullable().optional(),
         }),
       )
       .mutation(async ({ input, ctx }) =>
-        SourceService.create(input.name, input.type, ctx.prisma),
+        SourceService.create(
+          input.name,
+          input.type,
+          ctx.prisma,
+          input.enrichmentContext,
+        ),
       ),
     list: t.procedure.query(async ({ ctx }) => SourceService.list(ctx.prisma)),
   }),
