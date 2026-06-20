@@ -18,6 +18,7 @@
 | **Source Context** | Optional text from the **Source** (chapter, subtitle file, article) that enables higher-quality **Enrichment** | Source material, source text, reference text |
 | **Locator** | A position within a **Source** — page number, chapter, timestamp, or URL fragment — provided at capture time | Position, reference, pointer |
 | **One-off** | A **Capture** made outside of any **Session**, with no **Source** association | Standalone, ad-hoc |
+| **Enrichment Context** | Optional guidance text appended to the enrichment system prompt, scoped to a **Source** (e.g., "Focus on technical terminology and political concepts. Formal register."). Persists across **Sessions** of the same **Source**. Distinct from **Source Context** — this is *how* the agent should behave, not *what* it reads. | Source context (ambiguous), prompt context, enrichment hint
 
 ## Enrichment quality
 
@@ -53,6 +54,8 @@
 - A **Capture** belongs to exactly one **Session** or is a **One-off**
 - A **Capture** may include a **Locator** (chapter, page, timestamp)
 - A **Source** may optionally have **Source Context** attached (chapter text, subtitle file, fetched article)
+- A **Source** may optionally have **Enrichment Context** — guidance text that tailors how the **Enrichment** agent behaves for that **Source** (e.g., "Focus on technical terminology")
+- **Enrichment Context** persists across **Sessions** of the same **Source**; editing it mid-session updates the **Source** and applies to future enrichments (current session and future sessions) without retroactively re-running completed ones
 - A **Capture** with **Source Context** yields higher-quality **Enrichment** than one without
 - A **Capture** becomes an **Entry** after successful **Enrichment** and **Review**
 - An **Enrichment** is assessed for **Confidence**; low **Confidence** results in a **Flag**
@@ -78,5 +81,5 @@
 
 - "Word" was used throughout the conversation to mean both a single word (e.g., "serendipity") and a multi-word phrase (e.g., "call me Ishmael"). We canonicalize both as **Item** — a word or phrase that is the subject of a **Capture** or **Entry**.
 - "Review" was used ambiguously to mean both (a) approving enriched entries and (b) SRS flashcard-style studying. We restrict **Review** to meaning (a) — the approval step. SRS flashcard review is explicitly out of scope for the initial build and should use a different term (e.g., "study" or "recall practice") when added later.
-- "Context" was used loosely to mean both (a) the surrounding text from the source material and (b) the metadata about what/where the user was reading. We split these: **Source Context** for (a) — the actual text content — and **Session** metadata for (b). The general word "context" is avoided as a domain term.
+- "Context" was used loosely to mean both (a) the surrounding text from the source material and (b) the metadata about what/where the user was reading. We split these: **Source Context** for (a) — the actual text content — and **Session** metadata for (b). The general word "context" is avoided as a domain term. **Enrichment Context** is a deliberate exception — it refers to prompt-level guidance (how the agent should behave), not text content (what the agent reads). It is always written in full as "Enrichment Context," never shortened to "context."
 - "Source" and "Source Context" are distinct. A **Source** is the material identity (title, type). **Source Context** is the optional text content that enables exact-quote enrichment. A **Capture** always has a **Source** (or is a **One-off**) but might not have **Source Context**.
