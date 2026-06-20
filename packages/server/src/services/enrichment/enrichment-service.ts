@@ -1,4 +1,5 @@
 import type { PrismaClient } from "../../generated/prisma/client.js";
+import { AppService } from "../app.js";
 import type { LLMClient } from "../llm-client.js";
 import { EnrichmentPipeline } from "./enrichment-pipeline.js";
 
@@ -65,7 +66,8 @@ export const EnrichmentService = {
     prisma: PrismaClient,
     llm: LLMClient,
   ): Promise<void> {
-    const pipeline = new EnrichmentPipeline(llm);
+    const systemPrompt = await AppService.getBaseSystemPrompt(prisma);
+    const pipeline = new EnrichmentPipeline(llm, systemPrompt);
 
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
@@ -138,7 +140,8 @@ export const EnrichmentService = {
     llm: LLMClient,
   ): Promise<void> {
     try {
-      const pipeline = new EnrichmentPipeline(llm);
+      const systemPrompt = await AppService.getBaseSystemPrompt(prisma);
+      const pipeline = new EnrichmentPipeline(llm, systemPrompt);
 
       const capture = await prisma.capture.findUnique({
         where: { id: captureId },
