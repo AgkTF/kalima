@@ -615,3 +615,145 @@ describe("EnrichmentService uses stored base system prompt", () => {
     await AppService.resetBaseSystemPrompt(prisma);
   });
 });
+
+describe("EnrichmentService appends source enrichmentContext to system prompt", () => {
+  const adapter = new PrismaBetterSqlite3({
+    url: "file:./prisma/test.db",
+  });
+  const prisma = new PrismaClient({ adapter });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
+  const enrichmentJson = JSON.stringify({
+    definition: "A test definition",
+    translationArabic: "اختبار",
+    nuance: "Test nuance",
+    examples: ["Example 1", "Example 2"],
+    tags: ["test"],
+    relatedEntries: [],
+    confidence: "high",
+  });
+
+  it("appends enrichment context to the system prompt with 'Additional context:' label", async () => {
+    const mockComplete = vi.fn().mockResolvedValue(enrichmentJson);
+    const mockLLM: LLMClient = {
+      complete: mockComplete,
+    } as unknown as LLMClient;
+
+    await AppService.resetBaseSystemPrompt(prisma);
+
+    const source = await SourceService.create(
+      "Enrichment Context Append Book",
+      "book",
+      prisma,
+      "Focus on technical terminology. Formal register.",
+    );
+    const session = await prisma.session.create({
+      data: { sourceId: source.id },
+    });
+    await prisma.capture.create({
+      data: {
+        rawText: "harpoon",
+        item: "harpoon",
+        sessionId: session.id,
+      },
+    });
+
+    await EnrichmentService.createPlaceholderEntries(session.id, prisma);
+    await EnrichmentService.enrichSessionCaptures(session.id, prisma, mockLLM);
+
+    const systemPrompt = mockComplete.mock.calls[0][1].systemPrompt as string;
+    expect(systemPrompt).toContain(FACTORY_DEFAULT_SYSTEM_PROMPT);
+    expect(systemPrompt).toContain("Additional context:");
+    expect(systemPrompt).toContain(
+      "Focus on technical terminology. Formal register.",
+    );
+    // Context appears after the base prompt
+    expect(systemPrompt.indexOf(FACTORY_DEFAULT_SYSTEM_PROMPT)).toBeLessThan(
+      systemPrompt.indexOf("Additional context:"),
+    );
+
+    await prisma.entry.deleteMany();
+    await prisma.capture.deleteMany();
+    await prisma.session.deleteMany();
+    await prisma.source.deleteMany({
+      where: { name: "Enrichment Context Append Book" },
+    });
+  });
+
+  it("uses base system prompt only when source has no enrichment context", async () => {
+    const mockComplete = vi.fn().mockResolvedValue(enrichmentJson);
+    const mockLLM: LLMClient = {
+      complete: mockComplete,
+    } as unknown as LLMClient;
+
+    await AppService.resetBaseSystemPrompt(prisma);
+
+    const source = await SourceService.create(
+      "No Enrichment Context Book",
+      "book",
+      prisma,
+      null,
+    );
+    const session = await prisma.session.create({
+      data: { sourceId: source.id },
+    });
+    await prisma.capture.create({
+      data: {
+        rawText: "harpoon",
+        item: "harpoon",
+        sessionId: session.id,
+      },
+    });
+
+    await EnrichmentService.createPlaceholderEntries(session.id, prisma);
+    await EnrichmentService.enrichSessionCaptures(session.id, prisma, mockLLM);
+
+    const systemPrompt = mockComplete.mock.calls[0][1].systemPrompt as string;
+    expect(systemPrompt).toBe(FACTORY_DEFAULT_SYSTEM_PROMPT);
+    expect(systemPrompt).not.toContain("Additional context:");
+
+    await prisma.entry.deleteMany();
+    await prisma.capture.deleteMany();
+    await prisma.session.deleteMany();
+    await prisma.source.deleteMany({
+      where: { name: "No Enrichment Context Book" },
+    });
+  });
+
+  it("one-off captures (no source) get base system prompt only", async () => {
+    const mockComplete = vi.fn().mockResolvedValue(enrichmentJson);
+    const mockLLM: LLMClient = {
+      complete: mockComplete,
+    } as unknown as LLMClient;
+
+    await AppService.resetBaseSystemPrompt(prisma);
+
+    const capture = await prisma.capture.create({
+      data: { rawText: "ephemeral", item: "ephemeral" },
+    });
+    await prisma.entry.create({
+      data: {
+        captureId: capture.id,
+        status: "processing",
+        definition: "",
+        translationArabic: "",
+        nuance: "",
+        examples: "[]",
+        tags: "[]",
+        relatedEntries: "[]",
+      },
+    });
+
+    await EnrichmentService.enrichCapture(capture.id, prisma, mockLLM);
+
+    const systemPrompt = mockComplete.mock.calls[0][1].systemPrompt as string;
+    expect(systemPrompt).toBe(FACTORY_DEFAULT_SYSTEM_PROMPT);
+    expect(systemPrompt).not.toContain("Additional context:");
+
+    await prisma.entry.deleteMany();
+    await prisma.capture.deleteMany();
+  });
+});
