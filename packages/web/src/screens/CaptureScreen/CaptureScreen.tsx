@@ -165,7 +165,8 @@ export function CaptureScreen() {
       {/* System prompt editor */}
       <SystemPromptEditor
         open={showPromptEditor}
-        initialPrompt={baseSystemPrompt.data ?? ""}
+        initialPrompt={baseSystemPrompt.data?.current ?? ""}
+        factoryDefaultPrompt={baseSystemPrompt.data?.factoryDefault ?? ""}
         isPending={
           setBaseSystemPrompt.isPending || resetBaseSystemPrompt.isPending
         }

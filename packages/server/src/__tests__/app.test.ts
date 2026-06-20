@@ -84,34 +84,37 @@ describe("AppService base system prompt", () => {
 });
 
 describe("app base system prompt tRPC routes", () => {
-  it("getBaseSystemPrompt returns factory default when no override is set", async () => {
+  it("getBaseSystemPrompt returns current and factoryDefault when no override is set", async () => {
     const caller = appRouter.createCaller({ prisma, llm: mockLLM });
 
     await AppService.resetBaseSystemPrompt(prisma);
 
     const result = await caller.app.getBaseSystemPrompt();
-    expect(result).toBe(FACTORY_DEFAULT_SYSTEM_PROMPT);
+    expect(result.current).toBe(FACTORY_DEFAULT_SYSTEM_PROMPT);
+    expect(result.factoryDefault).toBe(FACTORY_DEFAULT_SYSTEM_PROMPT);
   });
 
-  it("setBaseSystemPrompt stores and getBaseSystemPrompt returns the stored value", async () => {
+  it("setBaseSystemPrompt stores and getBaseSystemPrompt returns the stored value as current", async () => {
     const caller = appRouter.createCaller({ prisma, llm: mockLLM });
 
     const customPrompt = "Custom prompt via tRPC route.";
     await caller.app.setBaseSystemPrompt({ value: customPrompt });
 
     const result = await caller.app.getBaseSystemPrompt();
-    expect(result).toBe(customPrompt);
+    expect(result.current).toBe(customPrompt);
+    expect(result.factoryDefault).toBe(FACTORY_DEFAULT_SYSTEM_PROMPT);
 
     await AppService.resetBaseSystemPrompt(prisma);
   });
 
-  it("resetBaseSystemPrompt clears the override and falls back to factory default", async () => {
+  it("resetBaseSystemPrompt clears the override and current falls back to factory default", async () => {
     const caller = appRouter.createCaller({ prisma, llm: mockLLM });
 
     await caller.app.setBaseSystemPrompt({ value: "Temporary custom prompt" });
     await caller.app.resetBaseSystemPrompt();
 
     const result = await caller.app.getBaseSystemPrompt();
-    expect(result).toBe(FACTORY_DEFAULT_SYSTEM_PROMPT);
+    expect(result.current).toBe(FACTORY_DEFAULT_SYSTEM_PROMPT);
+    expect(result.factoryDefault).toBe(FACTORY_DEFAULT_SYSTEM_PROMPT);
   });
 });

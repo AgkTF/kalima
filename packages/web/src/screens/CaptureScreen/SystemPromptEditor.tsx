@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 export function SystemPromptEditor({
   open,
   initialPrompt,
+  factoryDefaultPrompt,
   isPending,
   onClose,
   onSave,
@@ -11,6 +12,7 @@ export function SystemPromptEditor({
 }: {
   open: boolean;
   initialPrompt: string;
+  factoryDefaultPrompt: string;
   isPending: boolean;
   onClose: () => void;
   onSave: (value: string) => void;
@@ -25,13 +27,25 @@ export function SystemPromptEditor({
     setValue(initialPrompt);
   }, [initialPrompt]);
 
+  function handleReset() {
+    setValue(factoryDefaultPrompt);
+    onReset();
+  }
+
+  function handleOpenChange(open: boolean) {
+    if (!open) {
+      setValue(initialPrompt);
+      onClose();
+    }
+  }
+
   function handleSave() {
     if (isUnchanged || isPending) return;
     onSave(value);
   }
 
   return (
-    <Dialog.Root open={open} onOpenChange={(open) => !open && onClose()}>
+    <Dialog.Root open={open} onOpenChange={handleOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40 bg-black/30" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex max-h-[85vh] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col rounded-button border border-divider bg-surface p-4 shadow-lg">
@@ -54,7 +68,7 @@ export function SystemPromptEditor({
           <div className="mt-3 flex items-center justify-between gap-2">
             <button
               type="button"
-              onClick={onReset}
+              onClick={handleReset}
               disabled={isPending}
               className="rounded-button border border-divider px-3 py-2 text-xs font-medium text-dim transition-colors hover:border-red-200 hover:text-red-600 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
             >
@@ -63,7 +77,7 @@ export function SystemPromptEditor({
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={() => handleOpenChange(false)}
                 className="rounded-button border border-divider px-4 py-2 text-sm font-medium text-dim transition-colors hover:text-ink cursor-pointer"
               >
                 Cancel
