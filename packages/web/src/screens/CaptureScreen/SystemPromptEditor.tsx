@@ -1,5 +1,5 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export function SystemPromptEditor({
   open,
@@ -18,6 +18,12 @@ export function SystemPromptEditor({
 }) {
   const [value, setValue] = useState(initialPrompt);
   const isUnchanged = value === initialPrompt;
+
+  // Sync local state when the prop changes (e.g. after reset refetches
+  // the factory default from the server).
+  useEffect(() => {
+    setValue(initialPrompt);
+  }, [initialPrompt]);
 
   function handleSave() {
     if (isUnchanged || isPending) return;

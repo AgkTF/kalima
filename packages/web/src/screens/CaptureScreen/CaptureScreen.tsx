@@ -41,7 +41,6 @@ export function CaptureScreen() {
     },
   });
 
-  // Mutations
   const createCapture = trpc.capture.create.useMutation({
     onSuccess: (data) => {
       if (activeSession.data) {
