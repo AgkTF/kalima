@@ -3,10 +3,12 @@ import { trpc } from "../../trpc";
 import { CaptureInput } from "./CaptureInput";
 import { CaptureList } from "./CaptureList";
 import { SessionForm } from "./SessionForm";
+import { SystemPromptEditor } from "./SystemPromptEditor";
 
 export function CaptureScreen() {
   const [lastParsed, setLastParsed] = useState<string | null>(null);
   const [showSessionForm, setShowSessionForm] = useState(false);
+  const [showPromptEditor, setShowPromptEditor] = useState(false);
 
   const utils = trpc.useUtils();
 
@@ -21,6 +23,22 @@ export function CaptureScreen() {
   );
   const allSources = trpc.source.list.useQuery(undefined, {
     staleTime: Infinity,
+  });
+  const baseSystemPrompt = trpc.app.getBaseSystemPrompt.useQuery(undefined, {
+    enabled: showPromptEditor,
+  });
+
+  // Mutations
+  const setBaseSystemPrompt = trpc.app.setBaseSystemPrompt.useMutation({
+    onSuccess: () => {
+      utils.app.getBaseSystemPrompt.invalidate();
+      setShowPromptEditor(false);
+    },
+  });
+  const resetBaseSystemPrompt = trpc.app.resetBaseSystemPrompt.useMutation({
+    onSuccess: () => {
+      utils.app.getBaseSystemPrompt.invalidate();
+    },
   });
 
   // Mutations
@@ -64,11 +82,20 @@ export function CaptureScreen() {
       {/* Top bar */}
       <header className="flex items-center justify-between px-5 pt-4 pb-2">
         <h1 className="font-display text-lg font-bold text-ink">Capture</h1>
-        {activeCaptures.length > 0 && (
-          <span className="rounded-full bg-accent-subtle px-2 text-xs text-dim">
-            {activeCaptures.length}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {activeCaptures.length > 0 && (
+            <span className="rounded-full bg-accent-subtle px-2 text-xs text-dim">
+              {activeCaptures.length}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowPromptEditor(true)}
+            className="rounded-button border border-divider px-2.5 py-1 text-xs font-medium text-dim transition-colors hover:border-accent hover:text-accent cursor-pointer"
+          >
+            Prompt
+          </button>
+        </div>
       </header>
 
       {/* Session header (active session state) */}
@@ -134,6 +161,18 @@ export function CaptureScreen() {
             sessionId: activeSession.data?.id,
           })
         }
+      />
+
+      {/* System prompt editor */}
+      <SystemPromptEditor
+        open={showPromptEditor}
+        initialPrompt={baseSystemPrompt.data ?? ""}
+        isPending={
+          setBaseSystemPrompt.isPending || resetBaseSystemPrompt.isPending
+        }
+        onClose={() => setShowPromptEditor(false)}
+        onSave={(value) => setBaseSystemPrompt.mutate({ value })}
+        onReset={() => resetBaseSystemPrompt.mutate()}
       />
     </main>
   );
