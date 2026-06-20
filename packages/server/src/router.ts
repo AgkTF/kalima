@@ -2,6 +2,7 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { AppService } from "./services/app.js";
 import { CaptureService } from "./services/capture.js";
+import { FACTORY_DEFAULT_SYSTEM_PROMPT } from "./services/enrichment/enrichment-pipeline.js";
 import { EnrichmentService } from "./services/enrichment/enrichment-service.js";
 import { ReviewService } from "./services/review.js";
 import { SessionService } from "./services/session.js";
@@ -19,6 +20,18 @@ const t = initTRPC.context<AppContext>().create();
 export const appRouter = t.router({
   app: t.router({
     status: t.procedure.query(() => AppService.status()),
+    getBaseSystemPrompt: t.procedure.query(async ({ ctx }) => ({
+      current: await AppService.getBaseSystemPrompt(ctx.prisma),
+      factoryDefault: FACTORY_DEFAULT_SYSTEM_PROMPT,
+    })),
+    setBaseSystemPrompt: t.procedure
+      .input(z.object({ value: z.string().min(1) }))
+      .mutation(async ({ input, ctx }) =>
+        AppService.setBaseSystemPrompt(ctx.prisma, input.value),
+      ),
+    resetBaseSystemPrompt: t.procedure.mutation(async ({ ctx }) =>
+      AppService.resetBaseSystemPrompt(ctx.prisma),
+    ),
   }),
   session: t.router({
     open: t.procedure

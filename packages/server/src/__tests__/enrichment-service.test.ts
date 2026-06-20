@@ -2,6 +2,8 @@ import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import { PrismaClient } from "../generated/prisma/client.js";
 import { appRouter } from "../router.js";
+import { AppService } from "../services/app.js";
+import { FACTORY_DEFAULT_SYSTEM_PROMPT } from "../services/enrichment/enrichment-pipeline.js";
 import { EnrichmentService } from "../services/enrichment/enrichment-service.js";
 import type { LLMClient } from "../services/llm-client.js";
 import { SourceService } from "../services/source.js";
@@ -477,5 +479,139 @@ describe("enrichment tRPC endpoints", () => {
     await prisma.source.deleteMany({
       where: { name: "Session Filter Book" },
     });
+  });
+});
+
+describe("EnrichmentService uses stored base system prompt", () => {
+  const adapter = new PrismaBetterSqlite3({
+    url: "file:./prisma/test.db",
+  });
+  const prisma = new PrismaClient({ adapter });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
+  const enrichmentJson = JSON.stringify({
+    definition: "A test definition",
+    translationArabic: "اختبار",
+    nuance: "Test nuance",
+    examples: ["Example 1", "Example 2"],
+    tags: ["test"],
+    relatedEntries: [],
+    confidence: "high",
+  });
+
+  it("enrichSessionCaptures passes the stored system prompt to the LLM", async () => {
+    const mockComplete = vi.fn().mockResolvedValue(enrichmentJson);
+    const mockLLM: LLMClient = {
+      complete: mockComplete,
+    } as unknown as LLMClient;
+
+    const customPrompt = "You are a specialized technical terms agent.";
+    await AppService.setBaseSystemPrompt(prisma, customPrompt);
+
+    const source = await SourceService.create(
+      "Stored Prompt Session Book",
+      "book",
+      prisma,
+    );
+    const session = await prisma.session.create({
+      data: { sourceId: source.id },
+    });
+    await prisma.capture.create({
+      data: {
+        rawText: "harpoon",
+        item: "harpoon",
+        sessionId: session.id,
+      },
+    });
+
+    await EnrichmentService.createPlaceholderEntries(session.id, prisma);
+    await EnrichmentService.enrichSessionCaptures(session.id, prisma, mockLLM);
+
+    const options = mockComplete.mock.calls[0][1];
+    expect(options.systemPrompt).toBe(customPrompt);
+
+    await prisma.entry.deleteMany();
+    await prisma.capture.deleteMany();
+    await prisma.session.deleteMany();
+    await prisma.source.deleteMany({
+      where: { name: "Stored Prompt Session Book" },
+    });
+    await AppService.resetBaseSystemPrompt(prisma);
+  });
+
+  it("enrichSessionCaptures falls back to factory default when no override is set", async () => {
+    const mockComplete = vi.fn().mockResolvedValue(enrichmentJson);
+    const mockLLM: LLMClient = {
+      complete: mockComplete,
+    } as unknown as LLMClient;
+
+    await AppService.resetBaseSystemPrompt(prisma);
+
+    const source = await SourceService.create(
+      "Factory Default Session Book",
+      "book",
+      prisma,
+    );
+    const session = await prisma.session.create({
+      data: { sourceId: source.id },
+    });
+    await prisma.capture.create({
+      data: {
+        rawText: "harpoon",
+        item: "harpoon",
+        sessionId: session.id,
+      },
+    });
+
+    await EnrichmentService.createPlaceholderEntries(session.id, prisma);
+    await EnrichmentService.enrichSessionCaptures(session.id, prisma, mockLLM);
+
+    const options = mockComplete.mock.calls[0][1];
+    expect(options.systemPrompt).toBe(FACTORY_DEFAULT_SYSTEM_PROMPT);
+
+    await prisma.entry.deleteMany();
+    await prisma.capture.deleteMany();
+    await prisma.session.deleteMany();
+    await prisma.source.deleteMany({
+      where: { name: "Factory Default Session Book" },
+    });
+  });
+
+  it("enrichCapture passes the stored system prompt to the LLM", async () => {
+    const mockComplete = vi.fn().mockResolvedValue(enrichmentJson);
+    const mockLLM: LLMClient = {
+      complete: mockComplete,
+    } as unknown as LLMClient;
+
+    const customPrompt = "You are a specialized agent for one-off captures.";
+    await AppService.setBaseSystemPrompt(prisma, customPrompt);
+
+    const capture = await prisma.capture.create({
+      data: { rawText: "ephemeral", item: "ephemeral" },
+    });
+    await prisma.entry.create({
+      data: {
+        captureId: capture.id,
+        status: "processing",
+        definition: "",
+        translationArabic: "",
+        nuance: "",
+        examples: "[]",
+        tags: "[]",
+        relatedEntries: "[]",
+      },
+    });
+
+    await EnrichmentService.enrichCapture(capture.id, prisma, mockLLM);
+
+    const options = mockComplete.mock.calls[0][1];
+    expect(options.systemPrompt).toBe(customPrompt);
+
+    await prisma.entry.deleteMany();
+    await prisma.capture.deleteMany();
+    await AppService.resetBaseSystemPrompt(prisma);
   });
 });
