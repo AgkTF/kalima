@@ -214,3 +214,71 @@ describe("source.list query", () => {
     expect(results).toHaveLength(0);
   });
 });
+
+describe("source.updateEnrichmentContext mutation", () => {
+  const adapter = new PrismaBetterSqlite3({
+    url: "file:./prisma/test.db",
+  });
+  const prisma = new PrismaClient({ adapter });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
+  it("updates the enrichmentContext on a source and persists it", async () => {
+    const caller = appRouter.createCaller({
+      prisma,
+      llm: { complete: async () => "{}" } as never,
+    });
+
+    const source = await caller.source.create({
+      name: "Mid-session Edit Book",
+      type: "book",
+      enrichmentContext: "Initial context.",
+    });
+
+    const updated = await caller.source.updateEnrichmentContext({
+      sourceId: source.id,
+      enrichmentContext: "Edited context mid-session.",
+    });
+
+    expect(updated.enrichmentContext).toBe("Edited context mid-session.");
+
+    // Verify persisted
+    const found = await prisma.source.findUnique({
+      where: { id: source.id },
+    });
+    expect(found?.enrichmentContext).toBe("Edited context mid-session.");
+
+    // Cleanup
+    await prisma.source.delete({ where: { id: source.id } });
+  });
+
+  it("clears enrichmentContext when null is passed", async () => {
+    const caller = appRouter.createCaller({
+      prisma,
+      llm: { complete: async () => "{}" } as never,
+    });
+
+    const source = await caller.source.create({
+      name: "Clear Context Book",
+      type: "book",
+      enrichmentContext: "Has context.",
+    });
+
+    const updated = await caller.source.updateEnrichmentContext({
+      sourceId: source.id,
+      enrichmentContext: null,
+    });
+
+    expect(updated.enrichmentContext).toBeNull();
+
+    const found = await prisma.source.findUnique({
+      where: { id: source.id },
+    });
+    expect(found?.enrichmentContext).toBeNull();
+
+    // Cleanup
+    await prisma.source.delete({ where: { id: source.id } });
+  });
+});

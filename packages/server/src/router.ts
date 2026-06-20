@@ -86,6 +86,20 @@ export const appRouter = t.router({
         ),
       ),
     list: t.procedure.query(async ({ ctx }) => SourceService.list(ctx.prisma)),
+    updateEnrichmentContext: t.procedure
+      .input(
+        z.object({
+          sourceId: z.number(),
+          enrichmentContext: z.string().nullable(),
+        }),
+      )
+      .mutation(async ({ input, ctx }) =>
+        SourceService.updateEnrichmentContext(
+          input.sourceId,
+          input.enrichmentContext,
+          ctx.prisma,
+        ),
+      ),
   }),
   capture: t.router({
     create: t.procedure

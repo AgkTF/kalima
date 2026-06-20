@@ -757,3 +757,103 @@ describe("EnrichmentService appends source enrichmentContext to system prompt", 
     await prisma.capture.deleteMany();
   });
 });
+
+describe("EnrichmentService mid-session edit applies to future enrichments", () => {
+  const adapter = new PrismaBetterSqlite3({
+    url: "file:./prisma/test.db",
+  });
+  const prisma = new PrismaClient({ adapter });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
+  const enrichmentJson = JSON.stringify({
+    definition: "A test definition",
+    translationArabic: "اختبار",
+    nuance: "Test nuance",
+    examples: ["Example 1", "Example 2"],
+    tags: ["test"],
+    relatedEntries: [],
+    confidence: "high",
+  });
+
+  it("uses the updated enrichmentContext for the next enrichment after a mid-session edit", async () => {
+    const mockComplete = vi.fn().mockResolvedValue(enrichmentJson);
+    const mockLLM: LLMClient = {
+      complete: mockComplete,
+    } as unknown as LLMClient;
+
+    await AppService.resetBaseSystemPrompt(prisma);
+
+    const source = await SourceService.create(
+      "Future Enrichment Book",
+      "book",
+      prisma,
+      "Original context.",
+    );
+    const session = await prisma.session.create({
+      data: { sourceId: source.id },
+    });
+    await prisma.capture.create({
+      data: {
+        rawText: "harpoon",
+        item: "harpoon",
+        sessionId: session.id,
+      },
+    });
+
+    // First enrichment uses the original context
+    await EnrichmentService.createPlaceholderEntries(session.id, prisma);
+    await EnrichmentService.enrichSessionCaptures(session.id, prisma, mockLLM);
+    const firstSystemPrompt = mockComplete.mock.calls[0][1]
+      .systemPrompt as string;
+    expect(firstSystemPrompt).toContain("Original context.");
+
+    // Mid-session edit: update the source's enrichmentContext
+    await SourceService.updateEnrichmentContext(
+      source.id,
+      "Edited context for future enrichments.",
+      prisma,
+    );
+
+    // Add a second capture and enrich — should use the NEW context
+    await prisma.capture.create({
+      data: {
+        rawText: "whale",
+        item: "whale",
+        sessionId: session.id,
+      },
+    });
+    await EnrichmentService.createPlaceholderEntries(session.id, prisma);
+    await EnrichmentService.enrichSessionCaptures(session.id, prisma, mockLLM);
+
+    // The latest enrichment call should use the edited context
+    const lastSystemPrompt = mockComplete.mock.calls[
+      mockComplete.mock.calls.length - 1
+    ][1].systemPrompt as string;
+    expect(lastSystemPrompt).toContain(
+      "Edited context for future enrichments.",
+    );
+    expect(lastSystemPrompt).not.toContain("Original context.");
+
+    // Already-completed enrichments are not retroactively re-run: the first
+    // entry's data is unchanged (no automatic re-enrichment was triggered).
+    const entries = await prisma.entry.findMany({
+      where: { capture: { sessionId: session.id } },
+      include: { capture: true },
+    });
+    expect(entries).toHaveLength(2);
+    // Both have pending_review status — the edit did not reset or re-run them
+    for (const entry of entries) {
+      expect(entry.status).toBe("pending_review");
+    }
+
+    await prisma.entry.deleteMany();
+    await prisma.capture.deleteMany();
+    await prisma.session.deleteMany();
+    await prisma.source.deleteMany({
+      where: { name: "Future Enrichment Book" },
+    });
+  });
+});
