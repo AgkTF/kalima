@@ -86,6 +86,115 @@ describe("session.open mutation", () => {
   });
 });
 
+describe("session.open with enrichmentContext", () => {
+  const adapter = new PrismaBetterSqlite3({
+    url: "file:./prisma/test.db",
+  });
+  const prisma = new PrismaClient({ adapter });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
+  const mockLLM: LLMClient = {
+    complete: vi.fn().mockResolvedValue(
+      JSON.stringify({
+        item: "serendipity",
+        locator: null,
+        sourceHint: null,
+        definition: "A test definition",
+        translationArabic: "اختبار",
+        nuance: "Test nuance",
+        examples: ["Example"],
+        tags: ["test"],
+        relatedEntries: [],
+      }),
+    ),
+  } as unknown as LLMClient;
+
+  it("persists enrichmentContext on the source when opening a session", async () => {
+    const caller = appRouter.createCaller({ prisma, llm: mockLLM });
+
+    const result = await caller.session.open({
+      name: "Context Session Book",
+      type: "book",
+      enrichmentContext: "Focus on nautical terms.",
+    });
+
+    expect(result.source.enrichmentContext).toBe("Focus on nautical terms.");
+
+    // Verify persisted on the source
+    const found = await prisma.source.findUnique({
+      where: { id: result.sourceId },
+    });
+    expect(found?.enrichmentContext).toBe("Focus on nautical terms.");
+
+    // Cleanup
+    await prisma.session.delete({ where: { id: result.id } });
+    await prisma.source.deleteMany({ where: { name: "Context Session Book" } });
+  });
+
+  it("preserves enrichmentContext across sessions of the same source", async () => {
+    const caller = appRouter.createCaller({ prisma, llm: mockLLM });
+
+    // Session 1: open with enrichmentContext
+    const first = await caller.session.open({
+      name: "Persistence Book",
+      type: "book",
+      enrichmentContext: "Focus on political concepts.",
+    });
+    await caller.session.close();
+
+    // Session 2: reopen same source WITHOUT passing enrichmentContext
+    const second = await caller.session.open({
+      name: "Persistence Book",
+      type: "book",
+    });
+
+    expect(second.sourceId).toBe(first.sourceId);
+    // The previously-set enrichmentContext should still be there
+    expect(second.source.enrichmentContext).toBe(
+      "Focus on political concepts.",
+    );
+
+    // Cleanup
+    await prisma.session.deleteMany({ where: { sourceId: first.sourceId } });
+    await prisma.source.deleteMany({ where: { name: "Persistence Book" } });
+  });
+
+  it("updates enrichmentContext when reopening the same source with a new value", async () => {
+    const caller = appRouter.createCaller({ prisma, llm: mockLLM });
+
+    // Session 1: open with enrichmentContext
+    const first = await caller.session.open({
+      name: "Update Context Book",
+      type: "book",
+      enrichmentContext: "Original context.",
+    });
+    await caller.session.close();
+
+    // Session 2: reopen with a different enrichmentContext
+    const second = await caller.session.open({
+      name: "Update Context Book",
+      type: "book",
+      enrichmentContext: "Updated context.",
+    });
+
+    expect(second.sourceId).toBe(first.sourceId);
+    expect(second.source.enrichmentContext).toBe("Updated context.");
+
+    // Verify persisted
+    const found = await prisma.source.findUnique({
+      where: { id: first.sourceId },
+    });
+    expect(found?.enrichmentContext).toBe("Updated context.");
+
+    // Cleanup
+    await prisma.session.deleteMany({ where: { sourceId: first.sourceId } });
+    await prisma.source.deleteMany({ where: { name: "Update Context Book" } });
+  });
+});
+
 describe("session.close mutation", () => {
   const adapter = new PrismaBetterSqlite3({
     url: "file:./prisma/test.db",
