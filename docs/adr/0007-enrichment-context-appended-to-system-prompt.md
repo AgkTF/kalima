@@ -1,0 +1,5 @@
+# Enrichment Context is appended to the system prompt, not the user prompt
+
+The enrichment pipeline has two prompts: a **system prompt** (instructions to the LLM: *how* to enrich) and a **user prompt** (per-item data: *what* to enrich — item, source, locator, existing entries). Enrichment Context — source-scoped guidance like "Focus on technical terminology and political concepts" — is appended to the **system prompt** as an "Additional context:" section. The per-item user prompt remains hardcoded and is never customized.
+
+The original implementation of this feature (#11) customized the *user* prompt template instead. That was wrong because the context is about how the agent should behave across all items in a source, not about per-item data formatting. One-off captures receiving per-item prompt customization made no sense — they have no source context to apply. Appending to the system prompt means the guidance applies uniformly to every enrichment in a session, including one-offs that share the base system prompt.

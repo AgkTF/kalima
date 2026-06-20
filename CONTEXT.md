@@ -80,11 +80,17 @@ The parse call is cheap and high-value: the user sees "serendipity · p.45" inst
 
 **One enrichment call per Item** to start (not batched). Simpler to build, debug, and retry. Optimize later if needed.
 
-### 5. Enrichment prompt: Per-session with global default
+### 5. Enrichment system prompt: Editable base with source-level context
 
-The enrichment prompt is the heart of the system. It must be **configurable/template-based** so the user can tweak enrichment behavior (more examples, different translation register, etc.) without changing code.
+The enrichment system prompt is the heart of the system. It has two configurable layers:
 
-**Decision: Per-session override with a global default.** Most sessions use the global default template. When starting a session, the user can optionally customize the prompt for that context (e.g., technical precision for a textbook, literary register for a novel). The per-session override is pre-filled with the global default. The global default is accessible from the Capture screen.
+1. **Base system prompt** — the foundational instructions to the enrichment agent (agent role, output format, quality constraints). Editable from the Capture screen, stored globally in AppMeta. A factory default is defined in code; a reset button restores it. Applies to all captures: one-offs and session-related.
+
+2. **Enrichment Context** — optional source-scoped guidance appended to the base system prompt (e.g., "Focus on technical terminology and political concepts. Formal register."). Mapped to a **Source**, persists across **Sessions**. Set when starting a session, editable mid-session. When present, appended with a hardcoded "Additional context:" label.
+
+**Resolution chain:** `source.enrichmentContext → null` (base system prompt only). No per-session override.
+
+The per-item user prompt (what to enrich: item, source, locator, existing entries) remains hardcoded — it is not customizable. Configurability is in the system prompt (how to enrich), not the user prompt.
 
 ### 6. Review flow: Every entry gets full attention
 
@@ -166,7 +172,7 @@ A clean, warm, restrained aesthetic — never stark white, never pure black. Lig
 
 ### Screen architecture
 
-Three primary tabs: **Capture**, **Review**, **Word Bank**. No separate Settings screen — the enrichment prompt template lives contextually on the Capture screen.
+Three primary tabs: **Capture**, **Review**, **Word Bank**. No separate Settings screen — the base system prompt editor and enrichment context both live contextually on the Capture screen.
 
 **Capture** — the landing screen. Two states:
 
