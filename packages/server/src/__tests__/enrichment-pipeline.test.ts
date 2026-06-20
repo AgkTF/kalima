@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   EnrichmentPipeline,
   type EnrichmentResult,
+  FACTORY_DEFAULT_SYSTEM_PROMPT,
 } from "../services/enrichment/enrichment-pipeline.js";
 import type { LLMClient } from "../services/llm-client.js";
 
@@ -181,5 +182,42 @@ describe("EnrichmentPipeline", () => {
 
     const options = mockComplete.mock.calls[0][1];
     expect(options.tier).toBe("premium");
+  });
+
+  it("uses factory default system prompt when none is provided", async () => {
+    const mockComplete = vi.fn().mockResolvedValue(enrichmentResponse());
+    const mockLLM: LLMClient = {
+      complete: mockComplete,
+    } as unknown as LLMClient;
+
+    const pipeline = new EnrichmentPipeline(mockLLM);
+
+    await pipeline.enrich({
+      capture: { item: "test", locator: null, rawText: "test" },
+      source: null,
+      existingEntries: [],
+    });
+
+    const options = mockComplete.mock.calls[0][1];
+    expect(options.systemPrompt).toBe(FACTORY_DEFAULT_SYSTEM_PROMPT);
+  });
+
+  it("uses a custom system prompt when one is provided to the constructor", async () => {
+    const mockComplete = vi.fn().mockResolvedValue(enrichmentResponse());
+    const mockLLM: LLMClient = {
+      complete: mockComplete,
+    } as unknown as LLMClient;
+
+    const customPrompt = "You are a specialized agent for technical terms.";
+    const pipeline = new EnrichmentPipeline(mockLLM, customPrompt);
+
+    await pipeline.enrich({
+      capture: { item: "test", locator: null, rawText: "test" },
+      source: null,
+      existingEntries: [],
+    });
+
+    const options = mockComplete.mock.calls[0][1];
+    expect(options.systemPrompt).toBe(customPrompt);
   });
 });

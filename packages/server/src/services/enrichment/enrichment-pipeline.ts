@@ -46,7 +46,7 @@ const ENRICHMENT_SCHEMA = {
   additionalProperties: false,
 } as const;
 
-const SYSTEM_PROMPT = `You are a word bank enrichment agent. For the given item, produce:
+export const FACTORY_DEFAULT_SYSTEM_PROMPT = `You are a word bank enrichment agent. For the given item, produce:
 - definition: a context-appropriate meaning
 - translationArabic: the Arabic equivalent in Arabic script only (no transliteration, no pronunciation guides)
 - nuance: a note on subtle shades of meaning
@@ -69,10 +69,15 @@ export interface EnrichParams {
 export class EnrichmentPipeline {
   private llm: LLMClient;
   private promptBuilder: EnrichmentPromptBuilder;
+  private systemPrompt: string;
 
-  constructor(llm: LLMClient) {
+  constructor(
+    llm: LLMClient,
+    systemPrompt: string = FACTORY_DEFAULT_SYSTEM_PROMPT,
+  ) {
     this.llm = llm;
     this.promptBuilder = new EnrichmentPromptBuilder();
+    this.systemPrompt = systemPrompt;
   }
 
   async enrich(
@@ -89,7 +94,7 @@ export class EnrichmentPipeline {
     const response = await this.llm.complete(prompt, {
       tier,
       schema: ENRICHMENT_SCHEMA,
-      systemPrompt: SYSTEM_PROMPT,
+      systemPrompt: this.systemPrompt,
     });
 
     const result = JSON.parse(response) as EnrichmentResult;
