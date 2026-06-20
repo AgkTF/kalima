@@ -19,6 +19,17 @@ const t = initTRPC.context<AppContext>().create();
 export const appRouter = t.router({
   app: t.router({
     status: t.procedure.query(() => AppService.status()),
+    getBaseSystemPrompt: t.procedure.query(async ({ ctx }) =>
+      AppService.getBaseSystemPrompt(ctx.prisma),
+    ),
+    setBaseSystemPrompt: t.procedure
+      .input(z.object({ value: z.string().min(1) }))
+      .mutation(async ({ input, ctx }) =>
+        AppService.setBaseSystemPrompt(ctx.prisma, input.value),
+      ),
+    resetBaseSystemPrompt: t.procedure.mutation(async ({ ctx }) =>
+      AppService.resetBaseSystemPrompt(ctx.prisma),
+    ),
   }),
   session: t.router({
     open: t.procedure

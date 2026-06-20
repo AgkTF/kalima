@@ -6,8 +6,6 @@ import { AppService } from "../services/app.js";
 import { FACTORY_DEFAULT_SYSTEM_PROMPT } from "../services/enrichment/enrichment-pipeline.js";
 import type { LLMClient } from "../services/llm-client.js";
 
-const mockLLM = { complete: vi.fn() } as unknown as LLMClient;
-
 const adapter = new PrismaBetterSqlite3({
   url: "file:./prisma/test.db",
 });
@@ -16,6 +14,8 @@ const prisma = new PrismaClient({ adapter });
 afterAll(async () => {
   await prisma.$disconnect();
 });
+
+const mockLLM = { complete: vi.fn() } as unknown as LLMClient;
 
 describe("app.status query", () => {
   it("returns the app name and status", async () => {
@@ -80,5 +80,38 @@ describe("AppService base system prompt", () => {
     expect(result).toBe(FACTORY_DEFAULT_SYSTEM_PROMPT);
 
     await cleanup();
+  });
+});
+
+describe("app base system prompt tRPC routes", () => {
+  it("getBaseSystemPrompt returns factory default when no override is set", async () => {
+    const caller = appRouter.createCaller({ prisma, llm: mockLLM });
+
+    await AppService.resetBaseSystemPrompt(prisma);
+
+    const result = await caller.app.getBaseSystemPrompt();
+    expect(result).toBe(FACTORY_DEFAULT_SYSTEM_PROMPT);
+  });
+
+  it("setBaseSystemPrompt stores and getBaseSystemPrompt returns the stored value", async () => {
+    const caller = appRouter.createCaller({ prisma, llm: mockLLM });
+
+    const customPrompt = "Custom prompt via tRPC route.";
+    await caller.app.setBaseSystemPrompt({ value: customPrompt });
+
+    const result = await caller.app.getBaseSystemPrompt();
+    expect(result).toBe(customPrompt);
+
+    await AppService.resetBaseSystemPrompt(prisma);
+  });
+
+  it("resetBaseSystemPrompt clears the override and falls back to factory default", async () => {
+    const caller = appRouter.createCaller({ prisma, llm: mockLLM });
+
+    await caller.app.setBaseSystemPrompt({ value: "Temporary custom prompt" });
+    await caller.app.resetBaseSystemPrompt();
+
+    const result = await caller.app.getBaseSystemPrompt();
+    expect(result).toBe(FACTORY_DEFAULT_SYSTEM_PROMPT);
   });
 });
