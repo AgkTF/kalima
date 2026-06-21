@@ -10,8 +10,9 @@ export function buildEnrichmentSystemPrompt(
   baseSystemPrompt: string,
   enrichmentContext: string | null,
 ): string {
-  if (!enrichmentContext) return baseSystemPrompt;
-  return `${baseSystemPrompt}\n\nAdditional context:\n${enrichmentContext}`;
+  const trimmed = enrichmentContext?.trim();
+  if (!trimmed) return baseSystemPrompt;
+  return `${baseSystemPrompt}\n\nAdditional context:\n${trimmed}`;
 }
 
 export interface EnrichmentResult {

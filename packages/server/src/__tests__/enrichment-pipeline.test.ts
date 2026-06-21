@@ -56,6 +56,26 @@ describe("buildEnrichmentSystemPrompt", () => {
     expect(result).toBe(base);
     expect(result).not.toContain("Additional context:");
   });
+
+  it("returns the base prompt unchanged when enrichment context is whitespace-only", () => {
+    const base = "You are a word bank enrichment agent.";
+
+    const result = buildEnrichmentSystemPrompt(base, "   \n\t  ");
+
+    expect(result).toBe(base);
+    expect(result).not.toContain("Additional context:");
+  });
+
+  it("trims leading and trailing whitespace from enrichment context before appending", () => {
+    const base = "You are a word bank enrichment agent.";
+    const context = "  Focus on nautical terms.  \n";
+
+    const result = buildEnrichmentSystemPrompt(base, context);
+
+    expect(result).toContain("Additional context:");
+    expect(result).toContain("Focus on nautical terms.");
+    expect(result).not.toContain("  Focus on nautical terms.  \n");
+  });
 });
 
 describe("EnrichmentPipeline", () => {
