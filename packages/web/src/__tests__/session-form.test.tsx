@@ -96,4 +96,51 @@ describe("SessionForm enrichmentContext", () => {
 
     expect(onStart).toHaveBeenCalledWith("No Context", "book", null);
   });
+
+  it("blocks submit and shows a hint when typing a name that matches an existing source", async () => {
+    const onStart = vi.fn();
+    const sources = [
+      {
+        id: 1,
+        name: "Moby Dick",
+        type: "book",
+        enrichmentContext: "Nautical terms.",
+      },
+    ];
+    const { user } = renderForm(sources, onStart);
+
+    await user.type(screen.getByPlaceholderText(/source title/i), "Moby Dick");
+
+    expect(screen.getByText(/already exists/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /open session/i }),
+    ).toBeDisabled();
+    expect(onStart).not.toHaveBeenCalled();
+  });
+
+  it("clears enrichmentContext when the name is edited after selecting a source", async () => {
+    const sources = [
+      {
+        id: 1,
+        name: "Moby Dick",
+        type: "book",
+        enrichmentContext: "Nautical terms.",
+      },
+    ];
+    const { user } = renderForm(sources);
+
+    const input = screen.getByPlaceholderText(/source title/i);
+    await user.type(input, "Moby");
+    await user.click(screen.getByText("Moby Dick"));
+
+    const textarea = screen.getByPlaceholderText(
+      /enrichment context/i,
+    ) as HTMLTextAreaElement;
+    expect(textarea.value).toBe("Nautical terms.");
+
+    await user.clear(input);
+    await user.type(input, "New Book");
+
+    expect(textarea.value).toBe("");
+  });
 });
