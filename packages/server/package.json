@@ -7,6 +7,8 @@
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:integration": "INTEGRATION=1 vitest run",
@@ -14,17 +16,17 @@
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.8.0",
+    "@prisma/client": "^7.8.0",
     "@trpc/server": "^11.1.2",
     "better-sqlite3": "^12.9.0",
     "dotenv": "^17.4.2",
     "express": "^5.1.0",
-    "prisma": "^7.8.0",
     "zod": "^3.24.3"
   },
   "devDependencies": {
-    "@prisma/client": "^7.8.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/express": "^5.0.2",
+    "prisma": "^7.8.0",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3",
     "vitest": "^3.1.3"
