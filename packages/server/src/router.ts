@@ -39,10 +39,16 @@ export const appRouter = t.router({
         z.object({
           name: z.string().min(1),
           type: z.enum(["book", "video", "article"]),
+          enrichmentContext: z.string().nullable().optional(),
         }),
       )
       .mutation(async ({ input, ctx }) =>
-        SessionService.open(input.name, input.type, ctx.prisma),
+        SessionService.open(
+          input.name,
+          input.type,
+          ctx.prisma,
+          input.enrichmentContext,
+        ),
       ),
     close: t.procedure.mutation(async ({ ctx }) => {
       const session = await SessionService.close(ctx.prisma);
@@ -68,12 +74,32 @@ export const appRouter = t.router({
         z.object({
           name: z.string().min(1),
           type: z.enum(["book", "video", "article"]),
+          enrichmentContext: z.string().nullable().optional(),
         }),
       )
       .mutation(async ({ input, ctx }) =>
-        SourceService.create(input.name, input.type, ctx.prisma),
+        SourceService.create(
+          input.name,
+          input.type,
+          ctx.prisma,
+          input.enrichmentContext,
+        ),
       ),
     list: t.procedure.query(async ({ ctx }) => SourceService.list(ctx.prisma)),
+    updateEnrichmentContext: t.procedure
+      .input(
+        z.object({
+          sourceId: z.number(),
+          enrichmentContext: z.string().nullable(),
+        }),
+      )
+      .mutation(async ({ input, ctx }) =>
+        SourceService.updateEnrichmentContext(
+          input.sourceId,
+          input.enrichmentContext,
+          ctx.prisma,
+        ),
+      ),
   }),
   capture: t.router({
     create: t.procedure

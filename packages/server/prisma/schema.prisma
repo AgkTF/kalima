@@ -30,6 +30,9 @@ model Source {
   id   Int    @id @default(autoincrement())
   name String
   type String
+  /// Source-scoped guidance appended to the base enrichment system prompt.
+  /// Null means base system prompt only. See ADR-0007.
+  enrichmentContext String?
 
   sessions Session[]
 

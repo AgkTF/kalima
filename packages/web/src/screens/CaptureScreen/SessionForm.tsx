@@ -11,6 +11,7 @@ interface SourceSuggestion {
   id: number;
   name: string;
   type: string;
+  enrichmentContext: string | null;
 }
 
 export function SessionForm({
@@ -21,13 +22,18 @@ export function SessionForm({
 }: {
   sources: SourceSuggestion[];
   isPending: boolean;
-  onStart: (name: string, type: string) => void;
+  onStart: (
+    name: string,
+    type: string,
+    enrichmentContext: string | null,
+  ) => void;
   onCancel: () => void;
 }) {
   const [type, setType] =
     useState<(typeof SOURCE_TYPES)[number]["value"]>("book");
   const [typeLocked, setTypeLocked] = useState(false);
   const [inputItems, setInputItems] = useState<SourceSuggestion[]>([]);
+  const [enrichmentContext, setEnrichmentContext] = useState<string>("");
 
   const {
     isOpen,
@@ -49,22 +55,34 @@ export function SessionForm({
       );
       if (value !== current?.name) {
         setTypeLocked(false);
+        setEnrichmentContext("");
+      } else if (current) {
+        // Name matches the selected item again — restore its context
+        setEnrichmentContext(current.enrichmentContext ?? "");
       }
     },
     onSelectedItemChange({ selectedItem: source }) {
       if (source) {
         setType(source.type as (typeof SOURCE_TYPES)[number]["value"]);
         setTypeLocked(true);
+        setEnrichmentContext(source.enrichmentContext ?? "");
       }
     },
   });
 
+  const typedName = (inputValue ?? "").trim();
+  const unselectedExistingMatch = typedName
+    ? sources.find(
+        (s) =>
+          s.name === typedName && s.type === type && s.id !== selectedItem?.id,
+      )
+    : undefined;
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const name = (selectedItem?.name ?? inputValue ?? "").trim();
-    if (!name || isPending) return;
-    const resolvedType = selectedItem?.type ?? type;
-    onStart(name, resolvedType);
+    if (!typedName || isPending || unselectedExistingMatch) return;
+    const context = enrichmentContext.trim();
+    onStart(typedName, type, context || null);
   }
 
   return (
@@ -114,6 +132,12 @@ export function SessionForm({
             ))}
         </ul>
       </div>
+      {unselectedExistingMatch && (
+        <p className="text-xs text-dim">
+          "{typedName}" already exists as a {type} source. Select it from the
+          dropdown to reuse its enrichment context.
+        </p>
+      )}
 
       <div className="flex gap-2">
         <select
@@ -132,14 +156,20 @@ export function SessionForm({
         </select>
         <button
           type="submit"
-          disabled={
-            isPending || !(selectedItem?.name ?? inputValue ?? "").trim()
-          }
+          disabled={isPending || !typedName || !!unselectedExistingMatch}
           className="flex-1 rounded-button bg-accent px-4 py-2 font-ui text-sm font-medium text-page transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
         >
           {isPending ? "\u2026" : "Open Session"}
         </button>
       </div>
+      <textarea
+        value={enrichmentContext}
+        onChange={(e) => setEnrichmentContext(e.target.value)}
+        placeholder="Enrichment context (optional): guidance appended to the enrichment system prompt for this source"
+        disabled={isPending}
+        rows={2}
+        className="w-full rounded-button border border-divider bg-surface px-3 py-2 font-ui text-sm text-ink placeholder:text-dim focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
+      />
       <button
         type="button"
         onClick={onCancel}

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { trpc } from "../../trpc";
 import { CaptureInput } from "./CaptureInput";
 import { CaptureList } from "./CaptureList";
+import { EnrichmentContextEditor } from "./EnrichmentContextEditor";
 import { SessionForm } from "./SessionForm";
 import { SystemPromptEditor } from "./SystemPromptEditor";
 
@@ -9,6 +10,7 @@ export function CaptureScreen() {
   const [lastParsed, setLastParsed] = useState<string | null>(null);
   const [showSessionForm, setShowSessionForm] = useState(false);
   const [showPromptEditor, setShowPromptEditor] = useState(false);
+  const [showContextEditor, setShowContextEditor] = useState(false);
 
   const utils = trpc.useUtils();
 
@@ -65,6 +67,15 @@ export function CaptureScreen() {
     },
   });
 
+  const updateEnrichmentContext =
+    trpc.source.updateEnrichmentContext.useMutation({
+      onSuccess: () => {
+        utils.session.getActive.invalidate();
+        utils.source.list.invalidate();
+        setShowContextEditor(false);
+      },
+    });
+
   const closeSession = trpc.session.close.useMutation({
     onSuccess: () => {
       utils.session.getActive.invalidate();
@@ -72,6 +83,7 @@ export function CaptureScreen() {
   });
 
   const hasSession = activeSession.data != null;
+  const activeSource = activeSession.data?.source ?? null;
   const activeCaptures = hasSession
     ? (sessionCaptures.data ?? [])
     : (captures.data ?? []);
@@ -99,23 +111,51 @@ export function CaptureScreen() {
 
       {/* Session header (active session state) */}
       {hasSession && (
-        <div className="mx-5 mb-2 flex items-center justify-between rounded-button border border-divider bg-surface px-3 py-2.5">
-          <div className="min-w-0 flex-1">
-            <div className="truncate font-display text-sm font-semibold text-ink">
-              {activeSession.data?.source?.name}
+        <div className="mx-5 mb-2 space-y-2">
+          <div className="flex items-center justify-between rounded-button border border-divider bg-surface px-3 py-2.5">
+            <div className="min-w-0 flex-1">
+              <div className="truncate font-display text-sm font-semibold text-ink">
+                {activeSession.data?.source?.name}
+              </div>
+              <div className="mt-0.5 text-xs text-dim">
+                {activeSession.data?.source?.type}
+              </div>
             </div>
-            <div className="mt-0.5 text-xs text-dim">
-              {activeSession.data?.source?.type}
+            <div className="ml-2 flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowContextEditor((v) => !v)}
+                className={`rounded-button border px-3 py-1 text-xs font-medium transition-colors cursor-pointer ${
+                  activeSession.data?.source?.enrichmentContext
+                    ? "border-accent text-accent"
+                    : "border-divider text-dim hover:border-accent hover:text-accent"
+                }`}
+              >
+                Context
+              </button>
+              <button
+                type="button"
+                onClick={() => closeSession.mutate()}
+                disabled={closeSession.isPending}
+                className="rounded-button border border-divider px-3 py-1 text-xs font-medium text-dim transition-colors hover:border-red-200 hover:text-red-600 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+              >
+                {closeSession.isPending ? "\u2026" : "Close"}
+              </button>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => closeSession.mutate()}
-            disabled={closeSession.isPending}
-            className="ml-2 shrink-0 rounded-button border border-divider px-3 py-1 text-xs font-medium text-dim transition-colors hover:border-red-200 hover:text-red-600 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-          >
-            {closeSession.isPending ? "\u2026" : "Close"}
-          </button>
+          {showContextEditor && activeSource && (
+            <EnrichmentContextEditor
+              initialContext={activeSource.enrichmentContext}
+              isPending={updateEnrichmentContext.isPending}
+              onSave={(enrichmentContext) =>
+                updateEnrichmentContext.mutate({
+                  sourceId: activeSource.id,
+                  enrichmentContext,
+                })
+              }
+              onCancel={() => setShowContextEditor(false)}
+            />
+          )}
         </div>
       )}
 
@@ -134,10 +174,11 @@ export function CaptureScreen() {
             <SessionForm
               sources={allSources.data ?? []}
               isPending={openSession.isPending}
-              onStart={(name, type) =>
+              onStart={(name, type, enrichmentContext) =>
                 openSession.mutate({
                   name,
                   type: type as "book" | "video" | "article",
+                  enrichmentContext,
                 })
               }
               onCancel={() => setShowSessionForm(false)}

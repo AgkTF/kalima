@@ -1,7 +1,10 @@
 import type { PrismaClient } from "../../generated/prisma/client.js";
 import { AppService } from "../app.js";
 import type { LLMClient } from "../llm-client.js";
-import { EnrichmentPipeline } from "./enrichment-pipeline.js";
+import {
+  buildEnrichmentSystemPrompt,
+  EnrichmentPipeline,
+} from "./enrichment-pipeline.js";
 
 export const EnrichmentService = {
   /**
@@ -66,8 +69,7 @@ export const EnrichmentService = {
     prisma: PrismaClient,
     llm: LLMClient,
   ): Promise<void> {
-    const systemPrompt = await AppService.getBaseSystemPrompt(prisma);
-    const pipeline = new EnrichmentPipeline(llm, systemPrompt);
+    const baseSystemPrompt = await AppService.getBaseSystemPrompt(prisma);
 
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
@@ -75,6 +77,12 @@ export const EnrichmentService = {
     });
 
     if (!session) return;
+
+    const systemPrompt = buildEnrichmentSystemPrompt(
+      baseSystemPrompt,
+      session.source.enrichmentContext,
+    );
+    const pipeline = new EnrichmentPipeline(llm, systemPrompt);
 
     const captures = await prisma.capture.findMany({
       where: { sessionId },
@@ -140,8 +148,7 @@ export const EnrichmentService = {
     llm: LLMClient,
   ): Promise<void> {
     try {
-      const systemPrompt = await AppService.getBaseSystemPrompt(prisma);
-      const pipeline = new EnrichmentPipeline(llm, systemPrompt);
+      const baseSystemPrompt = await AppService.getBaseSystemPrompt(prisma);
 
       const capture = await prisma.capture.findUnique({
         where: { id: captureId },
@@ -153,6 +160,12 @@ export const EnrichmentService = {
       if (!capture) return;
 
       const source = capture.session?.source ?? null;
+
+      const systemPrompt = buildEnrichmentSystemPrompt(
+        baseSystemPrompt,
+        source?.enrichmentContext ?? null,
+      );
+      const pipeline = new EnrichmentPipeline(llm, systemPrompt);
 
       let existingItemNames: string[] = [];
       if (source) {

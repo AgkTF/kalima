@@ -75,6 +75,95 @@ describe("source.create mutation", () => {
   });
 });
 
+describe("source.create with enrichmentContext", () => {
+  const adapter = new PrismaBetterSqlite3({
+    url: "file:./prisma/test.db",
+  });
+  const prisma = new PrismaClient({ adapter });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
+  it("creates a source with enrichmentContext and persists it", async () => {
+    const caller = appRouter.createCaller({
+      prisma,
+      llm: { complete: async () => "{}" } as never,
+    });
+
+    const result = await caller.source.create({
+      name: "Enrichment Book",
+      type: "book",
+      enrichmentContext: "Focus on technical terminology. Formal register.",
+    });
+
+    expect(result.enrichmentContext).toBe(
+      "Focus on technical terminology. Formal register.",
+    );
+
+    // Verify persisted
+    const found = await prisma.source.findUnique({
+      where: { id: result.id },
+    });
+    expect(found?.enrichmentContext).toBe(
+      "Focus on technical terminology. Formal register.",
+    );
+
+    // Cleanup
+    await prisma.source.delete({ where: { id: result.id } });
+  });
+
+  it("creates a source with null enrichmentContext when omitted", async () => {
+    const caller = appRouter.createCaller({
+      prisma,
+      llm: { complete: async () => "{}" } as never,
+    });
+
+    const result = await caller.source.create({
+      name: "No Context Book",
+      type: "book",
+    });
+
+    expect(result.enrichmentContext).toBeNull();
+
+    // Cleanup
+    await prisma.source.delete({ where: { id: result.id } });
+  });
+
+  it("updates enrichmentContext on an existing source when re-created", async () => {
+    const caller = appRouter.createCaller({
+      prisma,
+      llm: { complete: async () => "{}" } as never,
+    });
+
+    // Create without enrichmentContext
+    const first = await caller.source.create({
+      name: "Recreate Book",
+      type: "book",
+    });
+    expect(first.enrichmentContext).toBeNull();
+
+    // Re-create same (name, type) with enrichmentContext — should update
+    const second = await caller.source.create({
+      name: "Recreate Book",
+      type: "book",
+      enrichmentContext: "New context for this source.",
+    });
+
+    expect(second.id).toBe(first.id);
+    expect(second.enrichmentContext).toBe("New context for this source.");
+
+    // Verify persisted
+    const found = await prisma.source.findUnique({
+      where: { id: first.id },
+    });
+    expect(found?.enrichmentContext).toBe("New context for this source.");
+
+    // Cleanup
+    await prisma.source.delete({ where: { id: first.id } });
+  });
+});
+
 describe("source.list query", () => {
   const adapter = new PrismaBetterSqlite3({
     url: "file:./prisma/test.db",
@@ -123,5 +212,73 @@ describe("source.list query", () => {
 
     const results = await caller.source.list();
     expect(results).toHaveLength(0);
+  });
+});
+
+describe("source.updateEnrichmentContext mutation", () => {
+  const adapter = new PrismaBetterSqlite3({
+    url: "file:./prisma/test.db",
+  });
+  const prisma = new PrismaClient({ adapter });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
+  it("updates the enrichmentContext on a source and persists it", async () => {
+    const caller = appRouter.createCaller({
+      prisma,
+      llm: { complete: async () => "{}" } as never,
+    });
+
+    const source = await caller.source.create({
+      name: "Mid-session Edit Book",
+      type: "book",
+      enrichmentContext: "Initial context.",
+    });
+
+    const updated = await caller.source.updateEnrichmentContext({
+      sourceId: source.id,
+      enrichmentContext: "Edited context mid-session.",
+    });
+
+    expect(updated.enrichmentContext).toBe("Edited context mid-session.");
+
+    // Verify persisted
+    const found = await prisma.source.findUnique({
+      where: { id: source.id },
+    });
+    expect(found?.enrichmentContext).toBe("Edited context mid-session.");
+
+    // Cleanup
+    await prisma.source.delete({ where: { id: source.id } });
+  });
+
+  it("clears enrichmentContext when null is passed", async () => {
+    const caller = appRouter.createCaller({
+      prisma,
+      llm: { complete: async () => "{}" } as never,
+    });
+
+    const source = await caller.source.create({
+      name: "Clear Context Book",
+      type: "book",
+      enrichmentContext: "Has context.",
+    });
+
+    const updated = await caller.source.updateEnrichmentContext({
+      sourceId: source.id,
+      enrichmentContext: null,
+    });
+
+    expect(updated.enrichmentContext).toBeNull();
+
+    const found = await prisma.source.findUnique({
+      where: { id: source.id },
+    });
+    expect(found?.enrichmentContext).toBeNull();
+
+    // Cleanup
+    await prisma.source.delete({ where: { id: source.id } });
   });
 });

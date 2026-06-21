@@ -1,6 +1,20 @@
 import type { LLMClient } from "../llm-client.js";
 import { EnrichmentPromptBuilder } from "./enrichment-prompt-builder.js";
 
+/**
+ * Combines the base system prompt with optional source-scoped enrichment
+ * context. When context is present (non-empty), it is appended under a
+ * hardcoded "Additional context:" label. See ADR-0007.
+ */
+export function buildEnrichmentSystemPrompt(
+  baseSystemPrompt: string,
+  enrichmentContext: string | null,
+): string {
+  const trimmed = enrichmentContext?.trim();
+  if (!trimmed) return baseSystemPrompt;
+  return `${baseSystemPrompt}\n\nAdditional context:\n${trimmed}`;
+}
+
 export interface EnrichmentResult {
   definition: string;
   translationArabic: string;
