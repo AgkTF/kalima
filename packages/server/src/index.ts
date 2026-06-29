@@ -1,13 +1,15 @@
+// Load .env FIRST. This is a hoisted side-effect import, so it runs before any
+// other import below is evaluated — in particular before ./prisma.js reads
+// process.env.DATABASE_URL at module-load time. A plain dotenv.config() call
+// in the module body runs AFTER imports (ESM hoists imports), which is too late.
+import "dotenv/config";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import * as trpcExpress from "@trpc/server/adapters/express";
-import dotenv from "dotenv";
 import express from "express";
 import { fts, prisma } from "./prisma.js";
 import { appRouter } from "./router.js";
 import { LLMClient } from "./services/llm-client.js";
-
-dotenv.config();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT ?? 3001);
