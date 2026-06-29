@@ -63,22 +63,29 @@ fi
 log "Installing dependencies (pnpm install)"
 pnpm install --frozen-lockfile
 
-# --- 2. apply migrations + generate Prisma client -----------------------------
-# `prisma migrate deploy` applies all pending migrations to the (fresh) SQLite
-# file and generates the Prisma client into src/generated/prisma (gitignored).
-# The generated client is required by the `tsc` build step that follows.
+# --- 2. apply migrations to the (fresh) DB -----------------------------------
+# `prisma migrate deploy` applies all pending migrations to the SQLite file.
+# On a fresh clone the file does not exist (it is gitignored), so this creates
+# it empty — no dev data is carried over.
 log "Applying Prisma migrations (fresh DB on first deploy)"
 ( cd "$SERVER_DIR" && pnpm exec prisma migrate deploy )
 
-# --- 3. build server (tsc: src/ -> dist/) -------------------------------------
+# --- 3. generate Prisma client (required by the tsc build) -------------------
+# `migrate deploy` does NOT generate the client, and src/generated/prisma/ is
+# gitignored, so on a fresh clone it does not exist. Without this the server
+# `tsc` build fails on the `./generated/prisma/client.js` import.
+log "Generating Prisma client"
+( cd "$SERVER_DIR" && pnpm exec prisma generate )
+
+# --- 4. build server (tsc: src/ -> dist/) -------------------------------------
 log "Building server (pnpm --filter server build)"
 pnpm --filter server build
 
-# --- 4. build frontend (vite -> packages/web/dist) ---------------------------
+# --- 5. build frontend (vite -> packages/web/dist) ---------------------------
 log "Building frontend (pnpm --filter web build)"
 pnpm --filter web build
 
-# --- 5. start / restart with pm2 ---------------------------------------------
+# --- 6. start / restart with pm2 ---------------------------------------------
 if [[ $START_PM2 -eq 1 ]]; then
   log "Starting with pm2 (ecosystem.config.js)"
   if pm2 describe kalima >/dev/null 2>&1; then

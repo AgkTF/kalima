@@ -95,12 +95,14 @@ Required values:
 This runs, in order:
 
 1. `pnpm install --frozen-lockfile`
-2. `prisma migrate deploy` — applies all migrations to the **fresh** DB and
-   generates the Prisma client into `src/generated/prisma/` (gitignored).
-3. `pnpm --filter server build` — `tsc` compiles `src/` → `dist/`.
-4. `pnpm --filter web build` — Vite builds `packages/web/dist/`.
-5. `pm2 start ecosystem.config.js` (or `pm2 restart kalima` if already running)
-6. `pm2 save` — persists the process list so it resurrects on reboot.
+2. `prisma migrate deploy` — applies all migrations to the **fresh** DB.
+3. `prisma generate` — generates the Prisma client into `src/generated/prisma/`
+   (gitignored). Required by the `tsc` build; `migrate deploy` does **not** do
+   this automatically, so on a fresh clone it must run explicitly.
+4. `pnpm --filter server build` — `tsc` compiles `src/` → `dist/`.
+5. `pnpm --filter web build` — Vite builds `packages/web/dist/`.
+6. `pm2 start ecosystem.config.js` (or `pm2 restart kalima` if already running)
+7. `pm2 save` — persists the process list so it resurrects on reboot.
 
 The script refuses to start if `packages/server/.env` is missing, and restarts
 the existing process instead of creating a duplicate on re-runs.
@@ -156,11 +158,14 @@ pm2 monit                  # live CPU/memory terminal UI
 
 ## Troubleshooting
 
-- **`prisma migrate deploy` fails / client missing:** ensure you ran it from
-  `packages/server` (the script does this for you). It both applies migrations
-  and generates the Prisma client the `tsc` build depends on.
-- **`dist/index.js` not found:** the build step must run after migrate deploy
-  (which generates the Prisma client). The deploy script enforces this order.
+- **`prisma migrate deploy` fails / client missing:** `migrate deploy` applies
+  migrations but does **not** generate the Prisma client. The deploy script runs
+  `prisma generate` right after; if you skip it, the `tsc` build fails on the
+  `./generated/prisma/client.js` import. The client dir is gitignored, so on a
+  fresh clone it only exists once `prisma generate` has run.
+- **`dist/index.js` not found:** the build step must run after `prisma generate`
+  (which creates the gitignored Prisma client) and `prisma migrate deploy`. The
+  deploy script enforces this order.
 - **Frontend 404s after deploy:** confirm `packages/web/dist/index.html` exists
   (`pnpm --filter web build`). The server looks for it at
   `../../web/dist` relative to `packages/server/dist`.
