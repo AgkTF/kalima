@@ -1,2 +1,19 @@
 packages:
   - "packages/*"
+
+# Packages allowed to run native build scripts (postinstall/install).
+# Declared in BOTH forms for cross-version pnpm compatibility:
+#   - allowBuilds            -> pnpm >= 11  (replaces onlyBuiltDependencies)
+#   - onlyBuiltDependencies  -> pnpm 10.x   (still reads this form)
+# pnpm 11 no longer reads the `pnpm` field of package.json, so this MUST live
+# here — keeping it only in package.json breaks installs on pnpm 11.
+allowBuilds:
+  esbuild: true
+  "@prisma/engines": true
+  prisma: true
+  better-sqlite3: true
+onlyBuiltDependencies:
+  - esbuild
+  - "@prisma/engines"
+  - prisma
+  - better-sqlite3
