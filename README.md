@@ -19,11 +19,15 @@ pnpm test          # run server tests
 
 ## Production
 
-Build the frontend, then run the server with production env vars:
+Kalima runs as a single PM2-managed process that serves the tRPC API and the
+built frontend (with SPA fallback) from one Express server, backed by a single
+SQLite file. Full deploy runbook (PM2, auto-start on boot, log rotation, LAN +
+Tailscale access): **[docs/deployment.md](./docs/deployment.md)**.
+
+Quick start on an Ubuntu home server:
 
 ```bash
-cd packages/web && pnpm build
-DATABASE_URL=file:/data/kalima.db STATIC_DIR=packages/web/dist node packages/server/dist/index.js
+./scripts/deploy.sh   # install -> prisma migrate deploy -> build server/web -> pm2 start
 ```
 
 ## Project structure
