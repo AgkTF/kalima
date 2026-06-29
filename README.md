@@ -5,16 +5,23 @@ A personal word bank that captures words and phrases from reading and watching, 
 ## Setup
 
 ```bash
+# Install dependencies
 pnpm install
-cd packages/server && npx prisma generate && npx prisma migrate dev
+
+# Create the server env file (gitignored) — fill in LLM_API_KEY for AI enrichment
+cp packages/server/.env.example packages/server/.env
+
+# Apply migrations, generate the Prisma client, and create the dev database
+pnpm --filter server exec prisma migrate dev
 ```
 
 ## Development
 
 ```bash
-pnpm dev          # starts both server (localhost:3001) and web (localhost:5173)
-pnpm lint          # check formatting and lint rules
-pnpm test          # run server tests
+pnpm dev        # starts server (localhost:3001) + web (localhost:5173)
+pnpm lint       # check formatting and lint rules
+pnpm typecheck  # typecheck all packages
+pnpm test       # run server tests
 ```
 
 ## Production
@@ -27,7 +34,7 @@ Tailscale access): **[docs/deployment.md](./docs/deployment.md)**.
 Quick start on an Ubuntu home server:
 
 ```bash
-./scripts/deploy.sh   # install -> prisma migrate deploy -> build server/web -> pm2 start
+./scripts/deploy.sh   # install -> migrate deploy -> generate -> build server/web -> pm2 start
 ```
 
 ## Project structure
