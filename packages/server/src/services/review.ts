@@ -19,7 +19,7 @@ export interface EntryWithCapture {
     id: number;
     item: string;
     locator: string | null;
-    rawText: string;
+    sourceHint: string | null;
     sessionId: number | null;
   };
 }
@@ -124,7 +124,7 @@ export const ReviewService = {
             id: true,
             item: true,
             locator: true,
-            rawText: true,
+            sourceHint: true,
             sessionId: true,
           },
         },
@@ -183,7 +183,7 @@ export const ReviewService = {
             id: true,
             item: true,
             locator: true,
-            rawText: true,
+            sourceHint: true,
             sessionId: true,
           },
         },

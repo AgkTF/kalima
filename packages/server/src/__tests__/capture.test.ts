@@ -1,8 +1,7 @@
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-import { afterAll, describe, expect, it, vi } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 import { PrismaClient } from "../generated/prisma/client.js";
 import { appRouter } from "../router.js";
-import type { LLMClient } from "../services/llm-client.js";
 
 describe("capture.create mutation", () => {
   const adapter = new PrismaBetterSqlite3({
@@ -14,35 +13,19 @@ describe("capture.create mutation", () => {
     await prisma.$disconnect();
   });
 
-  // Mock LLMClient for CaptureParser
-  const mockLLM: LLMClient = {
-    complete: vi.fn().mockResolvedValue(
-      JSON.stringify({
-        item: "serendipity",
-        locator: "chapter 12, page 45",
-        sourceHint: null,
-        definition: "Test definition",
-        translationArabic: "اختبار",
-        nuance: "Test",
-        examples: ["Example"],
-        tags: ["test"],
-        relatedEntries: [],
-      }),
-    ),
-  } as unknown as LLMClient;
-
-  it("parses raw text and persists the capture to the database", async () => {
-    const caller = appRouter.createCaller({ prisma, llm: mockLLM });
+  it("persists structured capture fields directly to the database", async () => {
+    const caller = appRouter.createCaller({ prisma, llm: null as never });
 
     const result = await caller.capture.create({
-      rawText: "serendipity chapter 12 page 45",
+      item: "serendipity",
+      locator: "p.45",
+      sourceHint: null,
     });
 
     expect(result).toMatchObject({
       item: "serendipity",
-      locator: "chapter 12, page 45",
+      locator: "p.45",
       sourceHint: null,
-      rawText: "serendipity chapter 12 page 45",
     });
 
     // Verify persisted
@@ -51,9 +34,25 @@ describe("capture.create mutation", () => {
     });
     expect(found).toMatchObject({
       item: "serendipity",
-      locator: "chapter 12, page 45",
+      locator: "p.45",
       sourceHint: null,
-      rawText: "serendipity chapter 12 page 45",
+    });
+
+    // Cleanup
+    await prisma.capture.delete({ where: { id: result.id } });
+  });
+
+  it("stores one-off capture with source hint", async () => {
+    const caller = appRouter.createCaller({ prisma, llm: null as never });
+
+    const result = await caller.capture.create({
+      item: "cardinal",
+      sourceHint: "conversation with a friend",
+    });
+
+    expect(result).toMatchObject({
+      item: "cardinal",
+      sourceHint: "conversation with a friend",
     });
 
     // Cleanup
@@ -71,34 +70,15 @@ describe("capture.list query", () => {
     await prisma.$disconnect();
   });
 
-  const mockLLM: LLMClient = {
-    complete: vi.fn().mockResolvedValue(
-      JSON.stringify({
-        item: "test-item",
-        locator: null,
-        sourceHint: null,
-        definition: "Test",
-        translationArabic: "اختبار",
-        nuance: "Test",
-        examples: ["Test"],
-        tags: ["test"],
-        relatedEntries: [],
-      }),
-    ),
-  } as unknown as LLMClient;
-
   it("returns one-off captures ordered by creation time", async () => {
     // Seed a one-off capture
     const created = await prisma.capture.create({
       data: {
-        rawText: "test-item",
         item: "test-item",
-        locator: null,
-        sourceHint: null,
       },
     });
 
-    const caller = appRouter.createCaller({ prisma, llm: mockLLM });
+    const caller = appRouter.createCaller({ prisma, llm: null as never });
     const result = await caller.capture.list();
 
     expect(result).toEqual(
@@ -106,7 +86,6 @@ describe("capture.list query", () => {
         expect.objectContaining({
           id: created.id,
           item: "test-item",
-          rawText: "test-item",
         }),
       ]),
     );

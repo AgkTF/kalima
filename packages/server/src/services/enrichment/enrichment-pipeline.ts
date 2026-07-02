@@ -74,7 +74,7 @@ export interface EnrichParams {
   capture: {
     item: string;
     locator: string | null;
-    rawText: string;
+    sourceHint: string | null;
   };
   source?: { name: string; type: string } | null;
   existingEntries: string[];
@@ -102,6 +102,7 @@ export class EnrichmentPipeline {
       item: params.capture.item,
       source: params.source,
       locator: params.capture.locator,
+      sourceHint: params.capture.sourceHint,
       existingEntries: params.existingEntries,
     });
 

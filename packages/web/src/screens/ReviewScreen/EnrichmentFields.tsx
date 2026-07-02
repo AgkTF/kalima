@@ -58,9 +58,7 @@ export function EnrichmentFields({
         <div className="mt-2 pt-2 border-t border-divider space-y-1.5">
           {nuance && (
             <div>
-              <span className="text-[10px] font-semibold text-dim">
-                Nuance
-              </span>
+              <span className="text-[10px] font-semibold text-dim">Nuance</span>
               <p
                 className={`text-xs text-ink leading-relaxed ${fieldClass("nuance")}`}
               >
@@ -69,9 +67,7 @@ export function EnrichmentFields({
             </div>
           )}
           <div>
-            <span className="text-[10px] font-semibold text-dim">
-              Examples
-            </span>
+            <span className="text-[10px] font-semibold text-dim">Examples</span>
             <ul
               className={`list-disc list-inside text-xs text-ink ${fieldClass("examples")}`}
             >

@@ -41,7 +41,7 @@ describe("WordBankService", () => {
       data: { sourceId: source.id },
     });
     const capture = await prisma.capture.create({
-      data: { rawText: item, item, sessionId: session.id },
+      data: { item, sessionId: session.id },
     });
     const entry = await prisma.entry.create({
       data: {
@@ -64,7 +64,7 @@ describe("WordBankService", () => {
 
       // Create a pending entry that should NOT appear
       const pCapture = await prisma.capture.create({
-        data: { rawText: "pending-word", item: "pending-word" },
+        data: { item: "pending-word" },
       });
       await prisma.entry.create({
         data: {
@@ -92,10 +92,10 @@ describe("WordBankService", () => {
       });
 
       const c1 = await prisma.capture.create({
-        data: { rawText: "older", item: "older", sessionId: session.id },
+        data: { item: "older", sessionId: session.id },
       });
       const c2 = await prisma.capture.create({
-        data: { rawText: "newer", item: "newer", sessionId: session.id },
+        data: { item: "newer", sessionId: session.id },
       });
 
       const older = await prisma.entry.create({
@@ -159,7 +159,7 @@ describe("WordBankService", () => {
 
       // Pending entry with same search term (should NOT appear)
       const pCapture = await prisma.capture.create({
-        data: { rawText: "hidden-word", item: "hidden-word" },
+        data: { item: "hidden-word" },
       });
       const hidden = await prisma.entry.create({
         data: {

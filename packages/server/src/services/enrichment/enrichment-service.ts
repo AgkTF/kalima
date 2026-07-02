@@ -106,7 +106,7 @@ export const EnrichmentService = {
             capture: {
               item: capture.item,
               locator: capture.locator,
-              rawText: capture.rawText,
+              sourceHint: capture.sourceHint,
             },
             source: session.source,
             existingEntries: existingItemNames,
@@ -180,7 +180,7 @@ export const EnrichmentService = {
         capture: {
           item: capture.item,
           locator: capture.locator,
-          rawText: capture.rawText,
+          sourceHint: capture.sourceHint,
         },
         source,
         existingEntries: existingItemNames,

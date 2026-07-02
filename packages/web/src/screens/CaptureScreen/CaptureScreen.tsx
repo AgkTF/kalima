@@ -7,7 +7,6 @@ import { SessionForm } from "./SessionForm";
 import { SystemPromptEditor } from "./SystemPromptEditor";
 
 export function CaptureScreen() {
-  const [lastParsed, setLastParsed] = useState<string | null>(null);
   const [showSessionForm, setShowSessionForm] = useState(false);
   const [showPromptEditor, setShowPromptEditor] = useState(false);
   const [showContextEditor, setShowContextEditor] = useState(false);
@@ -44,7 +43,7 @@ export function CaptureScreen() {
   });
 
   const createCapture = trpc.capture.create.useMutation({
-    onSuccess: (data) => {
+    onSuccess: () => {
       if (activeSession.data) {
         utils.capture.listSession.invalidate({
           sessionId: activeSession.data.id,
@@ -52,10 +51,6 @@ export function CaptureScreen() {
       } else {
         utils.capture.list.invalidate();
       }
-      const parts = [data.item];
-      if (data.locator) parts.push(data.locator);
-      setLastParsed(parts.join(" \u00b7 "));
-      setTimeout(() => setLastParsed(null), 1500);
     },
   });
 
@@ -192,12 +187,13 @@ export function CaptureScreen() {
 
       {/* Capture input + feedback */}
       <CaptureInput
-        isPending={createCapture.isPending}
+        hasSession={hasSession}
         error={createCapture.error?.message ?? null}
-        lastParsed={lastParsed}
-        onSubmit={(text) =>
+        onSubmit={(item, locator, sourceHint) =>
           createCapture.mutate({
-            rawText: text,
+            item,
+            locator,
+            sourceHint,
             sessionId: activeSession.data?.id,
           })
         }

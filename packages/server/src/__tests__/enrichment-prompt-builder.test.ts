@@ -47,4 +47,30 @@ describe("EnrichmentPromptBuilder", () => {
     expect(prompt).not.toContain("Source:");
     expect(prompt).not.toContain("Locator:");
   });
+
+  it("includes source hint as 'Encounter context' for one-off captures", () => {
+    const prompt = builder.build({
+      item: "cardinal",
+      source: null,
+      locator: null,
+      sourceHint: "conversation with a friend",
+      existingEntries: [],
+    });
+
+    expect(prompt).toContain("cardinal");
+    expect(prompt).toContain("Encounter context:");
+    expect(prompt).toContain("conversation with a friend");
+  });
+
+  it("does not include Encounter context when sourceHint is null", () => {
+    const prompt = builder.build({
+      item: "serendipity",
+      source: { name: "Moby Dick", type: "book" },
+      locator: "p.45",
+      sourceHint: null,
+      existingEntries: [],
+    });
+
+    expect(prompt).not.toContain("Encounter context:");
+  });
 });

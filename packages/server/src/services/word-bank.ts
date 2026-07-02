@@ -22,7 +22,7 @@ export interface WordBankEntryDetail extends WordBankEntry {
     id: number;
     item: string;
     locator: string | null;
-    rawText: string;
+    sourceHint: string | null;
     session: {
       id: number;
       source: {
