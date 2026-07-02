@@ -25,18 +25,25 @@ The enrichment step is perfectly suited for an LLM agent. The system should capt
 
 The user maintains reading/watching momentum by capturing **Items** fast during a **Session**, with enrichment happening afterward. They do NOT stop to enrich during reading.
 
-Capture input is a **text field** (typed or OS-level dictation) that feeds into an LLM parser on the server. The parser extracts the **Item**, any **Locator**, and any source hints from natural language input like:
+Capture input is a **single text field** (typed or OS-level dictation). There is no LLM parsing at capture time — the input is split locally using a **slash delimiter**. Everything before the first `/` is the **Item**; everything after is the optional **Locator** (in a session) or **Source Hint** (for a one-off). No slash means just the **Item** with no optional metadata.
 
-- "serendipity chapter 12 page 45"
-- "add serendipity, I'm on page forty five of chapter twelve"
-- "the phrase is call me Ishmael, page 1"
-- "serendipity — I heard it in a conversation"
+Examples:
+- `serendipity` → Item: "serendipity", no locator
+- `serendipity / p.45` → Item: "serendipity", Locator: "p.45"
+- `call me Ishmael / ch.1 p.1` → Item: "call me Ishmael", Locator: "ch.1 p.1"
+- `cardinal / conversation with a friend` → Item: "cardinal", Source Hint: "conversation with a friend" (one-off)
 
-No special audio pipeline needed — OS dictation produces text, the LLM parser handles the rest.
+As the user types the `/`, the input provides a **live visual split** — the Item renders in normal text, the Locator/Source Hint renders in accent color. This gives instant, deterministic parse verification with zero latency and no API call.
+
+The optional field is **context-dependent**: when a **Session** is active, the slash-delimited part maps to a **Locator**; for **One-offs**, it maps to a **Source Hint**. The same delimiter, one rule.
 
 **Decision: Use OS-level dictation into a text input, not Web Speech API.** Simpler, more reliable, works on every device, zero browser compatibility issues.
 
-The parsed result (Item + Locator) is displayed immediately in a running capture list, giving the user confirmation and parse verification without interrupting flow.
+**Decision: Slash delimiter, not LLM parsing.** Real-world usage revealed that the LLM parser was an expensive and unreliable detour. Users type just the word and hit capture; adding locators inline was rare and the LLM sometimes misinterpreted them. The slash delimiter is deterministic, instant, and requires no server call. See [ADR-0008](./docs/adr/0008-slash-delimiter-capture-parsing.md).
+
+**Capture list empty state**: When the optional field is empty, the capture list row shows a faded, tappable `+ add locator` (session) or `+ add source` (one-off) target instead of a placeholder dash. Tapping it enables **inline editing** — the target morphs into a text input on the same row. This turns the empty state into an invitation rather than a gap, and provides a retroactive entry path for optional metadata.
+
+Submit is instant — no loading state, no post-capture confirmation banner. The live visual split is the pre-submit verification; the item appearing in the list is the post-submit confirmation.
 
 ### 2. Session model: Explicit open/close, one Source per Session
 
@@ -44,7 +51,7 @@ A **Session** is opened with a **Source** (book title, show/episode, article URL
 
 Session metrics (duration, count of captures) are **nice-to-have** — trivially stored (open/close timestamps) but not a design driver. Add whenever.
 
-**One-offs** are captured without a **Session** — no **Source** association. A loose source hint (e.g., "conversation", "Twitter") is optional but not mandatory. Even a loose hint gives the agent a register signal that improves enrichment.
+**One-offs** are captured without a **Session** — no **Source** association. A loose **Source Hint** (e.g., "conversation with a friend", "in an ad while driving") is optional but not mandatory. The source hint is broader than a label — it captures the circumstance of encountering the word, which gives the enrichment agent a register and domain signal that improves enrichment quality for context-less one-offs.
 
 ### 3. Source Context: Optional, progressive, re-enrichable
 
@@ -61,7 +68,7 @@ For **books**: the user may paste chapter text when starting a session, or skip 
 
 ### 4. Enrichment pipeline: LLM-powered, with optional premium tier
 
-The enrichment agent receives: **Item** + **Locator** + **Source** metadata + **Source Context** (if available) + **existing Word Bank entries** (for connections).
+The enrichment agent receives: **Item** + **Locator** + **Source** metadata + **Source Context** (if available) + **Source Hint** (for one-offs) + **existing Word Bank entries** (for connections).
 
 It produces: **Definition**, **Translation** (Arabic), **Nuance** note, **Example** sentences, related **Entries**, and tags.
 
@@ -69,12 +76,7 @@ It produces: **Definition**, **Translation** (Arabic), **Nuance** note, **Exampl
 
 **Decision: No auto-approve based on LLM self-assessment.** The agent's self-assessed confidence was found to add friction rather than value — the user reviews every entry anyway, and the LLM's judgment doesn't reliably predict whether the user will agree. All enriched entries enter Review as `pending_review` with full expandable detail.
 
-**Capture parsing vs. enrichment — two distinct LLM calls per Capture:**
-
-1. **Parse** (at capture time, fast/cheap model) — extracts Item, Locator, source hints from raw input. Lightweight, near-real-time. Displayed immediately in the capture list for user verification.
-2. **Enrich** (after session close) — produces Definition, Translation, Nuance, Examples, Related Entries, Tags. Heavier, runs in background.
-
-The parse call is cheap and high-value: the user sees "serendipity · p.45" instead of the raw "serendipity chapter 12 page 45", enabling scan-verification at capture time.
+**One LLM call per Capture** — enrichment only. The capture parsing LLM call was removed in favor of the slash delimiter (see Design Decision #1). The enrichment prompt includes the **Source Hint** for one-offs, labeled as "Encounter context:" — this gives the agent situational context (register, domain) for words captured outside a session.
 
 **Enrichment trigger:** After a **Session** is closed, enrichment runs automatically for all pending **Captures**.
 
@@ -112,7 +114,7 @@ A badge on the Review tab shows the count of pending entries, so the user always
 | Frontend | React + Vite (PWA) + react-router v7 | Declarative routing with layout routes; single codebase for capture + review + browse; installable on mobile |
 | Database | SQLite + Prisma + FTS5 | Zero-ops deployment, Prisma for type-safe queries, FTS5 for full-text search |
 | Voice | OS-level dictation into text input | No audio pipeline needed — works everywhere, zero browser compatibility issues |
-| Capture parsing | LLM on server | Handles natural variations in how users describe items and locators |
+| Capture parsing | Slash delimiter (client-side split) | Deterministic, instant, no LLM call. Replaces the original LLM parser — see ADR-0008. |
 | Enrichment | LLM API calls | Fast/cheap model for all enrichment; premium tier available for future use |
 | Hosting | Linux home server | Personal tool, always accessible |
 
@@ -128,7 +130,7 @@ The enrichment pipeline, voice parsing, and re-enrichment logic live in a **serv
 ┌──────────────────────┐
 │ Transport (tRPC)      │  ← Thin wiring
 ├──────────────────────┤
-│ Service layer         │  ← enrichItem(), parseCapture(),
+│ Service layer         │  ← enrichItem(),
 │ (the brain)           │     reEnrich()
 ├──────────────────────┤
 │ External APIs         │  ← LLM calls
@@ -149,6 +151,7 @@ A fully enriched **Entry** contains:
 Item: "serendipity"
 Source: { title: "The Art of Innovation", type: "book", detail: "chapter 2" }
 Locator: "page 47"
+Source Hint: null (set for one-offs only — e.g., "conversation with a friend")
 Source Context: <surrounding sentence, if available>
 Language: English
 Register: Formal/Literary/etc.

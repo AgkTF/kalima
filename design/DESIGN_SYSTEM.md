@@ -62,14 +62,10 @@ Inline feedback only — no toasts. Every server interaction provides feedback c
 ### Capture
 
 ```
-IDLE ───submit──▶ LOADING ───parse ok──▶ SUCCESS ───confirms──▶ IDLE
-               LOADING ───parse fail──▶ ERROR ────refills──▶ IDLE
+IDLE ───submit──▶ IDLE
 ```
 
-- **IDLE**: input ready, focused, placeholder visible
-- **LOADING**: button shows "…", input disabled
-- **SUCCESS**: parsed result confirmed inline below input, animates into list; input clears
-- **ERROR**: input refills with original text, inline error shown below: "Couldn't parse. Try again?"
+- **IDLE**: input ready, focused, placeholder visible. User types the item, optionally adds a `/` followed by a locator or source hint. Live visual split shows the parse in real time. On submit, the item appears instantly in the list and the input clears. No loading state (no LLM call), no confirmation banner (the list update is the confirmation). If a server error occurs (network, DB), the input refills with the original text and an inline error is shown: "Couldn't save. Try again?"
 
 ### Review: approve
 
@@ -150,7 +146,7 @@ ENRICHING ───some fail───▶ PARTIAL_FAIL ───open Review──
 - Source context is attached progressively via a separate "Add context" bottom sheet (text paste / URL paste / file upload). Supports .srt, .md, .pdf, and .txt files. Attaching context to an active session triggers re-enrichment of existing captures.
 - Closing a session triggers automatic enrichment
 - Running capture list scrolls above the session bar
-- Input clears on submit for rapid-fire capture; parsed result confirmed inline below input before animating into the list
+- Input clears on submit for rapid-fire capture; live visual split on the `/` delimiter provides pre-submit verification. No post-capture confirmation banner — the item appearing in the list is the confirmation. Capture list empty state shows tappable `+ add locator` / `+ add source` targets for optional metadata, with inline editing on tap.
 - Enrichment prompt template accessible from a "Prompt" button in the session bar. Opens a dedicated sheet.
   - No session active: edits the global default prompt
   - Session active: edits that session's override, pre-filled with the global default
