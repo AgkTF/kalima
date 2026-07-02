@@ -18,6 +18,7 @@
 | **Source Context** | Optional text from the **Source** (chapter, subtitle file, article) that enables higher-quality **Enrichment** | Source material, source text, reference text |
 | **Locator** | A position within a **Source** — page number, chapter, timestamp, or URL fragment — provided at capture time | Position, reference, pointer |
 | **One-off** | A **Capture** made outside of any **Session**, with no **Source** association | Standalone, ad-hoc |
+| **Source Hint** | Optional situational context for a **One-off** **Capture** — describes where and how the word was encountered (e.g., "conversation with a friend", "in an ad while driving"). Broader than a label: it captures the *circumstance of encounter*, giving the **Enrichment** agent a register and domain signal. Fed to the enrichment prompt under the label "Encounter context:". Distinct from **Source Context** (text from the source material) and **Enrichment Context** (prompt-level guidance). | Encounter context, source note |
 | **Enrichment Context** | Optional guidance text appended to the enrichment system prompt, scoped to a **Source** (e.g., "Focus on technical terminology and political concepts. Formal register."). Persists across **Sessions** of the same **Source**. Distinct from **Source Context** — this is *how* the agent should behave, not *what* it reads. | Source context (ambiguous), prompt context, enrichment hint
 
 ## Enrichment quality
@@ -52,7 +53,8 @@
 - A **Source** can have many **Sessions**
 - A **Session** has many **Captures**
 - A **Capture** belongs to exactly one **Session** or is a **One-off**
-- A **Capture** may include a **Locator** (chapter, page, timestamp)
+- A **Capture** may include a **Locator** (chapter, page, timestamp) — provided via the slash delimiter at capture time, or added retroactively via the tap target on the capture list
+- A **Capture** may include a **Source Hint** (for **One-offs** only) — provided via the slash delimiter at capture time, or added retroactively. Fed to the **Enrichment** prompt as "Encounter context:"
 - A **Source** may optionally have **Source Context** attached (chapter text, subtitle file, fetched article)
 - A **Source** may optionally have **Enrichment Context** — guidance text that tailors how the **Enrichment** agent behaves for that **Source** (e.g., "Focus on technical terminology")
 - **Enrichment Context** persists across **Sessions** of the same **Source**; editing it mid-session updates the **Source** and applies to future enrichments (current session and future sessions) without retroactively re-running completed ones
@@ -75,7 +77,7 @@
 
 > **Dev:** "What about words captured without any **Session** — like from a conversation?"
 
-> **Domain expert:** "That's a **One-off**. No **Source**, no **Locator**, minimal context. The **Enrichment** still runs, but with less precision. The user can optionally tag it with a loose source hint like 'conversation' to give the agent a register signal."
+> **Domain expert:** "That's a **One-off**. No **Source**, no **Locator**, minimal context. The **Enrichment** still runs, but with less precision. The user can optionally provide a **Source Hint** like 'conversation with a friend' or 'in an ad while driving' — this is fed to the enrichment agent as encounter context, giving it a register and domain signal that improves quality for context-less one-offs."
 
 ## Flagged ambiguities
 
