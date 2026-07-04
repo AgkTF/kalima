@@ -192,4 +192,36 @@ describe("CaptureList inline edit", () => {
     expect(screen.getByText("+ add locator")).toBeInTheDocument();
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
   });
+
+  it("saves on blur (tap away) when value is non-empty", async () => {
+    const user = userEvent.setup();
+    const onUpdateCapture = vi.fn();
+    const captures: Capture[] = [
+      {
+        id: 1,
+        item: "serendipity",
+        locator: null,
+        sourceHint: null,
+        entry: null,
+      },
+    ];
+    render(
+      <div>
+        <CaptureList
+          captures={captures}
+          hasSession={true}
+          onUpdateCapture={onUpdateCapture}
+        />
+        <button type="button" data-testid="outside">
+          outside
+        </button>
+      </div>,
+    );
+
+    await user.click(screen.getByText("+ add locator"));
+    await user.type(screen.getByRole("textbox"), "p.45");
+    await user.click(screen.getByTestId("outside"));
+
+    expect(onUpdateCapture).toHaveBeenCalledWith(1, { locator: "p.45" });
+  });
 });

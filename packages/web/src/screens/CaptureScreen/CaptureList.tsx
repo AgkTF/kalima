@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 interface Capture {
   id: number;
@@ -50,6 +50,7 @@ function InlineFieldEditor({
 }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState("");
+  const escapePressed = useRef(false);
 
   const label = hasSession ? "+ add locator" : "+ add source";
 
@@ -77,6 +78,7 @@ function InlineFieldEditor({
       handleSave();
     } else if (e.key === "Escape") {
       e.preventDefault();
+      escapePressed.current = true;
       handleCancel();
     }
   }
@@ -90,7 +92,13 @@ function InlineFieldEditor({
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleKeyDown}
-        onBlur={handleCancel}
+        onBlur={() => {
+          if (escapePressed.current) {
+            escapePressed.current = false;
+            return;
+          }
+          handleSave();
+        }}
         className="rounded-[5px] border border-accent bg-surface px-1.5 py-px font-medium text-xs text-ink outline-none focus:ring-1 focus:ring-accent"
       />
     );
