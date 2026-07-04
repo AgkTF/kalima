@@ -75,7 +75,7 @@ export function CaptureInput({
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder={placeholder}
-              className="relative min-w-0 w-full rounded-button border border-divider bg-surface px-3 py-2 font-ui text-base text-transparent placeholder:text-dim placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-accent caret-ink"
+              className="relative min-w-0 w-full rounded-button border border-divider bg-transparent px-3 py-2 font-ui text-base text-transparent placeholder:text-dim placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-accent caret-ink"
               // biome-ignore lint/a11y/noAutofocus: capture input is the primary action, autofocus is intentional
               autoFocus
             />
