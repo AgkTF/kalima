@@ -97,6 +97,33 @@ describe("capture.update mutation", () => {
     // Cleanup
     await prisma.capture.delete({ where: { id: created.id } });
   });
+
+  it("updates a capture's sourceHint", async () => {
+    const created = await prisma.capture.create({
+      data: { item: "cardinal", locator: null, sourceHint: null },
+    });
+
+    const caller = appRouter.createCaller({ prisma, llm: null as never });
+    const result = await caller.capture.update({
+      captureId: created.id,
+      sourceHint: "conversation with a friend",
+    });
+
+    expect(result).toMatchObject({
+      id: created.id,
+      item: "cardinal",
+      sourceHint: "conversation with a friend",
+    });
+
+    // Verify persisted
+    const found = await prisma.capture.findUnique({
+      where: { id: created.id },
+    });
+    expect(found?.sourceHint).toBe("conversation with a friend");
+
+    // Cleanup
+    await prisma.capture.delete({ where: { id: created.id } });
+  });
 });
 
 describe("capture.list query", () => {
