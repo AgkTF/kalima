@@ -15,7 +15,6 @@ interface CaptureUpdateData {
 
 /* ── Processing capture entry (B3: dim ping dot, 80% text) ── */
 function ProcessingCaptureEntry({ capture }: { capture: Capture }) {
-  const locator = capture.locator || "—";
   return (
     <li className="border-b border-divider py-2.5 last:border-b-0">
       <div className="flex items-center gap-2.5 font-display text-base font-semibold text-ink/80">
@@ -26,10 +25,14 @@ function ProcessingCaptureEntry({ capture }: { capture: Capture }) {
         {capture.item}
       </div>
       <div className="mt-0.5 flex items-center gap-1.5 text-xs text-dim/60">
-        <span className="font-medium text-accent/60">{locator}</span>
+        {capture.locator && (
+          <span className="font-medium text-accent/60">{capture.locator}</span>
+        )}
         {capture.sourceHint && (
           <>
-            <span className="select-none text-divider">&middot;</span>
+            {capture.locator && (
+              <span className="select-none text-divider">&middot;</span>
+            )}
             <span className="rounded-[5px] bg-chip/50 px-1.5 py-px font-medium text-chip-text/60">
               {capture.sourceHint}
             </span>

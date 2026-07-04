@@ -278,3 +278,29 @@ describe("CaptureList update error", () => {
     expect(screen.queryByText(/failed to update/i)).not.toBeInTheDocument();
   });
 });
+
+describe("CaptureList processing entry separator", () => {
+  it("does not show middot separator when locator is empty but sourceHint exists", () => {
+    const captures: Capture[] = [
+      {
+        id: 1,
+        item: "cardinal",
+        locator: null,
+        sourceHint: "conversation with a friend",
+        entry: { status: "processing" },
+      },
+    ];
+    const { container } = render(
+      <CaptureList
+        captures={captures}
+        hasSession={false}
+        onUpdateCapture={noUpdate}
+        updateError={null}
+      />,
+    );
+    // sourceHint should be visible
+    expect(screen.getByText("conversation with a friend")).toBeInTheDocument();
+    // but no middot separator (the · character)
+    expect(container.textContent).not.toContain("·");
+  });
+});
