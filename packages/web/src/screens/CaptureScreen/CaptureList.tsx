@@ -189,10 +189,12 @@ export function CaptureList({
   captures,
   hasSession,
   onUpdateCapture,
+  updateError,
 }: {
   captures: Capture[];
   hasSession: boolean;
   onUpdateCapture: (captureId: number, data: CaptureUpdateData) => void;
+  updateError: string | null;
 }) {
   if (captures.length === 0) {
     return (
@@ -210,6 +212,11 @@ export function CaptureList({
 
   return (
     <div className="flex flex-1 flex-col overflow-y-auto pb-40">
+      {updateError && (
+        <div className="mx-5 mt-2 rounded-button border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+          {updateError}
+        </div>
+      )}
       <ul className="px-5">
         {captures.map((capture) => (
           <CaptureEntry

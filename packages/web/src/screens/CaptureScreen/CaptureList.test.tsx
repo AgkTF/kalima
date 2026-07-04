@@ -29,6 +29,7 @@ describe("CaptureList empty-state tap target", () => {
         captures={captures}
         hasSession={true}
         onUpdateCapture={noUpdate}
+        updateError={null}
       />,
     );
     expect(screen.getByText("+ add locator")).toBeInTheDocument();
@@ -43,6 +44,7 @@ describe("CaptureList empty-state tap target", () => {
         captures={captures}
         hasSession={false}
         onUpdateCapture={noUpdate}
+        updateError={null}
       />,
     );
     expect(screen.getByText("+ add source")).toBeInTheDocument();
@@ -63,6 +65,7 @@ describe("CaptureList empty-state tap target", () => {
         captures={captures}
         hasSession={true}
         onUpdateCapture={noUpdate}
+        updateError={null}
       />,
     );
     expect(screen.queryByText("+ add locator")).not.toBeInTheDocument();
@@ -84,6 +87,7 @@ describe("CaptureList empty-state tap target", () => {
         captures={captures}
         hasSession={false}
         onUpdateCapture={noUpdate}
+        updateError={null}
       />,
     );
     expect(screen.queryByText("+ add source")).not.toBeInTheDocument();
@@ -108,6 +112,7 @@ describe("CaptureList inline edit", () => {
         captures={captures}
         hasSession={true}
         onUpdateCapture={noUpdate}
+        updateError={null}
       />,
     );
 
@@ -133,6 +138,7 @@ describe("CaptureList inline edit", () => {
         captures={captures}
         hasSession={true}
         onUpdateCapture={onUpdateCapture}
+        updateError={null}
       />,
     );
 
@@ -154,6 +160,7 @@ describe("CaptureList inline edit", () => {
         captures={captures}
         hasSession={false}
         onUpdateCapture={onUpdateCapture}
+        updateError={null}
       />,
     );
 
@@ -181,6 +188,7 @@ describe("CaptureList inline edit", () => {
         captures={captures}
         hasSession={true}
         onUpdateCapture={onUpdateCapture}
+        updateError={null}
       />,
     );
 
@@ -211,6 +219,7 @@ describe("CaptureList inline edit", () => {
           captures={captures}
           hasSession={true}
           onUpdateCapture={onUpdateCapture}
+          updateError={null}
         />
         <button type="button" data-testid="outside">
           outside
@@ -223,5 +232,49 @@ describe("CaptureList inline edit", () => {
     await user.click(screen.getByTestId("outside"));
 
     expect(onUpdateCapture).toHaveBeenCalledWith(1, { locator: "p.45" });
+  });
+});
+
+describe("CaptureList update error", () => {
+  it("shows an error message when updateError is provided", () => {
+    const captures: Capture[] = [
+      {
+        id: 1,
+        item: "serendipity",
+        locator: null,
+        sourceHint: null,
+        entry: null,
+      },
+    ];
+    render(
+      <CaptureList
+        captures={captures}
+        hasSession={true}
+        onUpdateCapture={noUpdate}
+        updateError="Failed to update locator"
+      />,
+    );
+    expect(screen.getByText("Failed to update locator")).toBeInTheDocument();
+  });
+
+  it("does not show an error when updateError is null", () => {
+    const captures: Capture[] = [
+      {
+        id: 1,
+        item: "serendipity",
+        locator: null,
+        sourceHint: null,
+        entry: null,
+      },
+    ];
+    render(
+      <CaptureList
+        captures={captures}
+        hasSession={true}
+        onUpdateCapture={noUpdate}
+        updateError={null}
+      />,
+    );
+    expect(screen.queryByText(/failed to update/i)).not.toBeInTheDocument();
   });
 });

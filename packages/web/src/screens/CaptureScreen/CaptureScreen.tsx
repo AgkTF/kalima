@@ -201,6 +201,7 @@ export function CaptureScreen() {
         onUpdateCapture={(captureId, data) =>
           updateCapture.mutate({ captureId, ...data })
         }
+        updateError={updateCapture.error?.message ?? null}
       />
 
       {/* Capture input + feedback */}
