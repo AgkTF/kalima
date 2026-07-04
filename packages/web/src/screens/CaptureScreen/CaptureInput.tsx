@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import { splitCaptureInput } from "./captureSplit";
+import { useState } from "react";
+import { getRawSegments, splitCaptureInput } from "./captureSplit";
 
 export function CaptureInput({
   hasSession,
@@ -15,30 +15,31 @@ export function CaptureInput({
   ) => void;
 }) {
   const [text, setText] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const placeholder = hasSession
     ? "word or phrase… use / for page or chapter"
     : "word or phrase… use / for where you heard it";
 
+  // Compute split once — trimmed for submit/disabled, raw for overlay
+  const { item: parsedItem, afterSlash: parsedAfterSlash } =
+    splitCaptureInput(text);
+  const {
+    item: itemText,
+    hasSlash,
+    afterSlash: afterSlashText,
+  } = getRawSegments(text);
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const { item, afterSlash } = splitCaptureInput(text);
-    if (!item) return;
+    if (!parsedItem) return;
 
     if (hasSession) {
-      onSubmit(item, afterSlash, null);
+      onSubmit(parsedItem, parsedAfterSlash, null);
     } else {
-      onSubmit(item, null, afterSlash);
+      onSubmit(parsedItem, null, parsedAfterSlash);
     }
     setText("");
   }
-
-  // Build overlay segments for live visual split
-  const slashIndex = text.indexOf("/");
-  const hasSlash = slashIndex !== -1;
-  const itemText = hasSlash ? text.slice(0, slashIndex) : text;
-  const afterSlashText = hasSlash ? text.slice(slashIndex + 1) : "";
 
   return (
     <>
@@ -70,7 +71,6 @@ export function CaptureInput({
               )}
             </div>
             <input
-              ref={inputRef}
               type="text"
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -82,7 +82,7 @@ export function CaptureInput({
           </div>
           <button
             type="submit"
-            disabled={!text.trim()}
+            disabled={!parsedItem}
             className="shrink-0 rounded-button bg-accent px-4 py-2 font-ui font-medium text-page transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
           >
             Capture

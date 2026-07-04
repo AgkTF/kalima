@@ -112,6 +112,15 @@ describe("CaptureInput", () => {
       const button = screen.getByRole("button", { name: /capture/i });
       expect(button).toBeEnabled();
     });
+
+    it("is disabled when input is only a slash with no item", async () => {
+      const user = userEvent.setup();
+      renderInput({ hasSession: false });
+
+      await user.type(screen.getByRole("textbox"), "/ p.45");
+      const button = screen.getByRole("button", { name: /capture/i });
+      expect(button).toBeDisabled();
+    });
   });
 
   describe("confirmation banner", () => {
