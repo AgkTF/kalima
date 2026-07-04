@@ -18,6 +18,20 @@ export const CaptureService = {
     });
   },
 
+  async update(
+    captureId: number,
+    data: { locator?: string | null; sourceHint?: string | null },
+    prisma: PrismaClient,
+  ) {
+    return prisma.capture.update({
+      where: { id: captureId },
+      data: {
+        locator: data.locator,
+        sourceHint: data.sourceHint,
+      },
+    });
+  },
+
   async list(prisma: PrismaClient) {
     return prisma.capture.findMany({
       where: {

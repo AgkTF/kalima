@@ -60,6 +60,45 @@ describe("capture.create mutation", () => {
   });
 });
 
+describe("capture.update mutation", () => {
+  const adapter = new PrismaBetterSqlite3({
+    url: "file:./prisma/test.db",
+  });
+  const prisma = new PrismaClient({ adapter });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
+  it("updates a capture's locator", async () => {
+    const created = await prisma.capture.create({
+      data: { item: "serendipity", locator: null, sourceHint: null },
+    });
+
+    const caller = appRouter.createCaller({ prisma, llm: null as never });
+    const result = await caller.capture.update({
+      captureId: created.id,
+      locator: "p.45",
+    });
+
+    expect(result).toMatchObject({
+      id: created.id,
+      item: "serendipity",
+      locator: "p.45",
+      sourceHint: null,
+    });
+
+    // Verify persisted
+    const found = await prisma.capture.findUnique({
+      where: { id: created.id },
+    });
+    expect(found?.locator).toBe("p.45");
+
+    // Cleanup
+    await prisma.capture.delete({ where: { id: created.id } });
+  });
+});
+
 describe("capture.list query", () => {
   const adapter = new PrismaBetterSqlite3({
     url: "file:./prisma/test.db",
