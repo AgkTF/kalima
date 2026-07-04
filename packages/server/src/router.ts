@@ -105,15 +105,18 @@ export const appRouter = t.router({
     create: t.procedure
       .input(
         z.object({
-          rawText: z.string().min(1),
+          item: z.string().min(1),
+          locator: z.string().nullable().optional(),
+          sourceHint: z.string().nullable().optional(),
           sessionId: z.number().optional(),
         }),
       )
       .mutation(async ({ input, ctx }) => {
         const capture = await CaptureService.create(
-          input.rawText,
+          input.item,
+          input.locator ?? null,
+          input.sourceHint ?? null,
           ctx.prisma,
-          ctx.llm,
           input.sessionId,
         );
         // Fire-and-forget enrichment for one-off captures

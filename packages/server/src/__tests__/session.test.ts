@@ -336,7 +336,7 @@ describe("captures scoped to a session", () => {
     });
 
     const capture = await caller.capture.create({
-      rawText: "session-word p.10",
+      item: "session-word",
       sessionId: session.id,
     });
 
@@ -363,11 +363,11 @@ describe("captures scoped to a session", () => {
     });
 
     await caller.capture.create({
-      rawText: "word-one p.5",
+      item: "session-word",
       sessionId: session.id,
     });
     await caller.capture.create({
-      rawText: "word-two p.10",
+      item: "session-word",
       sessionId: session.id,
     });
 
@@ -394,11 +394,11 @@ describe("captures scoped to a session", () => {
       type: "book",
     });
     await caller.capture.create({
-      rawText: "whale p.5",
+      item: "session-word",
       sessionId: session1.id,
     });
     await caller.capture.create({
-      rawText: "harpoon p.10",
+      item: "session-word",
       sessionId: session1.id,
     });
     await caller.session.close();
@@ -409,7 +409,7 @@ describe("captures scoped to a session", () => {
       type: "book",
     });
     await caller.capture.create({
-      rawText: "ahab p.20",
+      item: "session-word",
       sessionId: session2.id,
     });
 

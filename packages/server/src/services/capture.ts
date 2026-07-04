@@ -1,23 +1,18 @@
 import type { PrismaClient } from "../generated/prisma/client.js";
-import { CaptureParser } from "./capture-parser.js";
-import type { LLMClient } from "./llm-client.js";
 
 export const CaptureService = {
   async create(
-    rawText: string,
+    item: string,
+    locator: string | null,
+    sourceHint: string | null,
     prisma: PrismaClient,
-    llm: LLMClient,
     sessionId?: number,
   ) {
-    const parser = new CaptureParser(llm);
-    const parsed = await parser.parse(rawText);
-
     return prisma.capture.create({
       data: {
-        rawText,
-        item: parsed.item,
-        locator: parsed.locator,
-        sourceHint: parsed.sourceHint,
+        item,
+        locator,
+        sourceHint,
         sessionId: sessionId ?? null,
       },
     });

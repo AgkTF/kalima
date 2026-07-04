@@ -46,7 +46,6 @@ describe("EnrichmentService.enrichSessionCaptures", () => {
     });
     await prisma.capture.create({
       data: {
-        rawText: "harpoon p.15",
         item: "harpoon",
         locator: "p.15",
         sessionId: session.id,
@@ -54,7 +53,6 @@ describe("EnrichmentService.enrichSessionCaptures", () => {
     });
     await prisma.capture.create({
       data: {
-        rawText: "whale p.20",
         item: "whale",
         locator: "p.20",
         sessionId: session.id,
@@ -115,7 +113,6 @@ describe("EnrichmentService.enrichSessionCaptures", () => {
     });
     const existingCapture = await prisma.capture.create({
       data: {
-        rawText: "whale",
         item: "whale",
         sessionId: existingSession.id,
       },
@@ -137,7 +134,6 @@ describe("EnrichmentService.enrichSessionCaptures", () => {
     });
     await prisma.capture.create({
       data: {
-        rawText: "harpoon p.15",
         item: "harpoon",
         locator: "p.15",
         sessionId: session.id,
@@ -201,7 +197,6 @@ describe("EnrichmentService pending_review routing", () => {
     });
     const capture = await prisma.capture.create({
       data: {
-        rawText: "confident-word",
         item: "confident-word",
         sessionId: session.id,
       },
@@ -251,7 +246,6 @@ describe("EnrichmentService pending_review routing", () => {
     });
     const capture = await prisma.capture.create({
       data: {
-        rawText: "obscure-word",
         item: "obscure-word",
         sessionId: session.id,
       },
@@ -316,14 +310,12 @@ describe("EnrichmentService pending_review routing", () => {
 
     const c1 = await prisma.capture.create({
       data: {
-        rawText: "clear",
         item: "clear",
         sessionId: session.id,
       },
     });
     const c2 = await prisma.capture.create({
       data: {
-        rawText: "fuzzy",
         item: "fuzzy",
         sessionId: session.id,
       },
@@ -384,7 +376,6 @@ describe("enrichment tRPC endpoints", () => {
     });
     const capture = await prisma.capture.create({
       data: {
-        rawText: "test",
         item: "test",
         sessionId: session.id,
       },
@@ -431,14 +422,12 @@ describe("enrichment tRPC endpoints", () => {
 
     const captureA = await prisma.capture.create({
       data: {
-        rawText: "wordA",
         item: "wordA",
         sessionId: sessionA.id,
       },
     });
     const captureB = await prisma.capture.create({
       data: {
-        rawText: "wordB",
         item: "wordB",
         sessionId: sessionB.id,
       },
@@ -521,7 +510,6 @@ describe("EnrichmentService uses stored base system prompt", () => {
     });
     await prisma.capture.create({
       data: {
-        rawText: "harpoon",
         item: "harpoon",
         sessionId: session.id,
       },
@@ -560,7 +548,6 @@ describe("EnrichmentService uses stored base system prompt", () => {
     });
     await prisma.capture.create({
       data: {
-        rawText: "harpoon",
         item: "harpoon",
         sessionId: session.id,
       },
@@ -590,7 +577,7 @@ describe("EnrichmentService uses stored base system prompt", () => {
     await AppService.setBaseSystemPrompt(prisma, customPrompt);
 
     const capture = await prisma.capture.create({
-      data: { rawText: "ephemeral", item: "ephemeral" },
+      data: { item: "ephemeral" },
     });
     await prisma.entry.create({
       data: {
@@ -655,7 +642,6 @@ describe("EnrichmentService appends source enrichmentContext to system prompt", 
     });
     await prisma.capture.create({
       data: {
-        rawText: "harpoon",
         item: "harpoon",
         sessionId: session.id,
       },
@@ -702,7 +688,6 @@ describe("EnrichmentService appends source enrichmentContext to system prompt", 
     });
     await prisma.capture.create({
       data: {
-        rawText: "harpoon",
         item: "harpoon",
         sessionId: session.id,
       },
@@ -732,7 +717,7 @@ describe("EnrichmentService appends source enrichmentContext to system prompt", 
     await AppService.resetBaseSystemPrompt(prisma);
 
     const capture = await prisma.capture.create({
-      data: { rawText: "ephemeral", item: "ephemeral" },
+      data: { item: "ephemeral" },
     });
     await prisma.entry.create({
       data: {
@@ -797,7 +782,6 @@ describe("EnrichmentService mid-session edit applies to future enrichments", () 
     });
     await prisma.capture.create({
       data: {
-        rawText: "harpoon",
         item: "harpoon",
         sessionId: session.id,
       },
@@ -820,7 +804,6 @@ describe("EnrichmentService mid-session edit applies to future enrichments", () 
     // Add a second capture and enrich — should use the NEW context
     await prisma.capture.create({
       data: {
-        rawText: "whale",
         item: "whale",
         sessionId: session.id,
       },

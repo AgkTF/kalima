@@ -16,7 +16,6 @@ model AppMeta {
 
 model Capture {
   id        Int     @id @default(autoincrement())
-  rawText   String
   item      String
   locator   String?
   sourceHint String?

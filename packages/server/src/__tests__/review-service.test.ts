@@ -25,10 +25,10 @@ describe("ReviewService.badgeCount", () => {
     });
 
     const capture1 = await prisma.capture.create({
-      data: { rawText: "word1", item: "word1", sessionId: session.id },
+      data: { item: "word1", sessionId: session.id },
     });
     const capture2 = await prisma.capture.create({
-      data: { rawText: "word2", item: "word2", sessionId: session.id },
+      data: { item: "word2", sessionId: session.id },
     });
 
     await prisma.entry.createMany({
@@ -68,7 +68,7 @@ describe("ReviewService.badgeCount", () => {
       data: { sourceId: source.id },
     });
     const capture = await prisma.capture.create({
-      data: { rawText: "proc", item: "proc", sessionId: session.id },
+      data: { item: "proc", sessionId: session.id },
     });
     await prisma.entry.create({
       data: {
@@ -108,7 +108,7 @@ describe("ReviewService.approve", () => {
       data: { sourceId: source.id },
     });
     const capture = await prisma.capture.create({
-      data: { rawText: "word", item: "word", sessionId: session.id },
+      data: { item: "word", sessionId: session.id },
     });
     const entry = await prisma.entry.create({
       data: {
@@ -156,13 +156,13 @@ describe("ReviewService.approveAll", () => {
     });
 
     const c1 = await prisma.capture.create({
-      data: { rawText: "a", item: "a", sessionId: session.id },
+      data: { item: "a", sessionId: session.id },
     });
     const c2 = await prisma.capture.create({
-      data: { rawText: "b", item: "b", sessionId: session.id },
+      data: { item: "b", sessionId: session.id },
     });
     const c3 = await prisma.capture.create({
-      data: { rawText: "c", item: "c", sessionId: session.id },
+      data: { item: "c", sessionId: session.id },
     });
 
     await prisma.entry.createMany({
@@ -227,7 +227,7 @@ describe("ReviewService.reject", () => {
       data: { sourceId: source.id },
     });
     const capture = await prisma.capture.create({
-      data: { rawText: "word", item: "word", sessionId: session.id },
+      data: { item: "word", sessionId: session.id },
     });
     const entry = await prisma.entry.create({
       data: {
@@ -264,7 +264,7 @@ describe("ReviewService.reject", () => {
       data: { sourceId: source.id },
     });
     const capture = await prisma.capture.create({
-      data: { rawText: "word", item: "word", sessionId: session.id },
+      data: { item: "word", sessionId: session.id },
     });
     const entry = await prisma.entry.create({
       data: {
@@ -305,10 +305,10 @@ describe("ReviewService.getPending", () => {
       data: { sourceId: source.id },
     });
     const c1 = await prisma.capture.create({
-      data: { rawText: "a", item: "a", sessionId: session.id },
+      data: { item: "a", sessionId: session.id },
     });
     const c2 = await prisma.capture.create({
-      data: { rawText: "b", item: "b", sessionId: session.id },
+      data: { item: "b", sessionId: session.id },
     });
 
     const e1 = await prisma.entry.create({
@@ -336,7 +336,7 @@ describe("ReviewService.getPending", () => {
     });
     // Should NOT be included — approved
     const c3 = await prisma.capture.create({
-      data: { rawText: "c", item: "c", sessionId: session.id },
+      data: { item: "c", sessionId: session.id },
     });
     await prisma.entry.create({
       data: {
@@ -371,10 +371,10 @@ describe("ReviewService.getPending", () => {
       data: { sourceId: source.id },
     });
     const c1 = await prisma.capture.create({
-      data: { rawText: "x", item: "x", sessionId: session.id },
+      data: { item: "x", sessionId: session.id },
     });
     const c2 = await prisma.capture.create({
-      data: { rawText: "y", item: "y", sessionId: session.id },
+      data: { item: "y", sessionId: session.id },
     });
     await prisma.entry.createMany({
       data: [
@@ -413,7 +413,7 @@ describe("ReviewService.getPending", () => {
 
   it("places one-off entries in their own group", async () => {
     const c1 = await prisma.capture.create({
-      data: { rawText: "oneoff", item: "oneoff" },
+      data: { item: "oneoff" },
     });
     await prisma.entry.create({
       data: {
@@ -453,10 +453,10 @@ describe("ReviewService.getRejected", () => {
       data: { sourceId: source.id },
     });
     const c1 = await prisma.capture.create({
-      data: { rawText: "rejA", item: "rejA", sessionId: session.id },
+      data: { item: "rejA", sessionId: session.id },
     });
     const c2 = await prisma.capture.create({
-      data: { rawText: "pendA", item: "pendA", sessionId: session.id },
+      data: { item: "pendA", sessionId: session.id },
     });
 
     const e1 = await prisma.entry.create({
@@ -508,7 +508,7 @@ describe("ReviewService.reEnrich", () => {
 
   it("resets status to processing and clears flagged fields", async () => {
     const capture = await prisma.capture.create({
-      data: { rawText: "re-enrich-me", item: "re-enrich-me" },
+      data: { item: "re-enrich-me" },
     });
     const entry = await prisma.entry.create({
       data: {
@@ -559,7 +559,6 @@ describe("approve + FTS5 indexing integration", () => {
     });
     const capture = await prisma.capture.create({
       data: {
-        rawText: "sagacious",
         item: "sagacious",
         sessionId: session.id,
       },
@@ -603,13 +602,12 @@ describe("approve + FTS5 indexing integration", () => {
     });
     const c1 = await prisma.capture.create({
       data: {
-        rawText: "perspicacious",
         item: "perspicacious",
         sessionId: session.id,
       },
     });
     const c2 = await prisma.capture.create({
-      data: { rawText: "eloquent", item: "eloquent", sessionId: session.id },
+      data: { item: "eloquent", sessionId: session.id },
     });
 
     const [e1, e2] = await Promise.all([
@@ -653,7 +651,6 @@ describe("approve + FTS5 indexing integration", () => {
     });
     const capture = await prisma.capture.create({
       data: {
-        rawText: "serendipity",
         item: "serendipity",
         sessionId: session.id,
       },
@@ -686,7 +683,7 @@ describe("approve + FTS5 indexing integration", () => {
       data: { sourceId: source.id },
     });
     const capture = await prisma.capture.create({
-      data: { rawText: "ephemeral", item: "ephemeral", sessionId: session.id },
+      data: { item: "ephemeral", sessionId: session.id },
     });
     const entry = await prisma.entry.create({
       data: {

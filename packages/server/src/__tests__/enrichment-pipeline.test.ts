@@ -93,7 +93,7 @@ describe("EnrichmentPipeline", () => {
       capture: {
         item: "harpoon",
         locator: "chapter 3, page 15",
-        rawText: "harpoon p.15",
+        sourceHint: null,
       },
       source: { name: "Moby Dick", type: "book" },
       existingEntries: ["whale", "ship", "ocean"],
@@ -134,7 +134,7 @@ describe("EnrichmentPipeline", () => {
       capture: {
         item: "revere",
         locator: null,
-        rawText: "revere",
+        sourceHint: null,
       },
       source: null,
       existingEntries: ["admire", "respect"],
@@ -171,7 +171,7 @@ describe("EnrichmentPipeline", () => {
       capture: {
         item: "test",
         locator: null,
-        rawText: "test",
+        sourceHint: null,
       },
       source: null,
       existingEntries: [],
@@ -193,7 +193,7 @@ describe("EnrichmentPipeline", () => {
     const pipeline = new EnrichmentPipeline(mockLLM);
 
     const result = await pipeline.enrich({
-      capture: { item: "obscure", locator: null, rawText: "obscure" },
+      capture: { item: "obscure", locator: null, sourceHint: null },
       source: null,
       existingEntries: [],
     });
@@ -210,7 +210,7 @@ describe("EnrichmentPipeline", () => {
     const pipeline = new EnrichmentPipeline(mockLLM);
 
     await pipeline.enrich({
-      capture: { item: "test", locator: null, rawText: "test" },
+      capture: { item: "test", locator: null, sourceHint: null },
       source: null,
       existingEntries: [],
     });
@@ -229,7 +229,7 @@ describe("EnrichmentPipeline", () => {
 
     await pipeline.enrich(
       {
-        capture: { item: "test", locator: null, rawText: "test" },
+        capture: { item: "test", locator: null, sourceHint: null },
         source: null,
         existingEntries: [],
       },
@@ -249,7 +249,7 @@ describe("EnrichmentPipeline", () => {
     const pipeline = new EnrichmentPipeline(mockLLM);
 
     await pipeline.enrich({
-      capture: { item: "test", locator: null, rawText: "test" },
+      capture: { item: "test", locator: null, sourceHint: null },
       source: null,
       existingEntries: [],
     });
@@ -268,7 +268,7 @@ describe("EnrichmentPipeline", () => {
     const pipeline = new EnrichmentPipeline(mockLLM, customPrompt);
 
     await pipeline.enrich({
-      capture: { item: "test", locator: null, rawText: "test" },
+      capture: { item: "test", locator: null, sourceHint: null },
       source: null,
       existingEntries: [],
     });

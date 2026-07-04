@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { EnrichmentFields } from "./EnrichmentFields";
-import { parseJsonField, type PendingEntry } from "./utils";
+import { type PendingEntry, parseJsonField } from "./utils";
 
 interface RejectedEntryCardProps {
   entry: PendingEntry;

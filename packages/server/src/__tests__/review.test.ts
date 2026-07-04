@@ -34,7 +34,7 @@ describe("review.reEnrich mutation", () => {
   it("resets status to processing, clears flagged fields and rejection note", async () => {
     // Seed a rejected entry
     const capture = await prisma.capture.create({
-      data: { rawText: "serendipity", item: "serendipity" },
+      data: { item: "serendipity" },
     });
     const entry = await prisma.entry.create({
       data: {

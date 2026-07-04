@@ -1,5 +1,6 @@
 # Local tool state
 .pi/
+.agent-native/
 
 # Dependencies
 node_modules/
