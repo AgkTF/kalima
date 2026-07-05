@@ -53,6 +53,8 @@ Session metrics (duration, count of captures) are **nice-to-have** — trivially
 
 **One-offs** are captured without a **Session** — no **Source** association. A loose **Source Hint** (e.g., "conversation with a friend", "in an ad while driving") is optional but not mandatory. The source hint is broader than a label — it captures the circumstance of encountering the word, which gives the enrichment agent a register and domain signal that improves enrichment quality for context-less one-offs.
 
+**One-off enrichment is deferred to an explicit trigger** (see ADR-0009). A one-off **Capture** sits with `entry: null` in normal state after creation — the user sees the `+ add source` tap target and can add a **Source Hint** retroactively. Enrichment only runs when the user clicks "Enrich all (N)", which creates `processing` placeholder entries and fire-and-forgets enrichment — the analog of closing a session. This matches the session flow: session captures also sit pending (`entry: null`) until the user explicitly closes the session.
+
 ### 3. Source Context: Optional, progressive, re-enrichable
 
 **Source Context** (chapter text, subtitle file, fetched article) is optional and can be attached later. The system supports **progressive source attachment**:
@@ -78,7 +80,7 @@ It produces: **Definition**, **Translation** (Arabic), **Nuance** note, **Exampl
 
 **One LLM call per Capture** — enrichment only. The capture parsing LLM call was removed in favor of the slash delimiter (see Design Decision #1). The enrichment prompt includes the **Source Hint** for one-offs, labeled as "Encounter context:" — this gives the agent situational context (register, domain) for words captured outside a session.
 
-**Enrichment trigger:** After a **Session** is closed, enrichment runs automatically for all pending **Captures**.
+**Enrichment trigger:** After a **Session** is closed, enrichment runs automatically for all pending **Captures**. For **One-offs**, enrichment is deferred to an explicit trigger — the user clicks "Enrich all (N)" when ready (see ADR-0009). A one-off **Capture** sits with `entry: null` (normal state, `+ add source` tap target visible) until the trigger fires; the user can add a **Source Hint** retroactively before triggering, matching the session flow's explicit "close". The trigger creates `processing` placeholder entries (Phase 1, awaited) then fire-and-forgets enrichment (Phase 2), exactly as `session.close` does for session captures.
 
 **One enrichment call per Item** to start (not batched). Simpler to build, debug, and retry. Optimize later if needed.
 
