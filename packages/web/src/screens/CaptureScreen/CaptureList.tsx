@@ -193,12 +193,19 @@ export function CaptureList({
   hasSession,
   onUpdateCapture,
   updateError,
+  onEnrich,
+  enrichPending,
 }: {
   captures: Capture[];
   hasSession: boolean;
   onUpdateCapture: (captureId: number, data: CaptureUpdateData) => void;
   updateError: string | null;
+  onEnrich?: () => void;
+  enrichPending?: boolean;
 }) {
+  const pendingCount = captures.filter((c) => c.entry === null).length;
+  const showEnrichButton = !hasSession && pendingCount > 0 && onEnrich != null;
+
   if (captures.length === 0) {
     return (
       <div className="flex flex-1 flex-col overflow-y-auto pb-40">
@@ -215,6 +222,21 @@ export function CaptureList({
 
   return (
     <div className="flex flex-1 flex-col overflow-y-auto pb-40">
+      {/* Enrich all (N) batch button — mirrors Review screen's "Approve all (N)". */}
+      {/* Shown only when no session is active and there are pending one-offs. */}
+      {/* Inline by design (1 use). Extract at 3+ uses. See ADR 0006. */}
+      {showEnrichButton && (
+        <div className="flex items-center justify-end px-5 pt-2">
+          <button
+            type="button"
+            onClick={() => onEnrich?.()}
+            disabled={enrichPending}
+            className="rounded-button border border-accent px-2.5 py-1 text-xs font-medium text-accent cursor-pointer hover:bg-accent hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {enrichPending ? "\u2026" : `Enrich all (${pendingCount})`}
+          </button>
+        </div>
+      )}
       {updateError && (
         <div className="mx-5 mt-2 rounded-button border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
           {updateError}

@@ -89,6 +89,13 @@ export function CaptureScreen() {
     },
   });
 
+  const enrichOneOffs = trpc.enrichment.enrichOneOffs.useMutation({
+    onSuccess: () => {
+      utils.capture.list.invalidate();
+      utils.review.getPending.invalidate();
+    },
+  });
+
   const hasSession = activeSession.data != null;
   const activeSource = activeSession.data?.source ?? null;
   const activeCaptures = hasSession
@@ -202,6 +209,8 @@ export function CaptureScreen() {
           updateCapture.mutate({ captureId, ...data })
         }
         updateError={updateCapture.error?.message ?? null}
+        onEnrich={() => enrichOneOffs.mutate()}
+        enrichPending={enrichOneOffs.isPending}
       />
 
       {/* Capture input + feedback */}
