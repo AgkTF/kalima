@@ -58,6 +58,23 @@ describe("capture.create mutation", () => {
     // Cleanup
     await prisma.capture.delete({ where: { id: result.id } });
   });
+
+  it("creates a one-off capture with no entry (enrichment deferred)", async () => {
+    const caller = appRouter.createCaller({ prisma, llm: null as never });
+
+    const result = await caller.capture.create({
+      item: "deferred-word",
+    });
+
+    // No entry should exist for this capture — enrichment is deferred to
+    // the explicit enrichOneOffs trigger.
+    const entry = await prisma.entry.findUnique({
+      where: { captureId: result.id },
+    });
+    expect(entry).toBeNull();
+
+    await prisma.capture.delete({ where: { id: result.id } });
+  });
 });
 
 describe("capture.update mutation", () => {

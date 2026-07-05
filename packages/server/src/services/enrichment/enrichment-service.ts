@@ -38,32 +38,6 @@ export const EnrichmentService = {
     });
   },
 
-  /**
-   * Create a placeholder entry (status "processing") for a single one-off capture.
-   */
-  async createPlaceholderEntry(
-    captureId: number,
-    prisma: PrismaClient,
-  ): Promise<void> {
-    const existing = await prisma.entry.findUnique({
-      where: { captureId },
-    });
-    if (existing) return;
-
-    await prisma.entry.create({
-      data: {
-        captureId,
-        status: "processing",
-        definition: "",
-        translationArabic: "",
-        nuance: "",
-        examples: "[]",
-        tags: "[]",
-        relatedEntries: "[]",
-      },
-    });
-  },
-
   async enrichSessionCaptures(
     sessionId: number,
     prisma: PrismaClient,
@@ -247,15 +221,23 @@ export const EnrichmentService = {
     const queuedCount = pendingCaptures.length;
 
     // Phase 2 (fire-and-forget, concurrency 3): enrich each via enrichCapture.
-    const CONCURRENCY = 3;
-    for (let i = 0; i < pendingCaptures.length; i += CONCURRENCY) {
-      const batch = pendingCaptures.slice(i, i + CONCURRENCY);
-      await Promise.allSettled(
-        batch.map((capture) =>
-          EnrichmentService.enrichCapture(capture.id, prisma, llm),
-        ),
-      );
-    }
+    // Not awaited — the mutation returns after Phase 1 so the UI flips to
+    // ping dots immediately, while enrichment runs in the background.
+    // See ADR 0009.
+    const captureIds = pendingCaptures.map((c) => c.id);
+    (async () => {
+      const CONCURRENCY = 3;
+      for (let i = 0; i < captureIds.length; i += CONCURRENCY) {
+        const batch = captureIds.slice(i, i + CONCURRENCY);
+        await Promise.allSettled(
+          batch.map((captureId) =>
+            EnrichmentService.enrichCapture(captureId, prisma, llm),
+          ),
+        );
+      }
+    })().catch(() => {
+      // Enrichment failures are non-blocking — entries stay "processing".
+    });
 
     return { queuedCount };
   },

@@ -889,12 +889,23 @@ describe("EnrichmentService.enrichOneOffs", () => {
 
     expect(result).toEqual({ queuedCount: 1 });
 
+    // Phase 1 creates a processing placeholder immediately.
     const entry = await prisma.entry.findUnique({
       where: { captureId: capture.id },
     });
-    expect(entry?.status).toBe("pending_review");
-    expect(entry?.definition).toBeTruthy();
-    expect(entry?.translationArabic).toBeTruthy();
+    expect(entry).not.toBeNull();
+    expect(entry?.status).toBe("processing");
+
+    // Phase 2 (fire-and-forget) flips the entry to pending_review once enrichment
+    // completes. With a mock LLM that resolves immediately, this happens quickly.
+    await vi.waitFor(async () => {
+      const updated = await prisma.entry.findUnique({
+        where: { captureId: capture.id },
+      });
+      expect(updated?.status).toBe("pending_review");
+      expect(updated?.definition).toBeTruthy();
+      expect(updated?.translationArabic).toBeTruthy();
+    });
 
     await prisma.entry.deleteMany();
     await prisma.capture.delete({ where: { id: capture.id } });
@@ -947,7 +958,11 @@ describe("EnrichmentService.enrichOneOffs", () => {
     });
     expect(doneEntry?.definition).toBe("already enriched");
     expect(doneEntry?.status).toBe("pending_review");
-    expect(mockLLM.complete).toHaveBeenCalledTimes(1);
+
+    // Phase 2 (fire-and-forget) enriches only the pending capture.
+    await vi.waitFor(() => {
+      expect(mockLLM.complete).toHaveBeenCalledTimes(1);
+    });
     expect(
       (mockLLM.complete as ReturnType<typeof vi.fn>).mock.calls[0][0] as string,
     ).toContain("pending-word");
@@ -1043,17 +1058,22 @@ describe("EnrichmentService.enrichOneOffs", () => {
     await EnrichmentService.enrichOneOffs(prisma, mockLLM);
 
     // The first LLM call should be for the oldest capture (first-word)
+    await vi.waitFor(() => {
+      expect(mockComplete.mock.calls.length).toBeGreaterThanOrEqual(1);
+    });
     const firstPrompt = mockComplete.mock.calls[0][0] as string;
     expect(firstPrompt).toContain("first-word");
 
-    const olderEntry = await prisma.entry.findUnique({
-      where: { captureId: olderCapture.id },
+    await vi.waitFor(async () => {
+      const olderEntry = await prisma.entry.findUnique({
+        where: { captureId: olderCapture.id },
+      });
+      const newerEntry = await prisma.entry.findUnique({
+        where: { captureId: newerCapture.id },
+      });
+      expect(olderEntry?.definition).toBe("first-word-def");
+      expect(newerEntry?.definition).toBe("second-word-def");
     });
-    const newerEntry = await prisma.entry.findUnique({
-      where: { captureId: newerCapture.id },
-    });
-    expect(olderEntry?.definition).toBe("first-word-def");
-    expect(newerEntry?.definition).toBe("second-word-def");
 
     await prisma.entry.deleteMany();
     await prisma.capture.deleteMany({
