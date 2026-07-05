@@ -469,6 +469,35 @@ describe("enrichment tRPC endpoints", () => {
       where: { name: "Session Filter Book" },
     });
   });
+
+  it("enrichOneOffs mutation returns queuedCount and creates processing entries", async () => {
+    const caller = appRouter.createCaller({ prisma, llm: mockLLM });
+
+    const capture = await prisma.capture.create({
+      data: { item: "one-off-trigger-word" },
+    });
+
+    const result = await caller.enrichment.enrichOneOffs();
+
+    expect(result).toEqual({ queuedCount: 1 });
+
+    const entry = await prisma.entry.findUnique({
+      where: { captureId: capture.id },
+    });
+    expect(entry).not.toBeNull();
+    expect(entry?.status).toBe("processing");
+
+    await prisma.entry.deleteMany();
+    await prisma.capture.delete({ where: { id: capture.id } });
+  });
+
+  it("enrichOneOffs mutation returns queuedCount 0 when no pending one-offs", async () => {
+    const caller = appRouter.createCaller({ prisma, llm: mockLLM });
+
+    const result = await caller.enrichment.enrichOneOffs();
+
+    expect(result).toEqual({ queuedCount: 0 });
+  });
 });
 
 describe("EnrichmentService uses stored base system prompt", () => {

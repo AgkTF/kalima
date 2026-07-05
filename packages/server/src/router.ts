@@ -170,6 +170,12 @@ export const appRouter = t.router({
           orderBy: { enrichedAt: "desc" },
         });
       }),
+    enrichOneOffs: t.procedure.mutation(async ({ ctx }) =>
+      // Deep module: one-line router call. Phase 1 (awaited placeholders) +
+      // Phase 2 (fire-and-forget enrichment) are encapsulated in the service.
+      // See ADR 0009.
+      EnrichmentService.enrichOneOffs(ctx.prisma, ctx.llm),
+    ),
   }),
   review: t.router({
     getPending: t.procedure.query(async ({ ctx }) =>
