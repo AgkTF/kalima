@@ -840,3 +840,29 @@ describe("EnrichmentService mid-session edit applies to future enrichments", () 
     });
   });
 });
+
+describe("EnrichmentService.enrichOneOffs", () => {
+  const adapter = new PrismaBetterSqlite3({
+    url: "file:./prisma/test.db",
+  });
+  const prisma = new PrismaClient({ adapter });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
+  it("returns 0 and creates no entries when there are no pending one-off captures", async () => {
+    const mockLLM: LLMClient = {
+      complete: vi.fn(),
+    } as unknown as LLMClient;
+
+    const result = await EnrichmentService.enrichOneOffs(prisma, mockLLM);
+
+    expect(result).toEqual({ queuedCount: 0 });
+
+    const entries = await prisma.entry.findMany({
+      where: { capture: { sessionId: null } },
+    });
+    expect(entries).toHaveLength(0);
+  });
+});

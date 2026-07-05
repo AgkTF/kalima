@@ -205,4 +205,58 @@ export const EnrichmentService = {
       // Entry may have been deleted before enrichment completed.
     }
   },
+
+  /**
+   * Trigger enrichment for all pending one-off captures (sessionId: null, entry: null).
+   *
+   * Phase 1 (awaited): create `processing` placeholder entries so the UI flips to
+   * ping dots immediately. Phase 2 (fire-and-forget, concurrency 3): enrich each
+   * via `enrichCapture`, flipping entries to `pending_review`.
+   *
+   * Returns `{ queuedCount }` — the number of captures queued for enrichment.
+   * The analog of "close session" for one-offs. See ADR 0009.
+   */
+  async enrichOneOffs(
+    prisma: PrismaClient,
+    llm: LLMClient,
+  ): Promise<{ queuedCount: number }> {
+    const pendingCaptures = await prisma.capture.findMany({
+      where: { sessionId: null, entry: { is: null } },
+      include: { entry: { select: { id: true } } },
+      orderBy: { createdAt: "asc" },
+    });
+
+    if (pendingCaptures.length === 0) {
+      return { queuedCount: 0 };
+    }
+
+    // Phase 1 (awaited): create processing placeholders so the UI flips immediately.
+    await prisma.entry.createMany({
+      data: pendingCaptures.map((c) => ({
+        captureId: c.id,
+        status: "processing",
+        definition: "",
+        translationArabic: "",
+        nuance: "",
+        examples: "[]",
+        tags: "[]",
+        relatedEntries: "[]",
+      })),
+    });
+
+    const queuedCount = pendingCaptures.length;
+
+    // Phase 2 (fire-and-forget, concurrency 3): enrich each via enrichCapture.
+    const CONCURRENCY = 3;
+    for (let i = 0; i < pendingCaptures.length; i += CONCURRENCY) {
+      const batch = pendingCaptures.slice(i, i + CONCURRENCY);
+      await Promise.allSettled(
+        batch.map((capture) =>
+          EnrichmentService.enrichCapture(capture.id, prisma, llm),
+        ),
+      );
+    }
+
+    return { queuedCount };
+  },
 };
