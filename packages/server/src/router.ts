@@ -142,6 +142,24 @@ export const appRouter = t.router({
       .query(async ({ input, ctx }) =>
         CaptureService.listSession(input.sessionId, ctx.prisma),
       ),
+    update: t.procedure
+      .input(
+        z.object({
+          captureId: z.number(),
+          locator: z.string().nullable().optional(),
+          sourceHint: z.string().nullable().optional(),
+        }),
+      )
+      .mutation(async ({ input, ctx }) =>
+        CaptureService.update(
+          input.captureId,
+          {
+            locator: input.locator,
+            sourceHint: input.sourceHint,
+          },
+          ctx.prisma,
+        ),
+      ),
   }),
 
   enrichment: t.router({

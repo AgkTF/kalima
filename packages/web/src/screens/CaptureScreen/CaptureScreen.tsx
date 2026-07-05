@@ -54,6 +54,18 @@ export function CaptureScreen() {
     },
   });
 
+  const updateCapture = trpc.capture.update.useMutation({
+    onSuccess: () => {
+      if (activeSession.data) {
+        utils.capture.listSession.invalidate({
+          sessionId: activeSession.data.id,
+        });
+      } else {
+        utils.capture.list.invalidate();
+      }
+    },
+  });
+
   const openSession = trpc.session.open.useMutation({
     onSuccess: () => {
       utils.session.getActive.invalidate();
@@ -183,7 +195,14 @@ export function CaptureScreen() {
       )}
 
       {/* Capture list */}
-      <CaptureList captures={activeCaptures} hasSession={hasSession} />
+      <CaptureList
+        captures={activeCaptures}
+        hasSession={hasSession}
+        onUpdateCapture={(captureId, data) =>
+          updateCapture.mutate({ captureId, ...data })
+        }
+        updateError={updateCapture.error?.message ?? null}
+      />
 
       {/* Capture input + feedback */}
       <CaptureInput
