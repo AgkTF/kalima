@@ -870,7 +870,7 @@ describe("EnrichmentService mid-session edit applies to future enrichments", () 
   });
 });
 
-describe("EnrichmentService.enrichOneOffs", () => {
+describe("EnrichmentService.createOneOffPlaceholderEntries", () => {
   const adapter = new PrismaBetterSqlite3({
     url: "file:./prisma/test.db",
   });
@@ -880,14 +880,11 @@ describe("EnrichmentService.enrichOneOffs", () => {
     await prisma.$disconnect();
   });
 
-  it("returns 0 and creates no entries when there are no pending one-off captures", async () => {
-    const mockLLM: LLMClient = {
-      complete: vi.fn(),
-    } as unknown as LLMClient;
+  it("returns an empty array and creates no entries when there are no pending one-off captures", async () => {
+    const result =
+      await EnrichmentService.createOneOffPlaceholderEntries(prisma);
 
-    const result = await EnrichmentService.enrichOneOffs(prisma, mockLLM);
-
-    expect(result).toEqual({ queuedCount: 0 });
+    expect(result).toEqual([]);
 
     const entries = await prisma.entry.findMany({
       where: { capture: { sessionId: null } },
@@ -895,66 +892,27 @@ describe("EnrichmentService.enrichOneOffs", () => {
     expect(entries).toHaveLength(0);
   });
 
-  it("creates processing placeholders and returns the count; with a mock LLM, entries reach pending_review", async () => {
-    const mockLLM: LLMClient = {
-      complete: vi.fn().mockResolvedValue(
-        JSON.stringify({
-          definition: "A test definition",
-          translationArabic: "اختبار",
-          nuance: "Test nuance",
-          examples: ["Example 1"],
-          tags: ["test"],
-          relatedEntries: [],
-          confidence: "high",
-        }),
-      ),
-    } as unknown as LLMClient;
-
+  it("creates processing placeholder entries and returns the capture IDs", async () => {
     const capture = await prisma.capture.create({
       data: { item: "ephemeral", sourceHint: "in a conversation" },
     });
 
-    const result = await EnrichmentService.enrichOneOffs(prisma, mockLLM);
+    const result =
+      await EnrichmentService.createOneOffPlaceholderEntries(prisma);
 
-    expect(result).toEqual({ queuedCount: 1 });
+    expect(result).toEqual([capture.id]);
 
-    // Phase 1 creates a processing placeholder immediately.
     const entry = await prisma.entry.findUnique({
       where: { captureId: capture.id },
     });
     expect(entry).not.toBeNull();
     expect(entry?.status).toBe("processing");
 
-    // Phase 2 (fire-and-forget) flips the entry to pending_review once enrichment
-    // completes. With a mock LLM that resolves immediately, this happens quickly.
-    await vi.waitFor(async () => {
-      const updated = await prisma.entry.findUnique({
-        where: { captureId: capture.id },
-      });
-      expect(updated?.status).toBe("pending_review");
-      expect(updated?.definition).toBeTruthy();
-      expect(updated?.translationArabic).toBeTruthy();
-    });
-
     await prisma.entry.deleteMany();
     await prisma.capture.delete({ where: { id: capture.id } });
   });
 
   it("skips one-offs that already have an entry (no duplicates)", async () => {
-    const mockLLM: LLMClient = {
-      complete: vi.fn().mockResolvedValue(
-        JSON.stringify({
-          definition: "A test definition",
-          translationArabic: "اختبار",
-          nuance: "Test nuance",
-          examples: ["Example 1"],
-          tags: ["test"],
-          relatedEntries: [],
-          confidence: "high",
-        }),
-      ),
-    } as unknown as LLMClient;
-
     // A one-off that already has an entry (e.g. enriched before)
     const doneCapture = await prisma.capture.create({
       data: { item: "done-word" },
@@ -976,10 +934,11 @@ describe("EnrichmentService.enrichOneOffs", () => {
       data: { item: "pending-word" },
     });
 
-    const result = await EnrichmentService.enrichOneOffs(prisma, mockLLM);
+    const result =
+      await EnrichmentService.createOneOffPlaceholderEntries(prisma);
 
-    // Only the pending one-off is queued
-    expect(result).toEqual({ queuedCount: 1 });
+    // Only the pending one-off is returned
+    expect(result).toEqual([pendingCapture.id]);
 
     // The already-enriched capture keeps its single entry unchanged
     const doneEntry = await prisma.entry.findUnique({
@@ -988,14 +947,6 @@ describe("EnrichmentService.enrichOneOffs", () => {
     expect(doneEntry?.definition).toBe("already enriched");
     expect(doneEntry?.status).toBe("pending_review");
 
-    // Phase 2 (fire-and-forget) enriches only the pending capture.
-    await vi.waitFor(() => {
-      expect(mockLLM.complete).toHaveBeenCalledTimes(1);
-    });
-    expect(
-      (mockLLM.complete as ReturnType<typeof vi.fn>).mock.calls[0][0] as string,
-    ).toContain("pending-word");
-
     await prisma.entry.deleteMany();
     await prisma.capture.deleteMany({
       where: { id: { in: [doneCapture.id, pendingCapture.id] } },
@@ -1003,10 +954,6 @@ describe("EnrichmentService.enrichOneOffs", () => {
   });
 
   it("leaves session captures untouched", async () => {
-    const mockLLM: LLMClient = {
-      complete: vi.fn(),
-    } as unknown as LLMClient;
-
     const source = await SourceService.create(
       "OneOffs Session Skip Book",
       "book",
@@ -1015,15 +962,15 @@ describe("EnrichmentService.enrichOneOffs", () => {
     const session = await prisma.session.create({
       data: { sourceId: source.id },
     });
-    // A session capture with no entry — should NOT be picked up by enrichOneOffs
+    // A session capture with no entry — should NOT be picked up
     const sessionCapture = await prisma.capture.create({
       data: { item: "session-word", sessionId: session.id },
     });
 
-    const result = await EnrichmentService.enrichOneOffs(prisma, mockLLM);
+    const result =
+      await EnrichmentService.createOneOffPlaceholderEntries(prisma);
 
-    expect(result).toEqual({ queuedCount: 0 });
-    expect(mockLLM.complete).not.toHaveBeenCalled();
+    expect(result).toEqual([]);
 
     // No entry created for the session capture
     const entry = await prisma.entry.findUnique({
@@ -1038,8 +985,90 @@ describe("EnrichmentService.enrichOneOffs", () => {
     });
   });
 
-  it("enriches pending one-offs oldest-first (FIFO)", async () => {
-    // Use distinct mock responses per call so we can observe order.
+  it("returns capture IDs oldest-first (FIFO)", async () => {
+    // SQLite defaults createdAt to now(), so we set explicit timestamps to
+    // guarantee ordering regardless of insert speed.
+    const olderCapture = await prisma.capture.create({
+      data: {
+        item: "first-word",
+        createdAt: new Date("2026-01-01T00:00:00Z"),
+      },
+    });
+    const newerCapture = await prisma.capture.create({
+      data: {
+        item: "second-word",
+        createdAt: new Date("2026-01-02T00:00:00Z"),
+      },
+    });
+
+    const result =
+      await EnrichmentService.createOneOffPlaceholderEntries(prisma);
+
+    expect(result).toEqual([olderCapture.id, newerCapture.id]);
+
+    await prisma.entry.deleteMany();
+    await prisma.capture.deleteMany({
+      where: { id: { in: [olderCapture.id, newerCapture.id] } },
+    });
+  });
+});
+
+describe("EnrichmentService.enrichOneOffCaptures", () => {
+  const adapter = new PrismaBetterSqlite3({
+    url: "file:./prisma/test.db",
+  });
+  const prisma = new PrismaClient({ adapter });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
+  const enrichmentJson = JSON.stringify({
+    definition: "A test definition",
+    translationArabic: "اختبار",
+    nuance: "Test nuance",
+    examples: ["Example 1"],
+    tags: ["test"],
+    relatedEntries: [],
+    confidence: "high",
+  });
+
+  it("enriches captures and flips entries to pending_review", async () => {
+    const mockLLM: LLMClient = {
+      complete: vi.fn().mockResolvedValue(enrichmentJson),
+    } as unknown as LLMClient;
+
+    const capture = await prisma.capture.create({
+      data: { item: "ephemeral", sourceHint: "in a conversation" },
+    });
+    // Simulate Phase 1 having already run: create a processing placeholder.
+    await prisma.entry.create({
+      data: {
+        captureId: capture.id,
+        status: "processing",
+        definition: "",
+        translationArabic: "",
+        nuance: "",
+        examples: "[]",
+        tags: "[]",
+        relatedEntries: "[]",
+      },
+    });
+
+    await EnrichmentService.enrichOneOffCaptures([capture.id], prisma, mockLLM);
+
+    const entry = await prisma.entry.findUnique({
+      where: { captureId: capture.id },
+    });
+    expect(entry?.status).toBe("pending_review");
+    expect(entry?.definition).toBe("A test definition");
+    expect(entry?.translationArabic).toBeTruthy();
+
+    await prisma.entry.deleteMany();
+    await prisma.capture.delete({ where: { id: capture.id } });
+  });
+
+  it("processes captures in FIFO order (oldest-first)", async () => {
     const mockComplete = vi
       .fn()
       .mockResolvedValueOnce(
@@ -1068,9 +1097,6 @@ describe("EnrichmentService.enrichOneOffs", () => {
       complete: mockComplete,
     } as unknown as LLMClient;
 
-    // Create the oldest one-off first, the newer one second.
-    // SQLite defaults createdAt to now(), so we set explicit timestamps to
-    // guarantee ordering regardless of insert speed.
     const olderCapture = await prisma.capture.create({
       data: {
         item: "first-word",
@@ -1083,26 +1109,39 @@ describe("EnrichmentService.enrichOneOffs", () => {
         createdAt: new Date("2026-01-02T00:00:00Z"),
       },
     });
+    // Simulate Phase 1: create processing placeholders.
+    await prisma.entry.createMany({
+      data: [olderCapture, newerCapture].map((c) => ({
+        captureId: c.id,
+        status: "processing",
+        definition: "",
+        translationArabic: "",
+        nuance: "",
+        examples: "[]",
+        tags: "[]",
+        relatedEntries: "[]",
+      })),
+    });
 
-    await EnrichmentService.enrichOneOffs(prisma, mockLLM);
+    // Pass IDs in FIFO order (oldest first), as createOneOffPlaceholderEntries would.
+    await EnrichmentService.enrichOneOffCaptures(
+      [olderCapture.id, newerCapture.id],
+      prisma,
+      mockLLM,
+    );
 
     // The first LLM call should be for the oldest capture (first-word)
-    await vi.waitFor(() => {
-      expect(mockComplete.mock.calls.length).toBeGreaterThanOrEqual(1);
-    });
     const firstPrompt = mockComplete.mock.calls[0][0] as string;
     expect(firstPrompt).toContain("first-word");
 
-    await vi.waitFor(async () => {
-      const olderEntry = await prisma.entry.findUnique({
-        where: { captureId: olderCapture.id },
-      });
-      const newerEntry = await prisma.entry.findUnique({
-        where: { captureId: newerCapture.id },
-      });
-      expect(olderEntry?.definition).toBe("first-word-def");
-      expect(newerEntry?.definition).toBe("second-word-def");
+    const olderEntry = await prisma.entry.findUnique({
+      where: { captureId: olderCapture.id },
     });
+    const newerEntry = await prisma.entry.findUnique({
+      where: { captureId: newerCapture.id },
+    });
+    expect(olderEntry?.definition).toBe("first-word-def");
+    expect(newerEntry?.definition).toBe("second-word-def");
 
     await prisma.entry.deleteMany();
     await prisma.capture.deleteMany({

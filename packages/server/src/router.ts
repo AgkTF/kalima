@@ -170,12 +170,22 @@ export const appRouter = t.router({
           orderBy: { enrichedAt: "desc" },
         });
       }),
-    enrichOneOffs: t.procedure.mutation(async ({ ctx }) =>
-      // Deep module: one-line router call. Phase 1 (awaited placeholders) +
-      // Phase 2 (fire-and-forget enrichment) are encapsulated in the service.
-      // See ADR 0009.
-      EnrichmentService.enrichOneOffs(ctx.prisma, ctx.llm),
-    ),
+    enrichOneOffs: t.procedure.mutation(async ({ ctx }) => {
+      // Phase 1 (awaited): create processing placeholders so the UI flips
+      // immediately. Phase 2 (fire-and-forget): enrich in the background.
+      // Mirrors session.close — the router owns the detach. See ADR 0009.
+      const captureIds = await EnrichmentService.createOneOffPlaceholderEntries(
+        ctx.prisma,
+      );
+      EnrichmentService.enrichOneOffCaptures(
+        captureIds,
+        ctx.prisma,
+        ctx.llm,
+      ).catch(() => {
+        // Enrichment failures are non-blocking
+      });
+      return { queuedCount: captureIds.length };
+    }),
   }),
   review: t.router({
     getPending: t.procedure.query(async ({ ctx }) =>

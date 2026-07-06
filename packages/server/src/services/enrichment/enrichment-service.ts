@@ -181,19 +181,18 @@ export const EnrichmentService = {
   },
 
   /**
-   * Trigger enrichment for all pending one-off captures (sessionId: null, entry: null).
+   * Phase 1 for one-off enrichment: select pending one-off captures
+   * (sessionId: null, entry: null), create `processing` placeholder entries,
+   * and return the capture IDs. Awaited so the UI flips to ping dots immediately.
    *
-   * Phase 1 (awaited): create `processing` placeholder entries so the UI flips to
-   * ping dots immediately. Phase 2 (fire-and-forget, concurrency 3): enrich each
-   * via `enrichCapture`, flipping entries to `pending_review`.
-   *
-   * Returns `{ queuedCount }` — the number of captures queued for enrichment.
-   * The analog of "close session" for one-offs. See ADR 0009.
+   * The caller (router) passes the returned IDs to `enrichOneOffCaptures`
+   * (Phase 2, fire-and-forget). This mirrors the session-close pattern where
+   * `createPlaceholderEntries` + `enrichSessionCaptures` are orchestrated at
+   * the router level. See ADR 0009.
    */
-  async enrichOneOffs(
+  async createOneOffPlaceholderEntries(
     prisma: PrismaClient,
-    llm: LLMClient,
-  ): Promise<{ queuedCount: number }> {
+  ): Promise<number[]> {
     const pendingCaptures = await prisma.capture.findMany({
       where: { sessionId: null, entry: { is: null } },
       include: { entry: { select: { id: true } } },
@@ -201,10 +200,9 @@ export const EnrichmentService = {
     });
 
     if (pendingCaptures.length === 0) {
-      return { queuedCount: 0 };
+      return [];
     }
 
-    // Phase 1 (awaited): create processing placeholders so the UI flips immediately.
     await prisma.entry.createMany({
       data: pendingCaptures.map((c) => ({
         captureId: c.id,
@@ -218,27 +216,31 @@ export const EnrichmentService = {
       })),
     });
 
-    const queuedCount = pendingCaptures.length;
+    return pendingCaptures.map((c) => c.id);
+  },
 
-    // Phase 2 (fire-and-forget, concurrency 3): enrich each via enrichCapture.
-    // Not awaited — the mutation returns after Phase 1 so the UI flips to
-    // ping dots immediately, while enrichment runs in the background.
-    // See ADR 0009.
-    const captureIds = pendingCaptures.map((c) => c.id);
-    (async () => {
-      const CONCURRENCY = 3;
-      for (let i = 0; i < captureIds.length; i += CONCURRENCY) {
-        const batch = captureIds.slice(i, i + CONCURRENCY);
-        await Promise.allSettled(
-          batch.map((captureId) =>
-            EnrichmentService.enrichCapture(captureId, prisma, llm),
-          ),
-        );
-      }
-    })().catch(() => {
-      // Enrichment failures are non-blocking — entries stay "processing".
-    });
-
-    return { queuedCount };
+  /**
+   * Phase 2 for one-off enrichment: enrich a batch of captures via
+   * `enrichCapture` (concurrency 3). The router calls this fire-and-forget
+   * (not awaited, with `.catch()`) so enrichment runs in the background.
+   *
+   * Precondition: placeholder entries must already exist (created by
+   * `createOneOffPlaceholderEntries`). Missing entries are skipped by
+   * `enrichCapture` (no crash, just wasted work).
+   */
+  async enrichOneOffCaptures(
+    captureIds: number[],
+    prisma: PrismaClient,
+    llm: LLMClient,
+  ): Promise<void> {
+    const CONCURRENCY = 3;
+    for (let i = 0; i < captureIds.length; i += CONCURRENCY) {
+      const batch = captureIds.slice(i, i + CONCURRENCY);
+      await Promise.allSettled(
+        batch.map((captureId) =>
+          EnrichmentService.enrichCapture(captureId, prisma, llm),
+        ),
+      );
+    }
   },
 };
