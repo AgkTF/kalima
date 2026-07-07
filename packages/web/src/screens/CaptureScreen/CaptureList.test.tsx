@@ -304,3 +304,113 @@ describe("CaptureList processing entry separator", () => {
     expect(container.textContent).not.toContain("·");
   });
 });
+
+describe("CaptureList Enrich all button", () => {
+  const noUpdate = vi.fn();
+  const noEnrich = vi.fn();
+
+  it("renders 'Enrich all (N)' when no session and there are pending one-off captures", () => {
+    const captures: Capture[] = [
+      { id: 1, item: "word1", locator: null, sourceHint: null, entry: null },
+      {
+        id: 2,
+        item: "word2",
+        locator: null,
+        sourceHint: "in a chat",
+        entry: null,
+      },
+    ];
+    render(
+      <CaptureList
+        captures={captures}
+        hasSession={false}
+        onUpdateCapture={noUpdate}
+        updateError={null}
+        onEnrich={noEnrich}
+        enrichPending={false}
+      />,
+    );
+    expect(screen.getByText("Enrich all (2)")).toBeInTheDocument();
+  });
+
+  it("is hidden when a session is active", () => {
+    const captures: Capture[] = [
+      { id: 1, item: "word1", locator: null, sourceHint: null, entry: null },
+    ];
+    render(
+      <CaptureList
+        captures={captures}
+        hasSession={true}
+        onUpdateCapture={noUpdate}
+        updateError={null}
+        onEnrich={noEnrich}
+        enrichPending={false}
+      />,
+    );
+    expect(screen.queryByText(/Enrich all/)).not.toBeInTheDocument();
+  });
+
+  it("is hidden when there are no pending (entry: null) captures", () => {
+    const captures: Capture[] = [
+      {
+        id: 1,
+        item: "word1",
+        locator: null,
+        sourceHint: null,
+        entry: { status: "processing" },
+      },
+    ];
+    render(
+      <CaptureList
+        captures={captures}
+        hasSession={false}
+        onUpdateCapture={noUpdate}
+        updateError={null}
+        onEnrich={noEnrich}
+        enrichPending={false}
+      />,
+    );
+    expect(screen.queryByText(/Enrich all/)).not.toBeInTheDocument();
+  });
+
+  it("calls onEnrich when clicked", async () => {
+    const user = userEvent.setup();
+    const onEnrich = vi.fn();
+    const captures: Capture[] = [
+      { id: 1, item: "word1", locator: null, sourceHint: null, entry: null },
+    ];
+    render(
+      <CaptureList
+        captures={captures}
+        hasSession={false}
+        onUpdateCapture={noUpdate}
+        updateError={null}
+        onEnrich={onEnrich}
+        enrichPending={false}
+      />,
+    );
+
+    await user.click(screen.getByText("Enrich all (1)"));
+
+    expect(onEnrich).toHaveBeenCalledTimes(1);
+  });
+
+  it("is disabled and shows '…' while enrichPending is true", () => {
+    const captures: Capture[] = [
+      { id: 1, item: "word1", locator: null, sourceHint: null, entry: null },
+    ];
+    render(
+      <CaptureList
+        captures={captures}
+        hasSession={false}
+        onUpdateCapture={noUpdate}
+        updateError={null}
+        onEnrich={noEnrich}
+        enrichPending={true}
+      />,
+    );
+    const button = screen.getByRole("button", { name: /Enrich all|…/ });
+    expect(button).toBeDisabled();
+    expect(button).toHaveTextContent("…");
+  });
+});

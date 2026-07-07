@@ -58,6 +58,49 @@ describe("capture.create mutation", () => {
     // Cleanup
     await prisma.capture.delete({ where: { id: result.id } });
   });
+
+  it("creates a one-off capture with no entry (enrichment deferred)", async () => {
+    const caller = appRouter.createCaller({ prisma, llm: null as never });
+
+    const result = await caller.capture.create({
+      item: "deferred-word",
+    });
+
+    // No entry should exist for this capture — enrichment is deferred to
+    // the explicit enrichOneOffs trigger.
+    const entry = await prisma.entry.findUnique({
+      where: { captureId: result.id },
+    });
+    expect(entry).toBeNull();
+
+    await prisma.capture.delete({ where: { id: result.id } });
+  });
+
+  it("session capture create does not create an entry (enrichment deferred to session close)", async () => {
+    const source = await prisma.source.create({
+      data: { name: "Session Create Test", type: "book" },
+    });
+    const session = await prisma.session.create({
+      data: { sourceId: source.id },
+    });
+
+    const caller = appRouter.createCaller({ prisma, llm: null as never });
+    const result = await caller.capture.create({
+      item: "session-word",
+      sessionId: session.id,
+    });
+
+    expect(result.sessionId).toBe(session.id);
+
+    const entry = await prisma.entry.findUnique({
+      where: { captureId: result.id },
+    });
+    expect(entry).toBeNull();
+
+    await prisma.capture.delete({ where: { id: result.id } });
+    await prisma.session.deleteMany();
+    await prisma.source.deleteMany({ where: { name: "Session Create Test" } });
+  });
 });
 
 describe("capture.update mutation", () => {

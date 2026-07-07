@@ -119,21 +119,9 @@ export const appRouter = t.router({
           ctx.prisma,
           input.sessionId,
         );
-        // Fire-and-forget enrichment for one-off captures
-        if (!input.sessionId) {
-          // Create placeholder entry immediately so the user sees it in Review
-          await EnrichmentService.createPlaceholderEntry(
-            capture.id,
-            ctx.prisma,
-          );
-          EnrichmentService.enrichCapture(
-            capture.id,
-            ctx.prisma,
-            ctx.llm,
-          ).catch(() => {
-            // Enrichment failures are non-blocking
-          });
-        }
+        // One-offs are created without enrichment — the user adds a Source Hint
+        // retroactively and triggers enrichment explicitly via
+        // enrichment.enrichOneOffs. See ADR 0009.
         return capture;
       }),
     list: t.procedure.query(({ ctx }) => CaptureService.list(ctx.prisma)),
@@ -182,6 +170,22 @@ export const appRouter = t.router({
           orderBy: { enrichedAt: "desc" },
         });
       }),
+    enrichOneOffs: t.procedure.mutation(async ({ ctx }) => {
+      // Phase 1 (awaited): create processing placeholders so the UI flips
+      // immediately. Phase 2 (fire-and-forget): enrich in the background.
+      // Mirrors session.close — the router owns the detach. See ADR 0009.
+      const captureIds = await EnrichmentService.createOneOffPlaceholderEntries(
+        ctx.prisma,
+      );
+      EnrichmentService.enrichOneOffCaptures(
+        captureIds,
+        ctx.prisma,
+        ctx.llm,
+      ).catch(() => {
+        // Enrichment failures are non-blocking
+      });
+      return { queuedCount: captureIds.length };
+    }),
   }),
   review: t.router({
     getPending: t.procedure.query(async ({ ctx }) =>

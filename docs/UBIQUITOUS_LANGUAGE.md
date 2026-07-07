@@ -5,6 +5,7 @@
 | Term | Definition | Aliases to avoid |
 |---|---|---|
 | **Capture** | A raw word or phrase recorded from reading or watching, before enrichment | Raw entry, input, recorded word |
+| **Pending Capture** | A **Capture** with `entry: null` — awaiting enrichment. Session captures are pending until the user closes the **Session**; one-off captures are pending until the user clicks "Enrich all" (see ADR-0009). Renders `NormalCaptureEntry` with the `+ add locator`/`+ add source` tap target. | Unenriched capture, waiting capture |
 | **Enrichment** | The agent process that adds definition, translation, nuance, examples, and connections to a **Capture** | Processing, annotation, augmenting |
 | **Entry** | A **Capture** that has been enriched and approved, now residing in the **Word Bank** | Word entry, bank entry, record |
 | **Re-enrichment** | A second or subsequent **Enrichment** run on a **Capture** or **Entry**, typically after attaching better **Source Context** | Re-processing, enrichment refresh |
@@ -53,6 +54,7 @@
 - A **Source** can have many **Sessions**
 - A **Session** has many **Captures**
 - A **Capture** belongs to exactly one **Session** or is a **One-off**
+- A **Pending Capture** (`entry: null`) sits in normal state until enrichment is triggered — for session captures by closing the **Session**, for one-offs by clicking "Enrich all" (see ADR-0009). The user can add a **Locator** or **Source Hint** retroactively while pending.
 - A **Capture** may include a **Locator** (chapter, page, timestamp) — provided via the slash delimiter at capture time, or added retroactively via the tap target on the capture list
 - A **Capture** may include a **Source Hint** (for **One-offs** only) — provided via the slash delimiter at capture time, or added retroactively. Fed to the **Enrichment** prompt as "Encounter context:"
 - A **Source** may optionally have **Source Context** attached (chapter text, subtitle file, fetched article)
