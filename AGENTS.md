@@ -34,3 +34,9 @@ Default canonical labels: `needs-triage`, `needs-info`, `ready-for-agent`, `read
 Single-context: `CONTEXT.md` at repo root + `docs/adr/`. See `docs/agents/domain.md`.
 
 When working on screen files (`packages/web/src/screens/`), always read `docs/adr/0006-screen-files-as-thin-orchestrators.md` first. Screen files are thin orchestrators; sub-components, utilities, and types live in sibling files.
+
+### Workspace guardrails
+
+- Keep the main context focused on the active task. Route secondary work such as web research and documentation discovery through a Herdr pane; if Herdr is unavailable, use a sub-agent. Choose a model and thinking effort appropriate to each delegated task.
+- Stay in the smart-zone budget of roughly 100K–150K tokens. Monitor usage, avoid starting a new body of work near that zone, and wrap ongoing work when possible. When the current work is wrapped, ask the user to invoke the handoff skill before continuing in a fresh context.
+- Before implementing a ticket for the first time, create a branch from an up-to-date `main` branch using `workItemType/ticketNo_ticket-name` (for example, `feat/01234_dummy-ticket-name`). Shorten long ticket names intelligently while retaining the identifying meaning. Confirm the branch base and naming before implementation begins.
