@@ -132,21 +132,36 @@ export const appRouter = t.router({
       ),
     update: t.procedure
       .input(
-        z.object({
-          captureId: z.number(),
-          locator: z.string().nullable().optional(),
-          sourceHint: z.string().nullable().optional(),
-        }),
+        z
+          .object({
+            captureId: z.number(),
+            item: z.string().trim().min(1).optional(),
+            locator: z.string().trim().nullable().optional(),
+            sourceHint: z.string().trim().nullable().optional(),
+          })
+          .refine(
+            ({ item, locator, sourceHint }) =>
+              item !== undefined ||
+              locator !== undefined ||
+              sourceHint !== undefined,
+            { message: "Provide at least one Capture field to update." },
+          ),
       )
       .mutation(async ({ input, ctx }) =>
         CaptureService.update(
           input.captureId,
           {
+            item: input.item,
             locator: input.locator,
             sourceHint: input.sourceHint,
           },
           ctx.prisma,
         ),
+      ),
+    delete: t.procedure
+      .input(z.object({ captureId: z.number() }))
+      .mutation(async ({ input, ctx }) =>
+        CaptureService.deletePending(input.captureId, ctx.prisma),
       ),
   }),
 
