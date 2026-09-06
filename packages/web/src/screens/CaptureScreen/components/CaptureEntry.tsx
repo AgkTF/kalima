@@ -59,53 +59,19 @@ function PendingCaptureEntry({
   }, [confirmingDelete]);
 
   return (
-    <li className="border-b border-divider py-2.5 last:border-b-0">
-      <div className="flex items-center gap-2">
-        <div className="min-w-0 flex-1">
-          <InlineTextEditor
-            value={capture.item}
-            inputLabel={`Item for ${capture.item}`}
-            onSave={(item) => {
-              if (item) onUpdateCapture(capture.id, { item });
-            }}
-          />
-        </div>
-        {onRequestDelete &&
-          (confirmingDelete ? (
-            <div className="flex shrink-0 items-center gap-1">
-              <button
-                type="button"
-                aria-label={`Confirm delete ${capture.item}`}
-                onClick={() => onRequestDelete(capture)}
-                // biome-ignore lint/a11y/noAutofocus: focus follows the Delete disclosure
-                autoFocus
-                className="flex size-10 items-center justify-center rounded-full text-red-600 transition-[background-color,scale] duration-150 ease-out hover:bg-red-50 active:scale-[0.96]"
-              >
-                <CheckIcon className="size-4" aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                aria-label={`Cancel delete ${capture.item}`}
-                onClick={() => {
-                  restoreDeleteFocus.current = true;
-                  setConfirmingDelete(false);
-                }}
-                className="flex size-10 items-center justify-center rounded-full text-dim transition-[background-color,scale] duration-150 ease-out hover:bg-chip active:scale-[0.96]"
-              >
-                <XMarkIcon className="size-4" aria-hidden="true" />
-              </button>
-            </div>
-          ) : (
-            <button
-              ref={deleteButtonRef}
-              type="button"
-              aria-label={`Delete ${capture.item}`}
-              onClick={() => setConfirmingDelete(true)}
-              className="flex size-10 shrink-0 items-center justify-center rounded-full text-dim transition-[background-color,color,scale] duration-150 ease-out hover:bg-red-50 hover:text-red-600 active:scale-[0.96]"
-            >
-              <TrashIcon className="size-4" aria-hidden="true" />
-            </button>
-          ))}
+    <li
+      className={`relative border-b border-divider py-2.5 last:border-b-0 ${
+        onRequestDelete ? (confirmingDelete ? "pr-24" : "pr-12") : ""
+      }`}
+    >
+      <div className="min-w-0">
+        <InlineTextEditor
+          value={capture.item}
+          inputLabel={`Item for ${capture.item}`}
+          onSave={(item) => {
+            if (item) onUpdateCapture(capture.id, { item });
+          }}
+        />
       </div>
       <div className="mt-0.5 flex items-center gap-1.5 text-xs">
         {hasSession ? (
@@ -128,6 +94,45 @@ function PendingCaptureEntry({
           />
         )}
       </div>
+      {onRequestDelete && (
+        <div className="absolute right-0 top-2.5 flex shrink-0 items-center gap-1">
+          {confirmingDelete ? (
+            <>
+              <button
+                type="button"
+                aria-label={`Confirm delete ${capture.item}`}
+                onClick={() => onRequestDelete(capture)}
+                // biome-ignore lint/a11y/noAutofocus: focus follows the Delete disclosure
+                autoFocus
+                className="flex size-10 items-center justify-center rounded-full text-red-600 transition-[background-color,scale] duration-150 ease-out hover:bg-red-50 active:scale-[0.96]"
+              >
+                <CheckIcon className="size-4" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                aria-label={`Cancel delete ${capture.item}`}
+                onClick={() => {
+                  restoreDeleteFocus.current = true;
+                  setConfirmingDelete(false);
+                }}
+                className="flex size-10 items-center justify-center rounded-full text-dim transition-[background-color,scale] duration-150 ease-out hover:bg-chip active:scale-[0.96]"
+              >
+                <XMarkIcon className="size-4" aria-hidden="true" />
+              </button>
+            </>
+          ) : (
+            <button
+              ref={deleteButtonRef}
+              type="button"
+              aria-label={`Delete ${capture.item}`}
+              onClick={() => setConfirmingDelete(true)}
+              className="flex size-10 shrink-0 items-center justify-center rounded-full text-dim transition-[background-color,color,scale] duration-150 ease-out hover:bg-red-50 hover:text-red-600 active:scale-[0.96]"
+            >
+              <TrashIcon className="size-4" aria-hidden="true" />
+            </button>
+          )}
+        </div>
+      )}
     </li>
   );
 }

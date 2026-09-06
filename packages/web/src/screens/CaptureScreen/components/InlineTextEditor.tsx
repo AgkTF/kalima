@@ -54,8 +54,8 @@ export function InlineTextEditor({
         onBlur={save}
         className={
           variant === "item"
-            ? "min-h-10 w-full rounded-[5px] border border-accent bg-surface px-2 font-display text-base font-semibold text-ink outline-none focus:ring-1 focus:ring-accent"
-            : "min-h-10 min-w-32 rounded-[5px] border border-accent bg-surface px-2 font-medium text-xs text-ink outline-none focus:ring-1 focus:ring-accent"
+            ? "h-6 w-full rounded-[5px] border border-accent bg-surface px-2 font-display text-base font-semibold text-ink outline-none focus:ring-1 focus:ring-accent"
+            : "h-5 min-w-32 rounded-[5px] border border-accent bg-surface px-2 font-medium text-xs text-ink outline-none focus:ring-1 focus:ring-accent"
         }
       />
     );
@@ -71,8 +71,8 @@ export function InlineTextEditor({
       }}
       className={
         variant === "item"
-          ? "min-h-10 w-full text-left font-display text-base font-semibold text-ink transition-[color,scale] duration-150 ease-out hover:text-accent active:scale-[0.96]"
-          : "min-h-10 text-left font-medium text-xs text-accent transition-[color,scale] duration-150 ease-out hover:text-ink active:scale-[0.96]"
+          ? "min-h-6 w-full text-left font-display text-base font-semibold text-ink transition-[color,scale] duration-150 ease-out hover:text-accent active:scale-[0.96]"
+          : "min-h-6 text-left font-medium text-xs text-accent transition-[color,scale] duration-150 ease-out hover:text-ink active:scale-[0.96]"
       }
     >
       <span
