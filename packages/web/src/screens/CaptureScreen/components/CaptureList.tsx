@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import type { Capture, CaptureUpdateData } from "./captureTypes";
-import { CaptureEntry } from "./components/CaptureEntry";
+import type { Capture, CaptureUpdateData } from "../captureTypes";
+import { CaptureEntry } from "./CaptureEntry";
 
 const DELETE_UNDO_MS = 5_000;
 

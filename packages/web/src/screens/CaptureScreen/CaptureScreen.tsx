@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { trpc } from "../../trpc";
 import { CaptureInput } from "./CaptureInput";
-import { CaptureList } from "./CaptureList";
+import { CaptureList } from "./components/CaptureList";
 import { EnrichmentContextEditor } from "./EnrichmentContextEditor";
 import { SessionForm } from "./SessionForm";
 import { SystemPromptEditor } from "./SystemPromptEditor";

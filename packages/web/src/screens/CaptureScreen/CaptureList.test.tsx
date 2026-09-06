@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { CaptureList } from "./CaptureList";
+import { CaptureList } from "./components/CaptureList";
 
 interface Capture {
   id: number;
