@@ -2,6 +2,7 @@ import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { afterAll, describe, expect, it } from "vitest";
 import { PrismaClient } from "../generated/prisma/client.js";
 import { appRouter } from "../router.js";
+import { CaptureService } from "../services/capture.js";
 
 describe("capture.create mutation", () => {
   const adapter = new PrismaBetterSqlite3({
@@ -114,8 +115,19 @@ describe("capture.update mutation", () => {
   });
 
   it("updates a capture's locator", async () => {
+    const source = await prisma.source.create({
+      data: { name: "Router Update Locator", type: "book" },
+    });
+    const session = await prisma.session.create({
+      data: { sourceId: source.id },
+    });
     const created = await prisma.capture.create({
-      data: { item: "serendipity", locator: null, sourceHint: null },
+      data: {
+        item: "serendipity",
+        locator: null,
+        sourceHint: null,
+        sessionId: session.id,
+      },
     });
 
     const caller = appRouter.createCaller({ prisma, llm: null as never });
@@ -139,6 +151,8 @@ describe("capture.update mutation", () => {
 
     // Cleanup
     await prisma.capture.delete({ where: { id: created.id } });
+    await prisma.session.delete({ where: { id: session.id } });
+    await prisma.source.delete({ where: { id: source.id } });
   });
 
   it("updates a capture's sourceHint", async () => {
@@ -166,6 +180,216 @@ describe("capture.update mutation", () => {
 
     // Cleanup
     await prisma.capture.delete({ where: { id: created.id } });
+  });
+});
+
+describe("CaptureService pending state transitions", () => {
+  const adapter = new PrismaBetterSqlite3({
+    url: "file:./prisma/test.db",
+  });
+  const prisma = new PrismaClient({ adapter });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
+  it("updates a Pending Session Capture's Item and existing Locator", async () => {
+    const source = await prisma.source.create({
+      data: { name: "Pending Capture Edit", type: "book" },
+    });
+    const session = await prisma.session.create({
+      data: { sourceId: source.id },
+    });
+    const capture = await prisma.capture.create({
+      data: {
+        item: "serendipty",
+        locator: "p.44",
+        sessionId: session.id,
+      },
+    });
+
+    const updated = await CaptureService.update(
+      capture.id,
+      { item: "serendipity", locator: "p.45" },
+      prisma,
+    );
+
+    expect(updated).toMatchObject({
+      id: capture.id,
+      item: "serendipity",
+      locator: "p.45",
+    });
+
+    await prisma.capture.delete({ where: { id: capture.id } });
+    await prisma.session.delete({ where: { id: session.id } });
+    await prisma.source.delete({ where: { id: source.id } });
+  });
+
+  it("rejects a Locator change on a One-off without partially updating its Item", async () => {
+    const capture = await prisma.capture.create({
+      data: { item: "original", sourceHint: "in a conversation" },
+    });
+
+    await expect(
+      CaptureService.update(
+        capture.id,
+        { item: "changed", locator: "p.45" },
+        prisma,
+      ),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+    const unchanged = await prisma.capture.findUniqueOrThrow({
+      where: { id: capture.id },
+    });
+    expect(unchanged).toMatchObject({
+      item: "original",
+      locator: null,
+      sourceHint: "in a conversation",
+    });
+
+    await prisma.capture.delete({ where: { id: capture.id } });
+  });
+
+  it("trims a Pending One-off's Item and existing Source Hint", async () => {
+    const capture = await prisma.capture.create({
+      data: { item: "cardnal", sourceHint: "in a conversation" },
+    });
+
+    const updated = await CaptureService.update(
+      capture.id,
+      { item: "  cardinal  ", sourceHint: "  in an ad  " },
+      prisma,
+    );
+
+    expect(updated).toMatchObject({
+      item: "cardinal",
+      sourceHint: "in an ad",
+    });
+
+    const cleared = await CaptureService.update(
+      capture.id,
+      { sourceHint: "   " },
+      prisma,
+    );
+    expect(cleared.sourceHint).toBeNull();
+
+    await expect(
+      CaptureService.update(capture.id, { item: "   " }, prisma),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(
+      prisma.capture.findUniqueOrThrow({ where: { id: capture.id } }),
+    ).resolves.toMatchObject({ item: "cardinal", sourceHint: null });
+
+    await prisma.capture.delete({ where: { id: capture.id } });
+  });
+
+  it("rejects a Source Hint change on a Session Capture", async () => {
+    const source = await prisma.source.create({
+      data: { name: "Wrong Metadata Context", type: "book" },
+    });
+    const session = await prisma.session.create({
+      data: { sourceId: source.id },
+    });
+    const capture = await prisma.capture.create({
+      data: { item: "unchanged", locator: "p.12", sessionId: session.id },
+    });
+
+    await expect(
+      CaptureService.update(
+        capture.id,
+        { item: "changed", sourceHint: "not allowed" },
+        prisma,
+      ),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(
+      prisma.capture.findUniqueOrThrow({ where: { id: capture.id } }),
+    ).resolves.toMatchObject({ item: "unchanged", locator: "p.12" });
+
+    await prisma.capture.delete({ where: { id: capture.id } });
+    await prisma.session.delete({ where: { id: session.id } });
+    await prisma.source.delete({ where: { id: source.id } });
+  });
+
+  it("rejects an update once Enrichment work exists", async () => {
+    const capture = await prisma.capture.create({
+      data: { item: "original", sourceHint: "in a conversation" },
+    });
+    await prisma.entry.create({
+      data: {
+        captureId: capture.id,
+        status: "processing",
+        definition: "",
+        translationArabic: "",
+        nuance: "",
+        examples: "[]",
+        tags: "[]",
+        relatedEntries: "[]",
+      },
+    });
+
+    await expect(
+      CaptureService.update(capture.id, { item: "changed" }, prisma),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+
+    const unchanged = await prisma.capture.findUniqueOrThrow({
+      where: { id: capture.id },
+    });
+    expect(unchanged.item).toBe("original");
+
+    await prisma.entry.delete({ where: { captureId: capture.id } });
+    await prisma.capture.delete({ where: { id: capture.id } });
+  });
+
+  it("deletes a Pending Capture", async () => {
+    const capture = await prisma.capture.create({
+      data: { item: "accidental capture" },
+    });
+
+    await CaptureService.deletePending(capture.id, prisma);
+
+    await expect(
+      prisma.capture.findUnique({ where: { id: capture.id } }),
+    ).resolves.toBeNull();
+  });
+
+  it("rejects deletion once Enrichment work exists without changing the Capture", async () => {
+    const capture = await prisma.capture.create({
+      data: { item: "already processing" },
+    });
+    await prisma.entry.create({
+      data: {
+        captureId: capture.id,
+        status: "processing",
+        definition: "",
+        translationArabic: "",
+        nuance: "",
+        examples: "[]",
+        tags: "[]",
+        relatedEntries: "[]",
+      },
+    });
+
+    await expect(
+      CaptureService.deletePending(capture.id, prisma),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+
+    await expect(
+      prisma.capture.findUnique({ where: { id: capture.id } }),
+    ).resolves.toMatchObject({ id: capture.id, item: "already processing" });
+
+    await prisma.entry.delete({ where: { captureId: capture.id } });
+    await prisma.capture.delete({ where: { id: capture.id } });
+  });
+
+  it("rejects edits and deletion for a missing Capture", async () => {
+    const missingId = 2_147_483_647;
+
+    await expect(
+      CaptureService.update(missingId, { item: "missing" }, prisma),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(
+      CaptureService.deletePending(missingId, prisma),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 });
 

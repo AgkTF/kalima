@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { trpc } from "../../trpc";
 import { CaptureInput } from "./CaptureInput";
-import { CaptureList } from "./CaptureList";
+import { CaptureList } from "./components/CaptureList";
 import { EnrichmentContextEditor } from "./EnrichmentContextEditor";
 import { SessionForm } from "./SessionForm";
 import { SystemPromptEditor } from "./SystemPromptEditor";
@@ -10,6 +10,9 @@ export function CaptureScreen() {
   const [showSessionForm, setShowSessionForm] = useState(false);
   const [showPromptEditor, setShowPromptEditor] = useState(false);
   const [showContextEditor, setShowContextEditor] = useState(false);
+  const [pendingDeletionId, setPendingDeletionId] = useState<number | null>(
+    null,
+  );
 
   const utils = trpc.useUtils();
 
@@ -29,6 +32,14 @@ export function CaptureScreen() {
     enabled: showPromptEditor,
   });
 
+  function invalidateCaptures() {
+    return activeSession.data
+      ? utils.capture.listSession.invalidate({
+          sessionId: activeSession.data.id,
+        })
+      : utils.capture.list.invalidate();
+  }
+
   // Mutations
   const setBaseSystemPrompt = trpc.app.setBaseSystemPrompt.useMutation({
     onSuccess: () => {
@@ -43,27 +54,15 @@ export function CaptureScreen() {
   });
 
   const createCapture = trpc.capture.create.useMutation({
-    onSuccess: () => {
-      if (activeSession.data) {
-        utils.capture.listSession.invalidate({
-          sessionId: activeSession.data.id,
-        });
-      } else {
-        utils.capture.list.invalidate();
-      }
-    },
+    onSuccess: invalidateCaptures,
   });
 
   const updateCapture = trpc.capture.update.useMutation({
-    onSuccess: () => {
-      if (activeSession.data) {
-        utils.capture.listSession.invalidate({
-          sessionId: activeSession.data.id,
-        });
-      } else {
-        utils.capture.list.invalidate();
-      }
-    },
+    onSuccess: invalidateCaptures,
+  });
+
+  const deleteCapture = trpc.capture.delete.useMutation({
+    onSuccess: invalidateCaptures,
   });
 
   const openSession = trpc.session.open.useMutation({
@@ -101,6 +100,11 @@ export function CaptureScreen() {
   const activeCaptures = hasSession
     ? (sessionCaptures.data ?? [])
     : (captures.data ?? []);
+  const visibleCaptureCount = activeCaptures.some(
+    (capture) => capture.id === pendingDeletionId,
+  )
+    ? activeCaptures.length - 1
+    : activeCaptures.length;
 
   return (
     <main className="flex flex-1 flex-col relative">
@@ -108,9 +112,9 @@ export function CaptureScreen() {
       <header className="flex items-center justify-between px-5 pt-4 pb-2">
         <h1 className="font-display text-lg font-bold text-ink">Capture</h1>
         <div className="flex items-center gap-2">
-          {activeCaptures.length > 0 && (
-            <span className="rounded-full bg-accent-subtle px-2 text-xs text-dim">
-              {activeCaptures.length}
+          {visibleCaptureCount > 0 && (
+            <span className="rounded-full bg-accent-subtle px-2 text-xs text-dim tabular-nums">
+              {visibleCaptureCount}
             </span>
           )}
           <button
@@ -150,7 +154,7 @@ export function CaptureScreen() {
               <button
                 type="button"
                 onClick={() => closeSession.mutate()}
-                disabled={closeSession.isPending}
+                disabled={closeSession.isPending || pendingDeletionId !== null}
                 className="rounded-button border border-divider px-3 py-1 text-xs font-medium text-dim transition-colors hover:border-red-200 hover:text-red-600 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
               >
                 {closeSession.isPending ? "\u2026" : "Close"}
@@ -180,14 +184,15 @@ export function CaptureScreen() {
             <button
               type="button"
               onClick={() => setShowSessionForm(true)}
-              className="w-full rounded-button border border-dashed border-divider px-3 py-2.5 text-center text-sm text-dim transition-colors hover:border-accent hover:text-accent cursor-pointer"
+              disabled={pendingDeletionId !== null}
+              className="w-full rounded-button border border-dashed border-divider px-3 py-2.5 text-center text-sm text-dim transition-colors hover:border-accent hover:text-accent cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
             >
               Start a Session
             </button>
           ) : (
             <SessionForm
               sources={allSources.data ?? []}
-              isPending={openSession.isPending}
+              isPending={openSession.isPending || pendingDeletionId !== null}
               onStart={(name, type, enrichmentContext) =>
                 openSession.mutate({
                   name,
@@ -208,7 +213,13 @@ export function CaptureScreen() {
         onUpdateCapture={(captureId, data) =>
           updateCapture.mutate({ captureId, ...data })
         }
-        updateError={updateCapture.error?.message ?? null}
+        updateError={
+          updateCapture.error?.message ?? deleteCapture.error?.message ?? null
+        }
+        onDeleteCapture={(captureId) =>
+          deleteCapture.mutateAsync({ captureId })
+        }
+        onPendingDeletionChange={setPendingDeletionId}
         onEnrich={() => enrichOneOffs.mutate()}
         enrichPending={enrichOneOffs.isPending}
       />
