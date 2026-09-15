@@ -65,6 +65,10 @@ export function CaptureScreen() {
     onSuccess: invalidateCaptures,
   });
 
+  const batchCapture = trpc.capture.batchPending.useMutation({
+    onSuccess: invalidateCaptures,
+  });
+
   const openSession = trpc.session.open.useMutation({
     onSuccess: () => {
       utils.session.getActive.invalidate();
@@ -154,7 +158,11 @@ export function CaptureScreen() {
               <button
                 type="button"
                 onClick={() => closeSession.mutate()}
-                disabled={closeSession.isPending || pendingDeletionId !== null}
+                disabled={
+                  closeSession.isPending ||
+                  batchCapture.isPending ||
+                  pendingDeletionId !== null
+                }
                 className="rounded-button border border-divider px-3 py-1 text-xs font-medium text-dim transition-colors hover:border-red-200 hover:text-red-600 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
               >
                 {closeSession.isPending ? "\u2026" : "Close"}
@@ -184,7 +192,7 @@ export function CaptureScreen() {
             <button
               type="button"
               onClick={() => setShowSessionForm(true)}
-              disabled={pendingDeletionId !== null}
+              disabled={batchCapture.isPending || pendingDeletionId !== null}
               className="w-full rounded-button border border-dashed border-divider px-3 py-2.5 text-center text-sm text-dim transition-colors hover:border-accent hover:text-accent cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
             >
               Start a Session
@@ -192,7 +200,11 @@ export function CaptureScreen() {
           ) : (
             <SessionForm
               sources={allSources.data ?? []}
-              isPending={openSession.isPending || pendingDeletionId !== null}
+              isPending={
+                openSession.isPending ||
+                batchCapture.isPending ||
+                pendingDeletionId !== null
+              }
               onStart={(name, type, enrichmentContext) =>
                 openSession.mutate({
                   name,
@@ -208,6 +220,7 @@ export function CaptureScreen() {
 
       {/* Capture list */}
       <CaptureList
+        key={activeSession.data?.id ?? "one-offs"}
         captures={activeCaptures}
         hasSession={hasSession}
         onUpdateCapture={(captureId, data) =>
@@ -220,6 +233,15 @@ export function CaptureScreen() {
           deleteCapture.mutateAsync({ captureId })
         }
         onPendingDeletionChange={setPendingDeletionId}
+        onBatchCapture={(captureIds, action) =>
+          batchCapture.mutateAsync({ captureIds, action })
+        }
+        actionsPending={
+          updateCapture.isPending ||
+          deleteCapture.isPending ||
+          openSession.isPending ||
+          closeSession.isPending
+        }
         onEnrich={() => enrichOneOffs.mutate()}
         enrichPending={enrichOneOffs.isPending}
       />
