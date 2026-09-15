@@ -41,11 +41,17 @@ function PendingCaptureEntry({
   hasSession,
   onUpdateCapture,
   onRequestDelete,
+  selected,
+  onToggleSelected,
+  selectionDisabled,
 }: {
   capture: Capture;
   hasSession: boolean;
   onUpdateCapture: (captureId: number, data: CaptureUpdateData) => void;
   onRequestDelete?: (capture: Capture) => void;
+  selected?: boolean;
+  onToggleSelected?: () => void;
+  selectionDisabled?: boolean;
 }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
@@ -62,8 +68,20 @@ function PendingCaptureEntry({
     <li
       className={`relative border-b border-divider py-2.5 last:border-b-0 ${
         onRequestDelete ? (confirmingDelete ? "pr-24" : "pr-12") : ""
-      }`}
+      } ${onToggleSelected ? "pl-11" : ""} ${selected ? "bg-accent-subtle/50" : ""}`}
     >
+      {onToggleSelected && (
+        <label className="absolute left-0 top-2.5 flex size-10 cursor-pointer items-center justify-center rounded-button hover:bg-accent-subtle">
+          <input
+            type="checkbox"
+            aria-label={`Select ${capture.item}`}
+            checked={selected ?? false}
+            disabled={selectionDisabled}
+            onChange={onToggleSelected}
+            className="size-4 accent-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+          />
+        </label>
+      )}
       <div className="min-w-0">
         <InlineTextEditor
           value={capture.item}
@@ -142,11 +160,17 @@ export function CaptureEntry({
   hasSession,
   onUpdateCapture,
   onRequestDelete,
+  selected,
+  onToggleSelected,
+  selectionDisabled,
 }: {
   capture: Capture;
   hasSession: boolean;
   onUpdateCapture: (captureId: number, data: CaptureUpdateData) => void;
   onRequestDelete?: (capture: Capture) => void;
+  selected?: boolean;
+  onToggleSelected?: () => void;
+  selectionDisabled?: boolean;
 }) {
   if (capture.entry) {
     return <LockedCaptureEntry capture={capture} />;
@@ -157,6 +181,9 @@ export function CaptureEntry({
       hasSession={hasSession}
       onUpdateCapture={onUpdateCapture}
       onRequestDelete={onRequestDelete}
+      selected={selected}
+      onToggleSelected={onToggleSelected}
+      selectionDisabled={selectionDisabled}
     />
   );
 }

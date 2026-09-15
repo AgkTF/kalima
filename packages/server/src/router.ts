@@ -158,6 +158,28 @@ export const appRouter = t.router({
           ctx.prisma,
         ),
       ),
+    batchPending: t.procedure
+      .input(
+        z.object({
+          captureIds: z.array(z.number().int().positive()).min(1),
+          action: z.discriminatedUnion("type", [
+            z.object({
+              type: z.literal("setLocator"),
+              value: z.string().trim().min(1),
+            }),
+            z.object({ type: z.literal("clearLocator") }),
+            z.object({
+              type: z.literal("setSourceHint"),
+              value: z.string().trim().min(1),
+            }),
+            z.object({ type: z.literal("clearSourceHint") }),
+            z.object({ type: z.literal("delete") }),
+          ]),
+        }),
+      )
+      .mutation(({ input, ctx }) =>
+        CaptureService.batchPending(input.captureIds, input.action, ctx.prisma),
+      ),
     delete: t.procedure
       .input(z.object({ captureId: z.number() }))
       .mutation(async ({ input, ctx }) =>
@@ -322,3 +344,4 @@ export const appRouter = t.router({
 });
 
 export type AppRouter = typeof appRouter;
+export type { PendingCaptureBatchAction } from "./services/capture.js";

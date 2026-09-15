@@ -1,3 +1,5 @@
+export type { PendingCaptureBatchAction } from "server/router";
+
 export interface Capture {
   id: number;
   item: string;
